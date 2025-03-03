@@ -11,12 +11,15 @@ from tqdm import tqdm
 
 import tensorflow as tf
 
+from data.cross_validation import leave_one_person_out
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
 from net.generator_ds import SegmentedGenerator, SequentialGenerator
 from net.routines import train_net, predict_net
 from net.utils import apply_preprocess_eeg, get_metrics_scoring
 
-from classes.data import Data
+from data.data import Data
+from utility import get_recs_list
+
 
 def train(config, load_generators, save_generators):
     """ Routine to run the model's training routine.
@@ -49,16 +52,12 @@ def train(config, load_generators, save_generators):
 
     config.save_config(save_path=config_path)
 
-    #######################################################################################################################
-    ### Fixed train/val/test ###
-    #######################################################################################################################
-    if config.cross_validation == 'fixed':
-        
-        if config.dataset == 'SZ2':
-
-            train_pats_list = pd.read_csv(os.path.join('net', 'datasets', 'SZ2_training.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
-            train_pats_list = train_pats_list[0].to_list()
-            train_recs_list = [[s, r.split('_')[-2]] for s in train_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
+    if config.cross_validation == 'leave_one_person_out':
+        for train_subjects, test_subject in leave_one_person_out(config.data_path, included_locations=config.locations):
+            # train_pats_list = pd.read_csv(os.path.join('net', 'datasets', 'SZ2_training.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
+            # train_pats_list = train_pats_list[0].to_list()
+            train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
+            # train_recs_list = [[s, r.split('_')[-2]] for s in train_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
 
             if load_generators:
                 print('Loading generators...')
@@ -87,7 +86,7 @@ def train(config, load_generators, save_generators):
                 val_pats_list = pd.read_csv(os.path.join('net', 'datasets', 'SZ2_validation.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
                 val_pats_list = val_pats_list[0].to_list()
                 val_recs_list = [[s, r.split('_')[-2]] for s in val_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
-                
+
                 val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
 
                 print('Generating validation segments...')
@@ -98,17 +97,18 @@ def train(config, load_generators, save_generators):
                         pickle.dump(gen_val, outp, pickle.HIGHEST_PROTOCOL)
 
             print('### Training model....')
-            
+
             model = net(config)
 
             start_train = time.time()
-            
+
             train_net(config, model, gen_train, gen_val, model_save_path)
-            
+
             end_train = time.time() - start_train
             print('Total train duration = ', end_train / 60)
 
-
+    elif config.cross_validation == 'leave_one_seizure_out':
+        pass
 #######################################################################################################################
 #######################################################################################################################
 

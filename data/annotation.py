@@ -1,6 +1,7 @@
 import os
 from typing import List, Tuple
 import pandas as pd
+import pyedflib
 
 
 class Annotation:
@@ -46,16 +47,23 @@ class Annotation:
         szLoc = list()
         szVig = list()
 
-        tsvFile = os.path.join(annotation_path, recording[0], 'ses-01', 'eeg', '_'.join([recording[0], 'ses-01', 'task-szMonitoring', recording[1], 'events' + '.tsv']))
-        df = pd.read_csv(tsvFile, delimiter="\t")
+        path = os.path.join(annotation_path, recording[0], recording[1])
+        tsv_suffices = [suffix.split('_')[-1] for suffix in os.listdir(path) if suffix.endswith('.tsv') and suffix.startswith(f'{recording[1]}_{recording[2]}_')]
+        if len(tsv_suffices) > 1:
+            raise ValueError(f'Multiple tsv files found for recording {recording[0]} {recording[1]} {recording[2]}')
+        tsvFile = os.path.join(path, f'{recording[1]}_{recording[2]}_{tsv_suffices[0]}')
+        df = pd.read_csv(tsvFile, delimiter="\t", skiprows=4)
         for i, e in df.iterrows():
-            if e['eventType'] != 'bckg' and e['eventType'] != 'impd':
-                szEvents.append([e['onset'], e['onset'] + e['duration']])
-                szTypes.append(e['eventType'])
+            if e['class'] == 'seizure' and e['main type'] == 'focal':
+                szEvents.append([e['start'], e['stop']])
+                szTypes.append(e['main type'])
                 szLat.append(e['lateralization'])
                 szLoc.append(e['localization'])
                 szVig.append(e['vigilance'])
-        durs = e['recordingDuration']
+        # durs = e['stop'] - e['start']
+        edf_path = os.path.join(path, f'{recording[1]}_{recording[2]}.edf')
+        with pyedflib.EdfReader(edf_path) as edf:
+            durs = edf.file_duration
 
         return cls(
             szEvents,

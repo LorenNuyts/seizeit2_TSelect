@@ -1,5 +1,8 @@
 import os
 import random
+
+from utility.constants import Locations
+
 random_seed = 1
 random.seed(random_seed)
 
@@ -23,13 +26,14 @@ from net.DL_config import Config
 
 ## Configuration for the generator and models:
 config = Config()
-config.data_path = '/esat/biomeddata/SeizeIT2/bids'             # path to data
+# config.data_path = '/esat/biomeddata/SeizeIT2/bids'             # path to data
+config.data_path = "/media/loren/Seagate Basic/Epilepsy use case"       # path to dataset
 config.save_dir = 'net/save_dir'                                # save directory of intermediate and output files
 if not os.path.exists(config.save_dir):
   os.mkdir(config.save_dir)
 config.fs = 250                                                 # Sampling frequency of the data after post-processing
 config.CH = 2                                                   # Nr of EEG channels
-config.cross_validation = 'fixed'                               # validation type
+config.cross_validation = 'leave_one_person_out'                # validation type TODO: What are the options?
 config.batch_size = 128                                         # batch size
 config.frame = 2                                                # window size of input segments in seconds
 config.stride = 1                                               # stride between segments (of background EEG) in seconds
@@ -51,6 +55,12 @@ config.model = 'ChronoNet'                                      # model architec
 config.dataset = 'SZ2'                                          # patients to use (check 'datasets' folder)
 config.sample_type = 'subsample'                                # sampling method (subsample = remove background EEG segments)
 config.add_to_name = 'test'                                     # str to add to the end of the experiment's config name
+
+###########################################
+###########################################
+
+##### DATA CONFIGS:
+config.locations = [Locations.coimbra]              # locations to use
 
 ###########################################
 ###########################################

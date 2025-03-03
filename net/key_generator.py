@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from tqdm import tqdm
-from classes.annotation import Annotation
+from data.annotation import Annotation
 
 
 def generate_data_keys_sequential(config, recs_list, verbose=True):
@@ -267,7 +267,7 @@ def generate_data_keys_subsample(config, recs_list):
 
         Args:
             config (cls): config object with the experiment's parameters.
-            recs_list (list[list[str]]): a list of recording IDs in the format [sub-xxx, run-xx]
+            recs_list (list[list[str]]): a list of recording IDs in the format [SUBJ-x-xxx, rxx]
         Returns:
             segments: a list of data segment keys with [recording index, start, stop, label]
     """

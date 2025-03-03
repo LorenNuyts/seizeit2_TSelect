@@ -2,7 +2,7 @@ import numpy as np
 from tensorflow import keras
 from net.utils import apply_preprocess_eeg
 from tqdm import tqdm
-from classes.data import Data
+from data.data import Data
 
 
 class SequentialGenerator(keras.utils.Sequence):
@@ -95,7 +95,7 @@ class SegmentedGenerator(keras.utils.Sequence):
 
     Args:
         config (cls): config object with the experiment parameters
-        recs (list[list[str]]): list of recordings in the format [sub-xxx, run-xx]
+        recs (list[list[str]]): list of recordings in the format [SUBJ-x-xxx, rxx]
         segments: list of keys (each key is a list [1x4] containing the recording index in the rec list,
                   the start and stop of the segment in seconds and the label of the segment)
         batch_size: batch size of the generator
