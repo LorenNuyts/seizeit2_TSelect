@@ -1,3 +1,5 @@
+SEED = 0
+
 class Nodes:
     eeg_nodes = ['Fp1', 'Fp2' 'AF11', 'AF12', 'AF1', 'AF2', 'F7', 'F3', 'Fz', 'F4', 'F8', 'P7', 'P3', 'Pz', 'P4', 'P8',
                  'O1', 'O2', 'F9', 'F10', 'T9', 'T10', 'P9', 'P10', 'FC5', 'FC1', 'FC2', 'FC6', 'CP5', 'CP1', 'CP2',

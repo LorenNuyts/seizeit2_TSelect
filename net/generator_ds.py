@@ -25,8 +25,8 @@ class SequentialGenerator(keras.utils.Sequence):
         self.batch_size = batch_size
         self.shuffle = shuffle
 
-        self.data_segs = np.empty(shape=[len(segments), int(config.frame*config.fs), config.CH])
-        self.labels = np.empty(shape=[len(segments), 2])
+        self.data_segs = np.empty(shape=[len(segments), int(config.frame*config.fs), config.CH], dtype=np.float32)
+        self.labels = np.empty(shape=[len(segments), 2], dtype=np.float32)
         self.verbose = verbose
         
         pbar = tqdm(total = len(segments)+1, disable = not self.verbose)
@@ -111,8 +111,8 @@ class SegmentedGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
         self.verbose = verbose
 
-        self.data_segs = np.empty(shape=[len(segments), int(config.frame*config.fs), config.CH])
-        self.labels = np.empty(shape=[len(segments), 2])
+        self.data_segs = np.empty(shape=[len(segments), int(config.frame*config.fs), config.CH], dtype=np.float32)
+        self.labels = np.empty(shape=[len(segments), 2], dtype=np.float32)
         segs_to_load = segments
 
         pbar = tqdm(total = len(segs_to_load)+1, disable=self.verbose)

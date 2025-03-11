@@ -46,7 +46,7 @@ def train_net(config, model, gen_train, gen_val, model_save_path):
         os.mkdir(os.path.join(model_save_path, 'Weights'))
 
 
-    cb_model = os.path.join(model_save_path, 'Callbacks', name + '_{epoch:02d}.h5')
+    cb_model = os.path.join(model_save_path, 'Callbacks', name + '_{epoch:02d}.weights.h5')
     csv_logger = CSVLogger(os.path.join(model_save_path, 'History', name + '.csv'), append=True)
 
     model.compile(loss=loss,
@@ -85,7 +85,7 @@ def train_net(config, model, gen_train, gen_val, model_save_path):
     # serialize weights to HDF5
     best_model = model
     best_model.load_weights(cb_model.format(epoch=np.argmax(hist.history['val_score'])+1))
-    best_model.save_weights(os.path.join(model_save_path, 'Weights', name + ".h5"))
+    best_model.save_weights(os.path.join(model_save_path, 'Weights', name + ".weights.h5"))
 
     print("Saved model to disk")
 

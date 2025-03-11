@@ -6,3 +6,5 @@ data/__pycache__/
 net/__pycache__/
 
 utility/__pycache__/
+
+net/save_dir/

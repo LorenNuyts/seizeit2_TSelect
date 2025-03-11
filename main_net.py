@@ -19,6 +19,7 @@ from net import main_func
 
 from net.DL_config import Config
 
+base_ = os.path.dirname(os.path.realpath(__file__))
 
 ###########################################
 ## Initialize standard config parameters ##
@@ -27,10 +28,15 @@ from net.DL_config import Config
 ## Configuration for the generator and models:
 config = Config()
 # config.data_path = '/esat/biomeddata/SeizeIT2/bids'             # path to data
-config.data_path = "/media/loren/Seagate Basic/Epilepsy use case"       # path to dataset
-config.save_dir = 'net/save_dir'                                # save directory of intermediate and output files
+if 'dtai' in base_:
+  config.data_path = '/cw/dtaidata/ml/2025-Epilepsy'
+  config.save_dir = '/cw/dtailocal/loren/2025-Epilepsy/net/save_dir'
+else:
+  config.data_path = "/media/loren/Seagate Basic/Epilepsy use case"       # path to dataset
+  config.save_dir = 'net/save_dir'                                # save directory of intermediate and output files
 if not os.path.exists(config.save_dir):
   os.mkdir(config.save_dir)
+
 config.fs = 250                                                 # Sampling frequency of the data after post-processing
 config.CH = 2                                                   # Nr of EEG channels
 config.cross_validation = 'leave_one_person_out'                # validation type TODO: What are the options?
@@ -40,6 +46,8 @@ config.stride = 1                                               # stride between
 config.stride_s = 0.5                                           # stride between segments (of seizure EEG) in seconds
 config.boundary = 0.5                                           # proportion of seizure data in a window to consider the segment in the positive class
 config.factor = 5                                               # balancing factor between nr of segments in each class
+config.validation_percentage = 0.2                             # proportion of the training set to use for validation
+config.folds = {}                                               # dictionary to store the folds
 
 ## Network hyper-parameters
 config.dropoutRate = 0.5

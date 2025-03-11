@@ -42,9 +42,9 @@ def train(config, load_generators, save_generators):
     if not os.path.exists(os.path.join(config.save_dir, 'models')):
         os.mkdir(os.path.join(config.save_dir, 'models'))
 
-    model_save_path = os.path.join(config.save_dir, 'models', name)
-    if not os.path.exists(model_save_path):
-        os.mkdir(model_save_path)
+    # model_save_path = os.path.join(config.save_dir, 'models', name)
+    # if not os.path.exists(model_save_path):
+    #     os.mkdir(model_save_path)
 
     config_path = os.path.join(config.save_dir, 'models', name, 'configs')
     if not os.path.exists(config_path):
@@ -53,11 +53,14 @@ def train(config, load_generators, save_generators):
     config.save_config(save_path=config_path)
 
     if config.cross_validation == 'leave_one_person_out':
-        for train_subjects, test_subject in leave_one_person_out(config.data_path, included_locations=config.locations):
-            # train_pats_list = pd.read_csv(os.path.join('net', 'datasets', 'SZ2_training.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
-            # train_pats_list = train_pats_list[0].to_list()
+        for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(leave_one_person_out(config.data_path, included_locations=config.locations,
+                                                                 validation_set=config.validation_percentage)):
+            config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': test_subject}
+            model_save_path = os.path.join(config.save_dir, 'models', name, 'fold_{}'.format(fold_i))
+            if not os.path.exists(model_save_path):
+                os.mkdir(model_save_path)
+
             train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
-            # train_recs_list = [[s, r.split('_')[-2]] for s in train_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
 
             if load_generators:
                 print('Loading generators...')
@@ -83,9 +86,7 @@ def train(config, load_generators, save_generators):
                     with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'wb') as outp:
                         pickle.dump(gen_train, outp, pickle.HIGHEST_PROTOCOL)
 
-                val_pats_list = pd.read_csv(os.path.join('net', 'datasets', 'SZ2_validation.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
-                val_pats_list = val_pats_list[0].to_list()
-                val_recs_list = [[s, r.split('_')[-2]] for s in val_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
+                val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
 
                 val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
 
@@ -108,7 +109,7 @@ def train(config, load_generators, save_generators):
             print('Total train duration = ', end_train / 60)
 
     elif config.cross_validation == 'leave_one_seizure_out':
-        pass
+        raise NotImplementedError('Cross-validation method not implemented yet')
 #######################################################################################################################
 #######################################################################################################################
 
@@ -124,40 +125,45 @@ def predict(config):
     if not os.path.exists(os.path.join(config.save_dir, 'predictions', name)):
         os.mkdir(os.path.join(config.save_dir, 'predictions', name))
 
-    test_pats_list = pd.read_csv(os.path.join('net', 'datasets', config.dataset + '_test.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
-    test_pats_list = test_pats_list[0].to_list()
-    test_recs_list = [[s, r.split('_')[-2]] for s in test_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
+    if config.cross_validation == 'leave_one_person_out':
+        for fold_i in config.folds.keys():
+            test_subject = config.folds[fold_i]['test']
+            test_recs_list = get_recs_list(config.data_path, config.locations, [test_subject])
 
-    model_weights_path = os.path.join(model_save_path, 'Weights', name + '.h5')
+    # test_pats_list = pd.read_csv(os.path.join('net', 'datasets', config.dataset + '_test.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
+    # test_pats_list = test_pats_list[0].to_list()
+    # test_recs_list = [[s, r.split('_')[-2]] for s in test_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
 
-    config.load_config(config_path=os.path.join(model_save_path, 'configs'), config_name=name+'.cfg')
-        
-    if config.model == 'DeepConvNet':
-        from net.DeepConv_Net import net
-    elif config.model == 'ChronoNet':
-        from net.ChronoNet import net
-    elif config.model == 'EEGnet':
-        from net.EEGnet import net
+            model_weights_path = os.path.join(model_save_path, 'Weights', name + '.h5')
 
-    for rec in tqdm(test_recs_list):
-        if os.path.isfile(os.path.join(config.save_dir, 'predictions', name, rec[0] + '_' + rec[1] + '_preds.h5')):
-            print(rec[0] + ' ' + rec[1] + ' exists. Skipping...')
-        else:
-            
-            with tf.device('/cpu:0'):
-                segments = generate_data_keys_sequential(config, [rec], verbose=False)
+            config.load_config(config_path=os.path.join(model_save_path, 'configs'), config_name=name+'.cfg')
 
-                gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
+            if config.model == 'DeepConvNet':
+                from net.DeepConv_Net import net
+            elif config.model == 'ChronoNet':
+                from net.ChronoNet import net
+            elif config.model == 'EEGnet':
+                from net.EEGnet import net
 
-                model = net(config)
+            for rec in tqdm(test_recs_list):
+                if os.path.isfile(os.path.join(config.save_dir, 'predictions', name, rec[0] + '_' + rec[1] + '_preds.h5')):
+                    print(rec[0] + ' ' + rec[1] + ' exists. Skipping...')
+                else:
 
-                y_pred, y_true = predict_net(gen_test, model_weights_path, model)
+                    with tf.device('/cpu:0'):  # TODO: change this?
+                        segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
-            with h5py.File(os.path.join(config.save_dir, 'predictions', name, rec[0] + '_' + rec[1] + '_preds.h5'), 'w') as f:
-                f.create_dataset('y_pred', data=y_pred)
-                f.create_dataset('y_true', data=y_true)
+                        gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
 
-            gc.collect()
+                        model = net(config)
+
+                        y_pred, y_true = predict_net(gen_test, model_weights_path, model)
+
+                    with h5py.File(os.path.join(config.save_dir, 'predictions', name, rec[0] + '_' + rec[1] + '_preds.h5'), 'w') as f:
+                        f.create_dataset('y_pred', data=y_pred)
+                        f.create_dataset('y_true', data=y_true)
+
+                    gc.collect()
 
    
 #######################################################################################################################
