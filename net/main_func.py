@@ -228,9 +228,9 @@ def evaluate(config):
         score_th = []
 
         rec = file.split('__')[:4]
-
+        print("Recording: ", rec)
         rec_data = Data.loadData(config.data_path, rec, included_channels=config.included_channels)
-
+        print("Shape data: ", rec_data.data.shape)
         rec_data.apply_preprocess(config)
         # [ch_focal, ch_cross] = apply_preprocess_eeg(config, rec_data)
 
