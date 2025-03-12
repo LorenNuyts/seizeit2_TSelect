@@ -1,6 +1,5 @@
 import numpy as np
 from tensorflow import keras
-from net.utils import apply_preprocess_eeg
 from tqdm import tqdm
 from data.data import Data
 
@@ -34,15 +33,16 @@ class SequentialGenerator(keras.utils.Sequence):
         count = 0
         prev_rec = int(segments[0][0])
 
-        rec_data = Data.loadData(config.data_path, recs[prev_rec], modalities=['eeg'])
-        rec_data = apply_preprocess_eeg(config, rec_data)
+        rec_data = Data.loadData(config.data_path, recs[prev_rec], included_channels=config.included_channels)
+        rec_data.apply_preprocess(config)
+        # rec_data = apply_preprocess_eeg(config, rec_data)
         
         for s in segments:
             curr_rec = int(s[0])
             
             if curr_rec != prev_rec:
-                rec_data = Data.loadData(config.data_path, recs[curr_rec], modalities=['eeg'])
-                rec_data = apply_preprocess_eeg(config, rec_data)
+                rec_data = Data.loadData(config.data_path, recs[curr_rec], included_channels=config.included_channels)
+                rec_data.apply_preprocess(config)
                 prev_rec = curr_rec
 
             start_seg = int(s[1]*config.fs)
@@ -123,8 +123,8 @@ class SegmentedGenerator(keras.utils.Sequence):
             curr_rec = int(segs_to_load[0][0])
             comm_recs = [i for i, x in enumerate(segs_to_load) if x[0] == curr_rec]
 
-            rec_data = Data.loadData(config.data_path, recs[curr_rec], modalities=['eeg'])
-            rec_data = apply_preprocess_eeg(config, rec_data)
+            rec_data = Data.loadData(config.data_path, recs[curr_rec], included_channels=config.included_channels)
+            rec_data.apply_preprocess(config)
 
             for r in comm_recs:
                 start_seg = int(segs_to_load[r][1]*config.fs)

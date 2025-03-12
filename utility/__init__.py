@@ -6,6 +6,10 @@ import polars as pl
 import pandas as pd
 
 def get_recs_list(root_dir: str, locations: List[str], subjects: List[str]):
+    """
+    Get a list of all recordings in the specified locations and subjects. Each element in the list is a list with the
+    location, subject and recording ID.
+    """
     recs = []
     for location in locations:
         for subject in os.listdir(f"{root_dir}/{location}"):

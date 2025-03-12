@@ -1,10 +1,8 @@
 import os
 import gc
 
-import pandas as pd
 import time
 import h5py
-import pandas as pd
 import pickle
 import numpy as np
 from tqdm import tqdm
@@ -15,10 +13,12 @@ from data.cross_validation import leave_one_person_out
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
 from net.generator_ds import SegmentedGenerator, SequentialGenerator
 from net.routines import train_net, predict_net
-from net.utils import apply_preprocess_eeg, get_metrics_scoring
+from net.utils import get_metrics_scoring
 
 from data.data import Data
 from utility import get_recs_list
+from utility.paths import get_path_predictions, get_path_config, get_path_model_weights, get_path_model, \
+    get_path_predictions_folder
 
 
 def train(config, load_generators, save_generators):
@@ -42,7 +42,7 @@ def train(config, load_generators, save_generators):
     if not os.path.exists(os.path.join(config.save_dir, 'models')):
         os.makedirs(os.path.join(config.save_dir, 'models'))
 
-    config_path = os.path.join(config.save_dir, 'models', name, 'configs')
+    config_path = get_path_config(config, name)
     if not os.path.exists(config_path):
         os.makedirs(config_path)
 
@@ -55,7 +55,7 @@ def train(config, load_generators, save_generators):
             print('     | Test: {}'.format(test_subject))
             print('     | Validation: {}'.format(validation_subjects))
             config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': test_subject}
-            model_save_path = os.path.join(config.save_dir, 'models', name, 'fold_{}'.format(fold_i))
+            model_save_path = get_path_model(config, name, fold_i)
             if not os.path.exists(model_save_path):
                 os.makedirs(model_save_path)
 
@@ -118,7 +118,7 @@ def train(config, load_generators, save_generators):
 def predict(config):
 
     name = config.get_name()
-    config_path = os.path.join(config.save_dir, 'models', name, 'configs')
+    config_path = get_path_config(config, name)
 
     if not os.path.exists(os.path.join(config.save_dir, 'predictions')):
         os.makedirs(os.path.join(config.save_dir, 'predictions'))
@@ -127,11 +127,11 @@ def predict(config):
 
     if config.cross_validation == 'leave_one_person_out':
         for fold_i in config.folds.keys():
-            model_save_path = os.path.join(config.save_dir, 'models', name, 'fold_{}'.format(fold_i))
+            model_save_path = get_path_model(config, name, fold_i)
             test_subject = config.folds[fold_i]['test']
             test_recs_list = get_recs_list(config.data_path, config.locations, test_subject)
 
-            model_weights_path = os.path.join(model_save_path, 'Weights', name + '.weights.h5')
+            model_weights_path = get_path_model_weights(model_save_path, name)
 
             config.load_config(config_path=config_path, config_name=name+'.cfg')
 
@@ -143,7 +143,7 @@ def predict(config):
                 from net.EEGnet import net
 
             for rec in tqdm(test_recs_list):
-                if os.path.isfile(os.path.join(config.save_dir, 'predictions', name, rec[0] + '_' + rec[1] + '_preds.h5')):
+                if os.path.isfile(get_path_predictions(config, name, rec)):
                     print(rec[0] + ' ' + rec[1] + ' exists. Skipping...')
                 else:
 
@@ -156,13 +156,13 @@ def predict(config):
 
                         y_pred, y_true = predict_net(gen_test, model_weights_path, model)
 
-                    with h5py.File(os.path.join(config.save_dir, 'predictions', name, rec[0] + '_' + rec[1] + '_preds.h5'), 'w') as f:
+                    with h5py.File(get_path_predictions(config, name, rec), 'w') as f:
                         f.create_dataset('y_pred', data=y_pred)
                         f.create_dataset('y_true', data=y_true)
 
                     gc.collect()
 
-   
+
 #######################################################################################################################
 #######################################################################################################################
 
@@ -171,7 +171,7 @@ def evaluate(config):
 
     name = config.get_name()
 
-    pred_path = os.path.join(config.save_dir, 'predictions', name)
+    pred_path = get_path_predictions_folder(config, name)
     pred_fs = 1
 
     thresholds = list(np.around(np.linspace(0,1,51),2))
@@ -219,17 +219,27 @@ def evaluate(config):
 
         score_th = []
 
-        rec = [file.split('_')[0], file.split('_')[1]]
+        rec = file.split('__')[:4]
 
-        rec_data = Data.loadData(config.data_path, rec, modalities=['eeg'])
+        rec_data = Data.loadData(config.data_path, rec, included_channels=config.included_channels)
 
-        [ch_focal, ch_cross] = apply_preprocess_eeg(config, rec_data)
+        #  TODO: Rewrite from here
+        rec_data.apply_preprocess(config)
+        # [ch_focal, ch_cross] = apply_preprocess_eeg(config, rec_data)
 
-        rmsa_f = [np.sqrt(np.mean(ch_focal[start:start+2*config.fs]**2)) for start in range(0, len(ch_focal) - 2*config.fs + 1, 1*config.fs)]
-        rmsa_c = [np.sqrt(np.mean(ch_cross[start:start+2*config.fs]**2)) for start in range(0, len(ch_focal) - 2*config.fs + 1, 1*config.fs)]
-        rmsa_f = [1 if 13 < rms < 150 else 0 for rms in rmsa_f]
-        rmsa_c = [1 if 13 < rms < 150 else 0 for rms in rmsa_c]
-        rmsa = rmsa_f and rmsa_c
+        rmsa = None
+        for ch in rec_data.data:
+            rmsa_ch = [np.sqrt(np.mean(ch[start:start+2*config.fs]**2)) for start in range(0, len(ch) - 2*config.fs + 1, 1*config.fs)]
+            rmsa_ch = [1 if 13 < rms < 150 else 0 for rms in rmsa_ch]
+            if rmsa is None:
+                rmsa = rmsa_ch
+            else:
+                rmsa = rmsa and rmsa_ch
+        # rmsa_f = [np.sqrt(np.mean(ch_focal[start:start+2*config.fs]**2)) for start in range(0, len(ch_focal) - 2*config.fs + 1, 1*config.fs)]
+        # rmsa_c = [np.sqrt(np.mean(ch_cross[start:start+2*config.fs]**2)) for start in range(0, len(ch_focal) - 2*config.fs + 1, 1*config.fs)]
+        # rmsa_f = [1 if 13 < rms < 150 else 0 for rms in rmsa_f]
+        # rmsa_c = [1 if 13 < rms < 150 else 0 for rms in rmsa_c]
+        # rmsa = rmsa_f and rmsa_c
         
         if len(y_pred) != len(rmsa):
             rmsa = rmsa[:len(y_pred)]
@@ -290,4 +300,3 @@ def evaluate(config):
         f.create_dataset('fah_epoch', data=fah_epoch)
         f.create_dataset('f1_epoch', data=f1_epoch)
         f.create_dataset('score', data=score)
-
