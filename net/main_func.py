@@ -38,6 +38,8 @@ def train(config, load_generators, save_generators):
         from net.EEGnet import net
     elif config.model == 'DeepConvNet':
         from net.DeepConv_Net import net
+    else:
+        raise ValueError('Model not recognized')
 
     if not os.path.exists(os.path.join(config.save_dir, 'models')):
         os.makedirs(os.path.join(config.save_dir, 'models'))
@@ -73,6 +75,8 @@ def train(config, load_generators, save_generators):
             else:
                 if config.sample_type == 'subsample':
                     train_segments = generate_data_keys_subsample(config, train_recs_list)
+                else:
+                    raise ValueError('Unknown sample type: {}'.format(config.sample_type))
 
                 print('Generating training segments...')
                 gen_train = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
@@ -83,6 +87,7 @@ def train(config, load_generators, save_generators):
                         os.makedirs('net/generators')
 
                     with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'wb') as outp:
+                        # noinspection PyTypeChecker
                         pickle.dump(gen_train, outp, pickle.HIGHEST_PROTOCOL)
 
                 val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
@@ -94,6 +99,7 @@ def train(config, load_generators, save_generators):
 
                 if save_generators:
                     with open('net/generators/gen_val.pkl', 'wb') as outp:
+                        # noinspection PyTypeChecker
                         pickle.dump(gen_val, outp, pickle.HIGHEST_PROTOCOL)
 
             print('### Training model....')
@@ -141,10 +147,12 @@ def predict(config):
                 from net.ChronoNet import net
             elif config.model == 'EEGnet':
                 from net.EEGnet import net
+            else:
+                raise ValueError('Model not recognized')
 
             for rec in tqdm(test_recs_list):
                 if os.path.isfile(get_path_predictions(config, name, rec)):
-                    print(rec[0] + ' ' + rec[1] + ' exists. Skipping...')
+                    print(rec[0] + ' ' + rec[1] + ' ' + rec[2] + ' exists. Skipping...')
                 else:
 
                     with tf.device('/cpu:0'):  # TODO: change this?
@@ -223,7 +231,6 @@ def evaluate(config):
 
         rec_data = Data.loadData(config.data_path, rec, included_channels=config.included_channels)
 
-        #  TODO: Rewrite from here
         rec_data.apply_preprocess(config)
         # [ch_focal, ch_cross] = apply_preprocess_eeg(config, rec_data)
 
