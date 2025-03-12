@@ -227,7 +227,7 @@ def evaluate(config):
 
         score_th = []
 
-        rec = file.split('__')[:3] + file.split('__')[3].split('_')[0]
+        rec = file.split('__')[:4]
         print("Recording: ", rec)
         rec_data = Data.loadData(config.data_path, rec, included_channels=config.included_channels)
         print("Shape data: ", rec_data.data.shape)

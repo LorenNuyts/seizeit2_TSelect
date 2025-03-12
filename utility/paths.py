@@ -3,7 +3,7 @@ import os
 
 def get_path_predictions(config, name, rec):
     return os.path.join(config.save_dir, 'predictions', name, rec[0] + '__' + rec[1] + '__'
-                        + rec[2] + '_preds.h5')
+                        + rec[2] + '__preds.h5')
 
 
 def get_path_config(config, name):
