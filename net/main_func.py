@@ -40,15 +40,15 @@ def train(config, load_generators, save_generators):
         from net.DeepConv_Net import net
 
     if not os.path.exists(os.path.join(config.save_dir, 'models')):
-        os.mkdir(os.path.join(config.save_dir, 'models'))
+        os.makedirs(os.path.join(config.save_dir, 'models'))
 
     # model_save_path = os.path.join(config.save_dir, 'models', name)
     # if not os.path.exists(model_save_path):
-    #     os.mkdir(model_save_path)
+    #     os.makedirs(model_save_path)
 
     config_path = os.path.join(config.save_dir, 'models', name, 'configs')
     if not os.path.exists(config_path):
-        os.mkdir(config_path)
+        os.makedirs(config_path)
 
     config.save_config(save_path=config_path)
 
@@ -58,7 +58,7 @@ def train(config, load_generators, save_generators):
             config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': test_subject}
             model_save_path = os.path.join(config.save_dir, 'models', name, 'fold_{}'.format(fold_i))
             if not os.path.exists(model_save_path):
-                os.mkdir(model_save_path)
+                os.makedirs(model_save_path)
 
             train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
 
@@ -81,7 +81,7 @@ def train(config, load_generators, save_generators):
                 if save_generators:
                     name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
                     if not os.path.exists('net/generators'):
-                        os.mkdir('net/generators')
+                        os.makedirs('net/generators')
 
                     with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'wb') as outp:
                         pickle.dump(gen_train, outp, pickle.HIGHEST_PROTOCOL)
@@ -121,9 +121,9 @@ def predict(config):
     model_save_path = os.path.join(config.save_dir, 'models', name)
 
     if not os.path.exists(os.path.join(config.save_dir, 'predictions')):
-        os.mkdir(os.path.join(config.save_dir, 'predictions'))
+        os.makedirs(os.path.join(config.save_dir, 'predictions'))
     if not os.path.exists(os.path.join(config.save_dir, 'predictions', name)):
-        os.mkdir(os.path.join(config.save_dir, 'predictions', name))
+        os.makedirs(os.path.join(config.save_dir, 'predictions', name))
 
     if config.cross_validation == 'leave_one_person_out':
         for fold_i in config.folds.keys():
@@ -182,7 +182,7 @@ def evaluate(config):
     x_plot = np.linspace(0, 200, 200)
 
     if not os.path.exists(os.path.join(config.save_dir, 'results')):
-        os.mkdir(os.path.join(config.save_dir, 'results'))
+        os.makedirs(os.path.join(config.save_dir, 'results'))
 
     result_file = os.path.join(config.save_dir, 'results', name + '.h5')
 

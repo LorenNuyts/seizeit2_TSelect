@@ -35,7 +35,7 @@ else:
   config.data_path = "/media/loren/Seagate Basic/Epilepsy use case"       # path to dataset
   config.save_dir = 'net/save_dir'                                # save directory of intermediate and output files
 if not os.path.exists(config.save_dir):
-  os.mkdir(config.save_dir)
+  os.makedirs(config.save_dir)
 
 config.fs = 250                                                 # Sampling frequency of the data after post-processing
 config.CH = 2                                                   # Nr of EEG channels
