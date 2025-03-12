@@ -235,8 +235,9 @@ def evaluate(config):
         # [ch_focal, ch_cross] = apply_preprocess_eeg(config, rec_data)
 
         rmsa = None
-        for ch in rec_data.data:
-            rmsa_ch = [np.sqrt(np.mean(ch[start:start+2*config.fs]**2)) for start in range(0, len(ch) - 2*config.fs + 1, 1*config.fs)]
+        for ch in range(len(rec_data.channels)):
+            ch_data = rec_data.data[:, :, ch]
+            rmsa_ch = [np.sqrt(np.mean(ch_data[start:start+2*config.fs]**2)) for start in range(0, len(ch_data) - 2*config.fs + 1, 1*config.fs)]
             rmsa_ch = [1 if 13 < rms < 150 else 0 for rms in rmsa_ch]
             if rmsa is None:
                 rmsa = rmsa_ch
