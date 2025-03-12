@@ -56,57 +56,57 @@ def train(config, load_generators, save_generators):
         for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(leave_one_person_out(config.data_path, included_locations=config.locations,
                                                                  validation_set=config.validation_percentage)):
             config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': test_subject}
-            model_save_path = os.path.join(config.save_dir, 'models', name, 'fold_{}'.format(fold_i))
-            if not os.path.exists(model_save_path):
-                os.makedirs(model_save_path)
-
-            train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
-
-            if load_generators:
-                print('Loading generators...')
-                name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
-                with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'rb') as inp:
-                    gen_train = pickle.load(inp)
-
-                with open('net/generators/gen_val.pkl', 'rb') as inp:
-                    gen_val = pickle.load(inp)
-
-            else:
-                if config.sample_type == 'subsample':
-                    train_segments = generate_data_keys_subsample(config, train_recs_list)
-
-                print('Generating training segments...')
-                gen_train = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
-
-                if save_generators:
-                    name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
-                    if not os.path.exists('net/generators'):
-                        os.makedirs('net/generators')
-
-                    with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'wb') as outp:
-                        pickle.dump(gen_train, outp, pickle.HIGHEST_PROTOCOL)
-
-                val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
-
-                val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
-
-                print('Generating validation segments...')
-                gen_val = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-
-                if save_generators:
-                    with open('net/generators/gen_val.pkl', 'wb') as outp:
-                        pickle.dump(gen_val, outp, pickle.HIGHEST_PROTOCOL)
-
-            print('### Training model....')
-
-            model = net(config)
-
-            start_train = time.time()
-
-            train_net(config, model, gen_train, gen_val, model_save_path)
-
-            end_train = time.time() - start_train
-            print('Total train duration = ', end_train / 60)
+            # model_save_path = os.path.join(config.save_dir, 'models', name, 'fold_{}'.format(fold_i))
+            # if not os.path.exists(model_save_path):
+            #     os.makedirs(model_save_path)
+            #
+            # train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
+            #
+            # if load_generators:
+            #     print('Loading generators...')
+            #     name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
+            #     with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'rb') as inp:
+            #         gen_train = pickle.load(inp)
+            #
+            #     with open('net/generators/gen_val.pkl', 'rb') as inp:
+            #         gen_val = pickle.load(inp)
+            #
+            # else:
+            #     if config.sample_type == 'subsample':
+            #         train_segments = generate_data_keys_subsample(config, train_recs_list)
+            #
+            #     print('Generating training segments...')
+            #     gen_train = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
+            #
+            #     if save_generators:
+            #         name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
+            #         if not os.path.exists('net/generators'):
+            #             os.makedirs('net/generators')
+            #
+            #         with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'wb') as outp:
+            #             pickle.dump(gen_train, outp, pickle.HIGHEST_PROTOCOL)
+            #
+            #     val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
+            #
+            #     val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
+            #
+            #     print('Generating validation segments...')
+            #     gen_val = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+            #
+            #     if save_generators:
+            #         with open('net/generators/gen_val.pkl', 'wb') as outp:
+            #             pickle.dump(gen_val, outp, pickle.HIGHEST_PROTOCOL)
+            #
+            # print('### Training model....')
+            #
+            # model = net(config)
+            #
+            # start_train = time.time()
+            #
+            # train_net(config, model, gen_train, gen_val, model_save_path)
+            #
+            # end_train = time.time() - start_train
+            # print('Total train duration = ', end_train / 60)
 
             config.save_config(save_path=config_path)
 
@@ -119,8 +119,7 @@ def train(config, load_generators, save_generators):
 def predict(config):
 
     name = config.get_name()
-
-    model_save_path = os.path.join(config.save_dir, 'models', name)
+    config_path = os.path.join(config.save_dir, 'models', name, 'configs')
 
     if not os.path.exists(os.path.join(config.save_dir, 'predictions')):
         os.makedirs(os.path.join(config.save_dir, 'predictions'))
@@ -129,12 +128,13 @@ def predict(config):
 
     if config.cross_validation == 'leave_one_person_out':
         for fold_i in config.folds.keys():
+            model_save_path = os.path.join(config.save_dir, 'models', name, 'fold_{}'.format(fold_i))
             test_subject = config.folds[fold_i]['test']
-            test_recs_list = get_recs_list(config.data_path, config.locations, [test_subject])
+            test_recs_list = get_recs_list(config.data_path, config.locations, test_subject)
 
-            model_weights_path = os.path.join(model_save_path, 'Weights', name + '.h5')
+            model_weights_path = os.path.join(model_save_path, 'Weights', name + '.weights.h5')
 
-            config.load_config(config_path=os.path.join(model_save_path, 'configs'), config_name=name+'.cfg')
+            config.load_config(config_path=config_path, config_name=name+'.cfg')
 
             if config.model == 'DeepConvNet':
                 from net.DeepConv_Net import net

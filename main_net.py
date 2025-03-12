@@ -1,7 +1,7 @@
 import os
 import random
 
-from utility.constants import Locations
+from utility.constants import *
 
 random_seed = 1
 random.seed(random_seed)
@@ -38,7 +38,8 @@ if not os.path.exists(config.save_dir):
   os.makedirs(config.save_dir)
 
 config.fs = 250                                                 # Sampling frequency of the data after post-processing
-config.CH = 2                                                   # Nr of EEG channels
+config.included_channels = Nodes.eeg_nodes + Nodes.wearable_nodes
+config.CH = len(config.included_channels)                       # Nr of EEG channels
 config.cross_validation = 'leave_one_person_out'                # validation type TODO: What are the options?
 config.batch_size = 128                                         # batch size
 config.frame = 2                                                # window size of input segments in seconds
