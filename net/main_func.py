@@ -108,6 +108,8 @@ def train(config, load_generators, save_generators):
             end_train = time.time() - start_train
             print('Total train duration = ', end_train / 60)
 
+            config.save_config(save_path=config_path)
+
     elif config.cross_validation == 'leave_one_seizure_out':
         raise NotImplementedError('Cross-validation method not implemented yet')
 #######################################################################################################################
@@ -129,10 +131,6 @@ def predict(config):
         for fold_i in config.folds.keys():
             test_subject = config.folds[fold_i]['test']
             test_recs_list = get_recs_list(config.data_path, config.locations, [test_subject])
-
-    # test_pats_list = pd.read_csv(os.path.join('net', 'datasets', config.dataset + '_test.tsv'), sep = '\t', header = None, skiprows = [0,1,2])
-    # test_pats_list = test_pats_list[0].to_list()
-    # test_recs_list = [[s, r.split('_')[-2]] for s in test_pats_list for r in os.listdir(os.path.join(config.data_path, s, 'ses-01', 'eeg')) if 'edf' in r]
 
             model_weights_path = os.path.join(model_save_path, 'Weights', name + '.h5')
 

@@ -12,6 +12,7 @@ from utility.constants import SEED
 def leave_one_person_out(root_dir: str, included_locations: list[str] = None, validation_set: Optional[float] = None,
                          seed: int = SEED):
     testing = 'dtai' in root_dir
+    print("Testing setting:", testing)
     if testing:
         nb_subjects = 4 # ONLY FOR TESTING
         included_subjects = ['SUBJ-7-286', 'SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376'] # ONLY FOR TESTING
