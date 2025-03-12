@@ -14,8 +14,8 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
     testing = 'dtai' not in root_dir or True
     print("Testing setting:", testing)
     if testing:
-        nb_subjects = 4 # ONLY FOR TESTING
-        included_subjects = ['SUBJ-7-286', 'SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376'] # ONLY FOR TESTING
+        nb_subjects = 3 # ONLY FOR TESTING
+        included_subjects = ['SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376'] # ONLY FOR TESTING
     else:
         nb_subjects = None
         included_subjects = None
