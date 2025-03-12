@@ -42,10 +42,6 @@ def train(config, load_generators, save_generators):
     if not os.path.exists(os.path.join(config.save_dir, 'models')):
         os.makedirs(os.path.join(config.save_dir, 'models'))
 
-    # model_save_path = os.path.join(config.save_dir, 'models', name)
-    # if not os.path.exists(model_save_path):
-    #     os.makedirs(model_save_path)
-
     config_path = os.path.join(config.save_dir, 'models', name, 'configs')
     if not os.path.exists(config_path):
         os.makedirs(config_path)
@@ -55,6 +51,9 @@ def train(config, load_generators, save_generators):
     if config.cross_validation == 'leave_one_person_out':
         for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(leave_one_person_out(config.data_path, included_locations=config.locations,
                                                                  validation_set=config.validation_percentage)):
+            print('Fold {}'.format(fold_i))
+            print('     | Test: {}'.format(test_subject))
+            print('     | Validation: {}'.format(validation_subjects))
             config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': test_subject}
             model_save_path = os.path.join(config.save_dir, 'models', name, 'fold_{}'.format(fold_i))
             if not os.path.exists(model_save_path):
