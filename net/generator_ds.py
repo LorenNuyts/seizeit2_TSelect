@@ -1,7 +1,9 @@
 import numpy as np
 from tensorflow import keras
 from tqdm import tqdm
-from data.data import Data
+from data.data import Data, switch_channels
+
+from utility.constants import Nodes
 
 
 class SequentialGenerator(keras.utils.Sequence):
@@ -24,9 +26,10 @@ class SequentialGenerator(keras.utils.Sequence):
         self.batch_size = batch_size
         self.shuffle = shuffle
 
-        self.data_segs = np.empty(shape=[len(segments), int(config.frame*config.fs), config.CH], dtype=np.float32)
+
         self.labels = np.empty(shape=[len(segments), 2], dtype=np.float32)
         self.verbose = verbose
+        # self.channel_selector = None
         
         pbar = tqdm(total = len(segments)+1, disable = not self.verbose)
 
@@ -35,6 +38,8 @@ class SequentialGenerator(keras.utils.Sequence):
 
         rec_data = Data.loadData(config.data_path, recs[prev_rec], included_channels=config.included_channels)
         rec_data.apply_preprocess(config)
+        self.channels = rec_data.channels
+        self.data_segs = np.empty(shape=[len(segments), int(config.frame * config.fs), len(self.channels)], dtype=np.float32)
         # rec_data = apply_preprocess_eeg(config, rec_data)
         
         for s in segments:
@@ -43,17 +48,25 @@ class SequentialGenerator(keras.utils.Sequence):
             if curr_rec != prev_rec:
                 rec_data = Data.loadData(config.data_path, recs[curr_rec], included_channels=config.included_channels)
                 rec_data.apply_preprocess(config)
+                assert rec_data.channels == self.channels
                 prev_rec = curr_rec
 
             start_seg = int(s[1]*config.fs)
             stop_seg = int(s[2]*config.fs)
 
             if stop_seg > len(rec_data[0]):
-                self.data_segs[count, :, 0] = np.zeros(config.fs*config.frame)
-                self.data_segs[count, :, 1] = np.zeros(config.fs*config.frame)
+                self.data_segs[count, :, :] = np.zeros(config.fs*config.frame)
+                # self.data_segs[count, :, 0] = np.zeros(config.fs*config.frame)
+                # self.data_segs[count, :, 1] = np.zeros(config.fs*config.frame)
             else:
-                self.data_segs[count, :, 0] = rec_data[0][start_seg:stop_seg]
-                self.data_segs[count, :, 1] = rec_data[1][start_seg:stop_seg]
+                for ch_i, ch in enumerate(rec_data.channels):
+                    index_channels = self.channels.index(ch)
+                    self.data_segs[count, :, index_channels] = rec_data[ch_i][start_seg:stop_seg]
+                # for ch, ch_data in enumerate(rec_data):
+                #     self.data_segs[count, :, ch] = ch_data[start_seg:stop_seg]
+                # self.data_segs[count, :, :] = rec_data[:][start_seg:stop_seg]
+                # self.data_segs[count, :, 0] = rec_data[0][start_seg:stop_seg]
+                # self.data_segs[count, :, 1] = rec_data[1][start_seg:stop_seg]
 
             if s[3] == 1:
                 self.labels[count, :] = [0, 1]
@@ -67,6 +80,7 @@ class SequentialGenerator(keras.utils.Sequence):
         self.key_array = np.arange(len(self.labels))
 
         self.on_epoch_end()
+        config.CH = len(self.channels)
 
 
     def __len__(self):
@@ -88,6 +102,11 @@ class SequentialGenerator(keras.utils.Sequence):
             out = self.data_segs[self.key_array[keys], :, :], self.labels[self.key_array[keys]]
         return out
 
+    def change_included_channels(self, included_channels: list):
+        included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
+        assert set(included_channels).issubset(set(self.channels))
+        self.data_segs = self.data_segs[:, :, [i for i, ch in enumerate(self.channels) if ch in included_channels]]
+        self.channels = [ch for ch in self.channels if ch in included_channels]
 
 
 class SegmentedGenerator(keras.utils.Sequence):
@@ -111,8 +130,9 @@ class SegmentedGenerator(keras.utils.Sequence):
         self.shuffle = shuffle
         self.verbose = verbose
 
-        self.data_segs = np.empty(shape=[len(segments), int(config.frame*config.fs), config.CH], dtype=np.float32)
+        self.data_segs = None
         self.labels = np.empty(shape=[len(segments), 2], dtype=np.float32)
+        self.channels = []
         segs_to_load = segments
 
         pbar = tqdm(total = len(segs_to_load)+1, disable=self.verbose)
@@ -125,13 +145,23 @@ class SegmentedGenerator(keras.utils.Sequence):
 
             rec_data = Data.loadData(config.data_path, recs[curr_rec], included_channels=config.included_channels)
             rec_data.apply_preprocess(config)
+            assert rec_data.channels == self.channels or len(self.channels) == 0
+            if len(self.channels) == 0:
+                self.channels = rec_data.channels
+
+            if self.data_segs is None:
+                self.data_segs = np.empty(shape=[len(segments), int(config.frame * config.fs), len(self.channels)],
+                                          dtype=np.float32)
 
             for r in comm_recs:
                 start_seg = int(segs_to_load[r][1]*config.fs)
                 stop_seg = int(segs_to_load[r][2]*config.fs)
 
-                self.data_segs[count, :, 0] = rec_data[0][start_seg:stop_seg]
-                self.data_segs[count, :, 1] = rec_data[1][start_seg:stop_seg]
+                for ch_i, ch in enumerate(rec_data.channels):
+                    index_channels = self.channels.index(ch)
+                    self.data_segs[count, :, index_channels] = rec_data[ch_i][start_seg:stop_seg]
+                # self.data_segs[count, :, 0] = rec_data[0][start_seg:stop_seg]
+                # self.data_segs[count, :, 1] = rec_data[1][start_seg:stop_seg]
 
                 if segs_to_load[r][3] == 1:
                     self.labels[count, :] = [0, 1]
@@ -146,6 +176,7 @@ class SegmentedGenerator(keras.utils.Sequence):
         self.key_array = np.arange(len(self.labels))
 
         self.on_epoch_end()
+        config.CH = len(self.channels)
 
 
     def __len__(self):
@@ -166,6 +197,12 @@ class SegmentedGenerator(keras.utils.Sequence):
         else:
             out = self.data_segs[self.key_array[keys], :, :], self.labels[self.key_array[keys]]
         return out
+
+    def change_included_channels(self, included_channels: list):
+        included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
+        assert set(included_channels).issubset(set(self.channels))
+        self.data_segs = self.data_segs[:, :, [i for i, ch in enumerate(self.channels) if ch in included_channels]]
+        self.channels = [ch for ch in self.channels if ch in included_channels]
 
 
     

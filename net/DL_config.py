@@ -46,6 +46,8 @@ class Config():
         self.factor = factor
         self.cross_validation = cross_validation
         self.savedir = save_dir
+        self.channel_selection = False
+        self.selected_channels = None
 
         # models parameters
         self.data_format = tf.keras.backend.image_data_format
@@ -54,6 +56,10 @@ class Config():
         self.dropoutRate = dropoutRate
         self.nb_epochs = nb_epochs
         self.class_weights = class_weights
+
+    def reload_CH(self, fold=None):
+        if self.channel_selection and fold is not None:
+            self.CH = len(self.selected_channels[fold])
 
     def save_config(self, save_path):
         name = self.get_name()
@@ -65,7 +71,7 @@ class Config():
         if not os.path.exists(config_path):
             raise ValueError('Directory is empty or does not exist')
 
-        with open(os.path.join(config_path, config_name), 'rb') as input:
+        with open(os.path.join(config_path, config_name + '.cfg'), 'rb') as input:
             config = pickle.load(input)
 
         self.__dict__.update(config)

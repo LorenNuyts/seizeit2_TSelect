@@ -9,3 +9,6 @@ dependencies:
   - tqdm
   - scikit-learn
   - pyedflib
+  - graphviz
+  - Pint
+  - sktime

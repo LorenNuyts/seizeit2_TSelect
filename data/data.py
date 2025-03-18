@@ -5,6 +5,7 @@ import pyedflib
 import warnings
 
 from net.utils import pre_process_ch
+from utility.constants import Nodes
 
 
 class Data:
@@ -49,17 +50,23 @@ class Data:
 
         edfFile = os.path.join(data_path, recording[0], recording[1], f"{recording[1]}_{recording[2]}.edf")
         if os.path.exists(edfFile):
-            with pyedflib.EdfReader(edfFile) as edf:
+            with pyedflib.EdfReader(edfFile) as edf :
                 samplingFrequencies.extend(edf.getSampleFrequencies())
                 channels.extend(edf.getSignalLabels())
                 n = edf.signals_in_file
                 for i in range(n):
+                    included_channels = switch_channels(channels, included_channels, Nodes.switchable_nodes)
                     if channels[i] in included_channels:
                         data.append(edf.readSignal(i))
-                    # data.append(edf.readSignal(i))
                 edf._close()
+
                 samplingFrequencies = [fs for fs, ch in zip(samplingFrequencies, channels) if ch in included_channels]
                 channels = [ch for ch in channels if ch in included_channels]
+                assert len([ch for ch in channels if ch not in Nodes.basic_eeg_nodes  + Nodes.optional_eeg_nodes +
+                            Nodes.wearable_nodes + Nodes.eeg_acc +
+                            Nodes.eeg_gyr + Nodes.ecg_emg_nodes + Nodes.other_nodes + Nodes.ecg_emg_acc +
+                            Nodes.ecg_emg_gyr]) == 0, 'Unknown channel found'
+                assert len(data) == len(channels), 'Data and channels do not have the same length'
         else:
             warnings.warn('Recording ' + recording[0] + ' ' + recording[1] + ' does not contain exist')
                 
@@ -75,3 +82,17 @@ class Data:
 
     def __getitem__(self, index):
         return self.data[index]
+
+
+def switch_channels(channels: list[str], included_channels: list[str], switchable_channels: dict) -> list[str]:
+    """
+    Switch the channels in the included_channels list if the switchable_channels dictionary contains the channels to
+    switch. A copy of the included_channels list is returned with the switched channels.
+    """
+    missing_channels = [ch for ch in included_channels if ch not in channels]
+    result = included_channels.copy()
+    for ch in missing_channels:
+        if ch in switchable_channels:
+            index = included_channels.index(ch)
+            result[index] = switchable_channels[ch]
+    return result

@@ -5,6 +5,8 @@ import time
 import h5py
 import pickle
 import numpy as np
+import pandas as pd
+from sktime.datatypes._panel._convert import from_3d_numpy_to_multi_index
 from tqdm import tqdm
 
 import tensorflow as tf
@@ -17,15 +19,19 @@ from net.utils import get_metrics_scoring
 
 from data.data import Data
 from utility import get_recs_list
+from utility.constants import SEED
 from utility.paths import get_path_predictions, get_path_config, get_path_model_weights, get_path_model, \
-    get_path_predictions_folder
+    get_path_predictions_folder, get_path_results
 
+from TSelect.tselect.tselect.utils import init_metadata
+from TSelect.tselect.tselect.channel_selectors.tselect import TSelect
 
-def train(config, load_generators, save_generators):
+def train(config, results, load_generators, save_generators):
     """ Routine to run the model's training routine.
 
         Args:
             config (cls): a config object with the data input type and model parameters
+            results (cls): a results object to store the results
             load_generators (bool): boolean to load the training and validation generators from file
             save_generators (bool): boolean to save the training and validation generators
     """
@@ -48,7 +54,13 @@ def train(config, load_generators, save_generators):
     if not os.path.exists(config_path):
         os.makedirs(config_path)
 
+    results_path = get_path_results(config, name)
+    results_dir_path = os.path.dirname(results_path)
+    if not os.path.exists(results_dir_path):
+        os.makedirs(results_dir_path)
+
     config.save_config(save_path=config_path)
+    results.save_results(save_path=results_path)
 
     if config.cross_validation == 'leave_one_person_out':
         for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(leave_one_person_out(config.data_path, included_locations=config.locations,
@@ -102,6 +114,26 @@ def train(config, load_generators, save_generators):
                         # noinspection PyTypeChecker
                         pickle.dump(gen_val, outp, pickle.HIGHEST_PROTOCOL)
 
+            if config.channel_selection:
+                selection_start = time.process_time()
+                print('### Selecting channels....')
+                channel_selector = TSelect(random_state=SEED)
+                metadata = init_metadata()
+                df = from_3d_numpy_to_multi_index(gen_train.data_segs.transpose(0, 2, 1), column_names=gen_train.channels)
+                # df = from_3d_numpy_to_multi_index(gen_train.data_segs, column_names=gen_train.channels)
+                y = pd.Series(gen_train.labels[:, 0])
+                channel_selector.fit(df, y, metadata)
+                # config.CH = len(channel_selector.selected_channels)
+                gen_train.change_included_channels(channel_selector.selected_channels)
+                gen_val.change_included_channels(channel_selector.selected_channels)
+                assert gen_train.data_segs.shape[2] == gen_val.data_segs.shape[2]
+                if config.selected_channels is None:
+                    config.selected_channels = {fold_i: channel_selector.selected_channels}
+                else:
+                    config.selected_channels[fold_i] = channel_selector.selected_channels
+                config.reload_CH(fold=fold_i)
+                results.selection_time[fold_i] = time.process_time() - selection_start
+
             print('### Training model....')
 
             model = net(config)
@@ -112,8 +144,10 @@ def train(config, load_generators, save_generators):
 
             end_train = time.time() - start_train
             print('Total train duration = ', end_train / 60)
+            results.train_time[fold_i] = end_train
 
             config.save_config(save_path=config_path)
+            results.save_results(save_path=results_path)
 
     elif config.cross_validation == 'leave_one_seizure_out':
         raise NotImplementedError('Cross-validation method not implemented yet')
@@ -125,6 +159,7 @@ def predict(config):
 
     name = config.get_name()
     config_path = get_path_config(config, name)
+    config.load_config(config_path=config_path, name=name)
 
     if not os.path.exists(os.path.join(config.save_dir, 'predictions')):
         os.makedirs(os.path.join(config.save_dir, 'predictions'))
@@ -133,13 +168,14 @@ def predict(config):
 
     if config.cross_validation == 'leave_one_person_out':
         for fold_i in config.folds.keys():
+            config.reload_CH(fold_i)
             model_save_path = get_path_model(config, name, fold_i)
             test_subject = config.folds[fold_i]['test']
             test_recs_list = get_recs_list(config.data_path, config.locations, test_subject)
 
             model_weights_path = get_path_model_weights(model_save_path, name)
 
-            config.load_config(config_path=config_path, config_name=name+'.cfg')
+            # config.load_config(config_path=config_path, config_name=name+'.cfg')
 
             if config.model == 'DeepConvNet':
                 from net.DeepConv_Net import net
@@ -155,10 +191,15 @@ def predict(config):
                     print(rec[0] + ' ' + rec[1] + ' ' + rec[2] + ' exists. Skipping...')
                 else:
 
-                    with tf.device('/cpu:0'):  # TODO: change this?
+                    with tf.device('/cpu:0'):
                         segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
                         gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
+
+                        if config.channel_selection:
+                            gen_test.change_included_channels(config.selected_channels[fold_i])
+
+                        config.reload_CH(fold_i)
 
                         model = net(config)
 
@@ -175,9 +216,11 @@ def predict(config):
 #######################################################################################################################
 
 
-def evaluate(config):
+def evaluate(config, results):
 
     name = config.get_name()
+    config_path = get_path_config(config, name)
+    config.load_config(config_path, name)
 
     pred_path = get_path_predictions_folder(config, name)
     pred_fs = 1
@@ -228,27 +271,29 @@ def evaluate(config):
         score_th = []
 
         rec = file.split('__')[:4]
-        print("Recording: ", rec)
-        rec_data = Data.loadData(config.data_path, rec, included_channels=config.included_channels)
-        print("Shape data: ", rec_data.data.shape)
+        fold_nb = None
+        for fold_i in config.folds.keys():
+            if rec[1] in config.folds[fold_i]['test']:
+                fold_nb = fold_i
+
+        if fold_nb is None:
+            raise ValueError('Recording not found in test set')
+
+        channels = config.selected_channels[fold_nb] if config.channel_selection else config.included_channels
+        rec_data = Data.loadData(config.data_path, rec, included_channels=channels)
         rec_data.apply_preprocess(config)
         # [ch_focal, ch_cross] = apply_preprocess_eeg(config, rec_data)
 
         rmsa = None
         print("Number of channels: ", len(rec_data.channels))
         for ch in range(len(rec_data.channels)):
-            ch_data = rec_data.data[:, :, ch]
+            ch_data = rec_data.data[ch]
             rmsa_ch = [np.sqrt(np.mean(ch_data[start:start+2*config.fs]**2)) for start in range(0, len(ch_data) - 2*config.fs + 1, 1*config.fs)]
             rmsa_ch = [1 if 13 < rms < 150 else 0 for rms in rmsa_ch]
             if rmsa is None:
                 rmsa = rmsa_ch
             else:
                 rmsa = rmsa and rmsa_ch
-        # rmsa_f = [np.sqrt(np.mean(ch_focal[start:start+2*config.fs]**2)) for start in range(0, len(ch_focal) - 2*config.fs + 1, 1*config.fs)]
-        # rmsa_c = [np.sqrt(np.mean(ch_cross[start:start+2*config.fs]**2)) for start in range(0, len(ch_focal) - 2*config.fs + 1, 1*config.fs)]
-        # rmsa_f = [1 if 13 < rms < 150 else 0 for rms in rmsa_f]
-        # rmsa_c = [1 if 13 < rms < 150 else 0 for rms in rmsa_c]
-        # rmsa = rmsa_f and rmsa_c
         
         if len(y_pred) != len(rmsa):
             rmsa = rmsa[:len(y_pred)]
@@ -309,3 +354,15 @@ def evaluate(config):
         f.create_dataset('fah_epoch', data=fah_epoch)
         f.create_dataset('f1_epoch', data=f1_epoch)
         f.create_dataset('score', data=score)
+
+    results.sens_ovlp = sens_ovlp
+    results.prec_ovlp = prec_ovlp
+    results.fah_ovlp = fah_ovlp
+    results.f1_ovlp = f1_ovlp
+    results.score = score
+    results.thresholds = thresholds
+    results.save_results(get_path_results(config, name))
+
+    print(f"Best score: {'%.2f' % results.best_average_score[0]} at threshold {'%.2f' % results.best_average_score[1]}")
+    print("Total time: " + "%.2f" % results.average_total_time)
+

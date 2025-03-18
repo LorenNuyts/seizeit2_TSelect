@@ -1,0 +1,3 @@
+[submodule "TSelect"]
+	path = TSelect
+	url = https://github.com/LorenNuyts/TSelect.git

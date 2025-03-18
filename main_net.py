@@ -3,6 +3,8 @@ import random
 import shutil
 
 from utility.constants import *
+from utility.paths import get_path_results
+from utility.stats import Results
 
 random_seed = 1
 random.seed(random_seed)
@@ -39,7 +41,7 @@ if not os.path.exists(config.save_dir):
   os.makedirs(config.save_dir)
 
 config.fs = 250                                                 # Sampling frequency of the data after post-processing
-config.included_channels = Nodes.eeg_nodes + Nodes.wearable_nodes
+config.included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
 config.CH = len(config.included_channels)                       # Nr of EEG channels
 config.cross_validation = 'leave_one_person_out'                # validation type TODO: Implement leave one seizure out
 config.batch_size = 128                                         # batch size
@@ -64,7 +66,6 @@ config.lr = 0.01
 config.model = 'ChronoNet'                                      # model architecture (you have 3: Chrononet, EEGnet, DeepConvNet)
 config.dataset = 'SZ2'                                          # patients to use (check 'datasets' folder)
 config.sample_type = 'subsample'                                # sampling method (subsample = remove background EEG segments)
-config.add_to_name = 'test'                                     # str to add to the end of the experiment's config name
 
 ###########################################
 ###########################################
@@ -77,9 +78,27 @@ config.locations = [Locations.coimbra]              # locations to use
 
 ##### CHANNEL SELECTION CONFIGS:
 config.channel_selection = True              # whether to use channel selection
+config.selected_channels = None              # selected channels (if None, no channel selection has been performed yet)
 
 ###########################################
 ###########################################
+
+# config.add_to_name = 'test'                                     # str to add to the end of the experiment's config name
+config.add_to_name = (f'{"__channel_selection" if config.channel_selection else ""}'
+                      f'test')  # str to add to the end of the experiment's config name
+
+###########################################
+###########################################
+
+##### RESULTS:
+results = Results(config)
+results_path = get_path_results(config, config.get_name())
+if os.path.exists(results_path):
+  results.load_results(results_path)
+
+###########################################
+###########################################
+
 
 load_generators = False                                          # Boolean to load generators from file
 save_generators = False                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
@@ -87,10 +106,10 @@ save_generators = False                                         # Boolean to sav
 if os.path.exists(config.save_dir):
   shutil.rmtree(config.save_dir)
 
-main_func.train(config, load_generators, save_generators)
+main_func.train(config, results, load_generators, save_generators)
 
 print('Getting predictions on the test set...')
 main_func.predict(config)
 
 print('Getting evaluation metrics...')
-main_func.evaluate(config)
+main_func.evaluate(config, results)
