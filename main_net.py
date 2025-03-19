@@ -77,7 +77,7 @@ config.locations = [Locations.coimbra]              # locations to use
 ###########################################
 
 ##### CHANNEL SELECTION CONFIGS:
-config.channel_selection = True              # whether to use channel selection
+config.channel_selection = False              # whether to use channel selection
 config.selected_channels = None              # selected channels (if None, no channel selection has been performed yet)
 
 ###########################################

@@ -145,6 +145,9 @@ class SegmentedGenerator(keras.utils.Sequence):
 
             rec_data = Data.loadData(config.data_path, recs[curr_rec], included_channels=config.included_channels)
             rec_data.apply_preprocess(config)
+            if rec_data.channels != self.channels and len(self.channels) != 0:
+                print("Rec channels: ", rec_data.channels)
+                print("self.channels: ", self.channels)
             assert rec_data.channels == self.channels or len(self.channels) == 0
             if len(self.channels) == 0:
                 self.channels = rec_data.channels
