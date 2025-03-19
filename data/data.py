@@ -83,6 +83,21 @@ class Data:
     def __getitem__(self, index):
         return self.data[index]
 
+    def reorder_channels(self, channels: List[str]):
+        """Reorder the channels in the data object to match the order of the channels in the channels list.
+
+        Args:
+            channels (List[str]): list of channels to reorder the data object to.
+        """
+        new_data = list()
+        for ch in channels:
+            if ch in self.channels:
+                new_data.append(self.data[self.channels.index(ch)])
+            else:
+                raise ValueError(f"Channel {ch} not found in data object")
+        self.data = new_data
+        self.channels = channels
+
 
 def switch_channels(channels: list[str], included_channels: list[str], switchable_channels: dict) -> list[str]:
     """
