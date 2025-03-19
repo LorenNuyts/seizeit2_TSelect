@@ -159,7 +159,7 @@ def predict(config):
 
     name = config.get_name()
     config_path = get_path_config(config, name)
-    config.load_config(config_path=config_path, name=name)
+    config.load_config(config_path=config_path, config_name=name)
 
     if not os.path.exists(os.path.join(config.save_dir, 'predictions')):
         os.makedirs(os.path.join(config.save_dir, 'predictions'))
