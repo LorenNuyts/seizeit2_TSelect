@@ -10,7 +10,7 @@ from utility.constants import SEED
 
 def leave_one_person_out(root_dir: str, included_locations: list[str] = None, validation_set: Optional[float] = None,
                          seed: int = SEED):
-    testing = 'dtai' not in root_dir or True
+    testing = 'dtai' not in root_dir
     print("Testing setting:", testing)
     if testing:
         nb_subjects = 3 # ONLY FOR TESTING
@@ -46,6 +46,7 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
         else:
             yield train, [subject]
 
+
 # def leave_one_seizure_out(X: pl.DataFrame, y: pl.Series):
 #     end_previous_seizure = None
 #     previous_fold_split = 0
@@ -68,3 +69,4 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
 #         elif in_seizure and y[i] == 0:
 #             in_seizure = False
 #             end_previous_seizure = i
+

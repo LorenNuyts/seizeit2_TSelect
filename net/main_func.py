@@ -282,10 +282,9 @@ def evaluate(config, results):
         channels = config.selected_channels[fold_nb] if config.channel_selection else config.included_channels
         rec_data = Data.loadData(config.data_path, rec, included_channels=channels)
         rec_data.apply_preprocess(config)
-        # [ch_focal, ch_cross] = apply_preprocess_eeg(config, rec_data)
 
         rmsa = None
-        print("Number of channels: ", len(rec_data.channels))
+
         for ch in range(len(rec_data.channels)):
             ch_data = rec_data.data[ch]
             rmsa_ch = [np.sqrt(np.mean(ch_data[start:start+2*config.fs]**2)) for start in range(0, len(ch_data) - 2*config.fs + 1, 1*config.fs)]
