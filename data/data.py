@@ -86,7 +86,7 @@ class Data:
 
 def switch_channels(channels: list[str], included_channels: list[str], switchable_channels: dict) -> list[str]:
     """
-    Switch the channels in the included_channels list if the switchable_channels dictionary contains the channels to
+    Switch the channels in the included_channels list if the switchable_channels dictionary contains the channel to
     switch. A copy of the included_channels list is returned with the switched channels.
     """
     missing_channels = [ch for ch in included_channels if ch not in channels]

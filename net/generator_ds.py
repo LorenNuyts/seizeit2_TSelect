@@ -151,6 +151,9 @@ class SegmentedGenerator(keras.utils.Sequence):
             assert rec_data.channels == self.channels or len(self.channels) == 0
             if len(self.channels) == 0:
                 self.channels = rec_data.channels
+            elif rec_data.channels != self.channels:
+                rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
+            assert rec_data.channels == self.channels or len(self.channels) == 0
 
             if self.data_segs is None:
                 self.data_segs = np.empty(shape=[len(segments), int(config.frame * config.fs), len(self.channels)],
@@ -170,10 +173,10 @@ class SegmentedGenerator(keras.utils.Sequence):
                     self.labels[count, :] = [0, 1]
                 elif segs_to_load[r][3] == 0:
                     self.labels[count, :] = [1, 0]
-                
+
                 count += 1
                 pbar.update(1)
-                
+
             segs_to_load = [s for i, s in enumerate(segs_to_load) if i not in comm_recs]
         
         self.key_array = np.arange(len(self.labels))
