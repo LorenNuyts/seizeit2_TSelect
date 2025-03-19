@@ -94,5 +94,7 @@ def switch_channels(channels: list[str], included_channels: list[str], switchabl
     for ch in missing_channels:
         if ch in switchable_channels:
             index = included_channels.index(ch)
-            result[index] = switchable_channels[ch]
+            for option in switchable_channels[ch]:
+                if option not in result:
+                    result[index] = option
     return result

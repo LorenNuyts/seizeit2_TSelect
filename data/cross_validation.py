@@ -10,7 +10,7 @@ from utility.constants import SEED
 
 def leave_one_person_out(root_dir: str, included_locations: list[str] = None, validation_set: Optional[float] = None,
                          seed: int = SEED):
-    testing = 'dtai' not in root_dir
+    testing = 'dtai' not in root_dir and False
     print("Testing setting:", testing)
     if testing:
         nb_subjects = 3 # ONLY FOR TESTING

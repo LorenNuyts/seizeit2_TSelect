@@ -41,8 +41,9 @@ class Nodes:
     other_nodes = ['Ment+', 'A1*', 'A2*', 'MKR+', 'B1', 'B2']
 
     switchable_nodes = {
-        BTEright: BTEleft,
-        BTEleft: BTEright,
+        BTEright: [BTEleft],
+        BTEleft: [BTEright],
+        CROSStop: [BTEright, BTEleft]
     }
 
 
