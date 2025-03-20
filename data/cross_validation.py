@@ -39,8 +39,7 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
         train.remove(subject)
         if validation_set is not None:
             n = math.ceil(validation_set * len(train))
-            random.seed(seed)
-            rng = np.random.default_rng()
+            rng = np.random.default_rng(seed)
             rng.shuffle(train)
             yield train[n:], train[:n], [subject]
         else:
