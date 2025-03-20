@@ -94,8 +94,8 @@ config.selected_channels = None                         # selected channels (if 
 ###########################################
 
 # config.add_to_name = 'test'                                     # str to add to the end of the experiment's config name
-config.add_to_name = (f'{"__channel_selection" if config.channel_selection else ""}'
-                      f'__{args.suffix}')  # str to add to the end of the experiment's config name
+config.add_to_name = (f'{"_channel_selection" if config.channel_selection else ""}'
+                      f'{"_" + args.suffix if args.suffix != "" else ""}')  # str to add to the end of the experiment's config name
 
 ###########################################
 ###########################################
