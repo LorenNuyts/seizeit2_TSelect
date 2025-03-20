@@ -55,7 +55,7 @@ class Data:
                 channels.extend(edf.getSignalLabels())
                 n = edf.signals_in_file
                 for i in range(n):
-                    included_channels = switch_channels(channels, included_channels, Nodes.switchable_nodes)
+                    # included_channels = switch_channels(channels, included_channels, Nodes.switchable_nodes)
                     if channels[i] in included_channels:
                         data.append(edf.readSignal(i))
                 edf._close()
@@ -89,14 +89,17 @@ class Data:
         Args:
             channels (List[str]): list of channels to reorder the data object to.
         """
-        new_data = list()
+        new_data = []
+        new_fs = []
         for ch in channels:
             if ch in self.channels:
                 new_data.append(self.data[self.channels.index(ch)])
+                new_fs.append(self.fs[self.channels.index(ch)])
             else:
                 raise ValueError(f"Channel {ch} not found in data object")
         self.data = new_data
         self.channels = channels
+        self.fs = new_fs
 
 
 def switch_channels(desired_channels: list[str], included_channels: list[str], switchable_channels: dict) -> list[str]:

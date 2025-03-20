@@ -147,9 +147,9 @@ class SegmentedGenerator(keras.utils.Sequence):
             rec_data.apply_preprocess(config)
             if len(self.channels) == 0:
                 self.channels = rec_data.channels
-            elif set(rec_data.channels) != set(self.channels):
+            if set(rec_data.channels) != set(self.channels):
                 rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
-            elif rec_data.channels != self.channels:
+            if rec_data.channels != self.channels:
                 rec_data.reorder_channels(self.channels)
 
             if rec_data.channels != self.channels and len(self.channels) != 0:
