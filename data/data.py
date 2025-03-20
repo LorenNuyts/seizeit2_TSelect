@@ -117,6 +117,6 @@ def switch_channels(desired_channels: list[str], included_channels: list[str], s
                     break
 
     if len(options) > 0:
-        raise ValueError(f"Could not find a suitable channel for {options}. The requested channels are {desired_channels}, "
+        warnings.warn(f"Could not find a suitable channel for {options}. The requested channels are {desired_channels}, "
                          f"while the available channels are {included_channels}")
     return result
