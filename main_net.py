@@ -3,7 +3,7 @@ import os
 import random
 import shutil
 
-from TSelect.tselect.tselect.utils.metrics import auroc_score
+# from TSelect.tselect.tselect.utils.metrics import auroc_score
 from utility.constants import *
 from utility.paths import get_path_results
 from utility.stats import Results
