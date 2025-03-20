@@ -37,13 +37,13 @@ def train_net(config, model, gen_train, gen_val, model_save_path):
     patience = 50
 
     if not os.path.exists(os.path.join(model_save_path, 'Callbacks')):
-        os.mkdir(os.path.join(model_save_path, 'Callbacks'))
+        os.makedirs(os.path.join(model_save_path, 'Callbacks'))
 
     if not os.path.exists(os.path.join(model_save_path, 'History')):
-        os.mkdir(os.path.join(model_save_path, 'History'))
+        os.makedirs(os.path.join(model_save_path, 'History'))
 
     if not os.path.exists(os.path.join(model_save_path, 'Weights')):
-        os.mkdir(os.path.join(model_save_path, 'Weights'))
+        os.makedirs(os.path.join(model_save_path, 'Weights'))
 
 
     cb_model = os.path.join(model_save_path, 'Callbacks', name + '_{epoch:02d}.weights.h5')
