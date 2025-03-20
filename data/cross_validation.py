@@ -7,6 +7,7 @@ import numpy as np
 
 from utility.constants import SEED
 
+subjects_with_seizures = ['SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376', 'SUBJ-7-438', 'SUBJ-7-441', 'SUBJ-7-449']
 
 def leave_one_person_out(root_dir: str, included_locations: list[str] = None, validation_set: Optional[float] = None,
                          seed: int = SEED):
@@ -39,8 +40,16 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
         train.remove(subject)
         if validation_set is not None:
             n = math.ceil(validation_set * len(train))
-            rng = np.random.default_rng(seed)
-            rng.shuffle(train)
+            valid_validation_set = False
+            while not valid_validation_set:
+                rng = np.random.default_rng(seed)
+                rng.shuffle(train)
+                # Brute force to ensure at least one person with a seizure in the validation set
+                # TODO: make this nicer
+                if len(set(train[:n]).intersection(set(subjects_with_seizures))) > 0:
+                    valid_validation_set = True
+                else:
+                    seed += 1
             yield train[n:], train[:n], [subject]
         else:
             yield train, [subject]

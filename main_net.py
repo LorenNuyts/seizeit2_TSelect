@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 
+from TSelect.tselect.tselect.utils.metrics import auroc_score
 from utility.constants import *
 from utility.paths import get_path_results
 from utility.stats import Results
@@ -30,9 +31,13 @@ base_ = os.path.dirname(os.path.realpath(__file__))
 ###########################################
 parser = argparse.ArgumentParser()
 parser.add_argument('--channel_selection', action='store_true')
+parser.add_argument("--evaluation_metric", type=str, nargs="?", default="roc_auc")
 parser.add_argument("--suffix", type=str, nargs="?", default="")
 
 args = parser.parse_args()
+
+# evaluation_metrics = {"roc_auc": roc_score,
+#                       ""}
 
 ###########################################
 ## Initialize standard config parameters ##
