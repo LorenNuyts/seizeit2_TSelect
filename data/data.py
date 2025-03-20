@@ -99,17 +99,24 @@ class Data:
         self.channels = channels
 
 
-def switch_channels(channels: list[str], included_channels: list[str], switchable_channels: dict) -> list[str]:
+def switch_channels(desired_channels: list[str], included_channels: list[str], switchable_channels: dict) -> list[str]:
     """
     Switch the channels in the included_channels list if the switchable_channels dictionary contains the channel to
     switch. A copy of the included_channels list is returned with the switched channels.
     """
-    missing_channels = [ch for ch in included_channels if ch not in channels]
+    missing_channels = [ch for ch in included_channels if ch not in desired_channels]
+    options = {ch for ch in desired_channels if ch not in included_channels}
     result = included_channels.copy()
     for ch in missing_channels:
         if ch in switchable_channels:
             index = included_channels.index(ch)
-            for option in switchable_channels[ch]:
-                if option not in result:
+            for option in options:
+                if option in switchable_channels[ch]:
                     result[index] = option
+                    options.remove(option)
+                    break
+
+    if len(options) > 0:
+        raise ValueError(f"Could not find a suitable channel for {options}. The requested channels are {desired_channels}, "
+                         f"while the available channels are {included_channels}")
     return result
