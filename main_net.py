@@ -1,3 +1,4 @@
+import argparse
 import os
 import random
 import shutil
@@ -23,6 +24,15 @@ from net import main_func
 from net.DL_config import Config
 
 base_ = os.path.dirname(os.path.realpath(__file__))
+
+###########################################
+### Parse parameters from command line ####
+###########################################
+parser = argparse.ArgumentParser()
+parser.add_argument('--channel_selection', action='store_true')
+parser.add_argument("--suffix", type=str, nargs="?", default="")
+
+args = parser.parse_args()
 
 ###########################################
 ## Initialize standard config parameters ##
@@ -77,15 +87,15 @@ config.locations = [Locations.coimbra]              # locations to use
 ###########################################
 
 ##### CHANNEL SELECTION CONFIGS:
-config.channel_selection = False              # whether to use channel selection
-config.selected_channels = None              # selected channels (if None, no channel selection has been performed yet)
+config.channel_selection = args.channel_selection       # whether to use channel selection
+config.selected_channels = None                         # selected channels (if None, no channel selection has been performed yet)
 
 ###########################################
 ###########################################
 
 # config.add_to_name = 'test'                                     # str to add to the end of the experiment's config name
 config.add_to_name = (f'{"__channel_selection" if config.channel_selection else ""}'
-                      f'__test')  # str to add to the end of the experiment's config name
+                      f'__{args.suffix}')  # str to add to the end of the experiment's config name
 
 ###########################################
 ###########################################
