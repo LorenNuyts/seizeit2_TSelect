@@ -113,8 +113,8 @@ if os.path.exists(results_path):
 load_generators = False                                          # Boolean to load generators from file
 save_generators = False                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
-if os.path.exists(config.save_dir):
-  shutil.rmtree(config.save_dir)
+# if os.path.exists(config.save_dir):
+#   shutil.rmtree(config.save_dir)
 
 main_func.train(config, results, load_generators, save_generators)
 
