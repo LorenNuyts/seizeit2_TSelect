@@ -4,14 +4,13 @@ from typing import List
 
 import pandas as pd
 
-from net.DL_config import Config
 from utility.constants import get_base_config, get_channel_selection_config
 from utility.paths import get_path_results
 from utility.stats import Results
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
-def print_table(configs: List[Config], metrics: List[str], output_path: str):
+def print_table(configs: list, metrics: List[str], output_path: str):
     data = {}
 
     for config in configs:
