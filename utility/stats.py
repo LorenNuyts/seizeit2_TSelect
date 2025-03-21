@@ -95,24 +95,34 @@ class Results:
         return best_value, self.thresholds[self.average_score_all_thresholds.index(best_value)]
 
     @property
-    def average_f1_ovlp(self) -> np.float32:
-        return np.mean(self.average_f1_ovlp_all_thresholds)
+    def average_f1_ovlp_best_threshold(self) -> float:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_f1_ovlp_all_thresholds[index_best_threshold]
 
     @property
-    def average_fah_ovlp(self) -> np.float32:
-        return np.mean(self.average_fah_ovlp_all_thresholds)
+    def average_fah_ovlp_best_threshold(self) -> float:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_fah_ovlp_all_thresholds[index_best_threshold]
 
     @property
-    def average_prec_ovlp(self) -> np.float32:
-        return np.mean(self.average_prec_ovlp_all_thresholds)
+    def average_prec_ovlp_best_threshold(self) -> float:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_prec_ovlp_all_thresholds[index_best_threshold]
 
     @property
-    def average_sens_ovlp(self) -> np.float32:
-        return np.mean(self.average_sens_ovlp_all_thresholds)
+    def average_sens_ovlp_best_threshold(self) -> float:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_sens_ovlp_all_thresholds[index_best_threshold]
 
     @property
-    def average_score(self) -> np.float32:
-        return np.mean(self.average_score_all_thresholds)
+    def average_score_best_threshold(self) -> float:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_score_all_thresholds[index_best_threshold]
 
     @property
     def name(self) -> str:

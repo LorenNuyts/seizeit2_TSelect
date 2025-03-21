@@ -12,3 +12,4 @@ dependencies:
   - graphviz
   - Pint
   - sktime
+  - -openpyxl
