@@ -364,5 +364,9 @@ def evaluate(config, results):
     results.save_results(get_path_results(config, name))
 
     print(f"Best score: {'%.2f' % results.best_average_score[0]} at threshold {'%.2f' % results.best_average_score[1]}")
+    print(f"Best F1: {'%.2f' % results.best_average_f1_ovlp[0]} at threshold {'%.2f' % results.best_average_f1_ovlp[1]}")
+    print(f"Best FAH: {'%.2f' % results.best_average_fah_ovlp[0]} at threshold {'%.2f' % results.best_average_fah_ovlp[1]}")
+    print(f"Best Sens: {'%.2f' % results.best_average_sens_ovlp[0]} at threshold {'%.2f' % results.best_average_sens_ovlp[1]}")
+    print(f"Best Prec: {'%.2f' % results.best_average_prec_ovlp[0]} at threshold {'%.2f' % results.best_average_prec_ovlp[1]}")
     print("Total time: " + "%.2f" % results.average_total_time)
 
