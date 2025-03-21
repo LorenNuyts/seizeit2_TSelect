@@ -4,9 +4,9 @@ from typing import List
 
 import pandas as pd
 
-from ..utility.constants import get_base_config, get_channel_selection_config
-from ..utility.paths import get_path_results
-from ..utility.stats import Results
+from utility.constants import get_base_config, get_channel_selection_config
+from utility.paths import get_path_results
+from utility.stats import Results
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
