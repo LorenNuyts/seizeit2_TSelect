@@ -120,18 +120,19 @@ def train(config, results, load_generators, save_generators):
                 # channel_selector = TSelect(random_state=SEED, evaluation_metric=config.evaluation_metric)
                 channel_selector = TSelect(random_state=SEED)
                 metadata = init_metadata()
-                df = from_3d_numpy_to_multi_index(gen_train.data_segs.transpose(0, 2, 1), column_names=gen_train.channels)
-                # df = from_3d_numpy_to_multi_index(gen_train.data_segs, column_names=gen_train.channels)
-                y = pd.Series(gen_train.labels[:, 0])
+                # df = from_3d_numpy_to_multi_index(gen_train.data_segs.transpose(0, 2, 1), column_names=gen_train.channels)
+                df = gen_train.data_segs
+                # y = pd.Series(gen_train.labels[:, 0])
+                y = gen_train.labels[:, 0]
                 channel_selector.fit(df, y, metadata)
-                # config.CH = len(channel_selector.selected_channels)
-                gen_train.change_included_channels(channel_selector.selected_channels)
-                gen_val.change_included_channels(channel_selector.selected_channels)
+                selected_channels = [gen_train.channels[i] for i in channel_selector.selected_channels]
+                gen_train.change_included_channels(selected_channels)
+                gen_val.change_included_channels(selected_channels)
                 assert gen_train.data_segs.shape[2] == gen_val.data_segs.shape[2]
                 if config.selected_channels is None:
-                    config.selected_channels = {fold_i: channel_selector.selected_channels}
+                    config.selected_channels = {fold_i: selected_channels}
                 else:
-                    config.selected_channels[fold_i] = channel_selector.selected_channels
+                    config.selected_channels[fold_i] = selected_channels
                 config.reload_CH(fold=fold_i)
                 results.selection_time[fold_i] = time.process_time() - selection_start
 

@@ -502,3 +502,47 @@ def get_metrics_scoring(y_pred, y_true, fs, th):
     spec_epoch = TN_epoch/(TN_epoch + FP_epoch)
 
     return sens_ovlp, prec_ovlp, FA_ovlp, f1_ovlp, sens_epoch, spec_epoch, prec_epoch, FA_epoch, f1_epoch
+
+
+def get_sens_ovlp(y_true, y_pred, fs=1/2):
+    ''' Get the sensitivity calculated with the any-overlap method.
+
+    Args:
+        y_true: array with the ground-truth labels of the segments
+        y_pred: array with the predicted labels of the segments
+        fs: sampling frequency of the predicted and ground-truth label arrays
+            (in this challenge, fs = 1/2)
+
+    Returns:
+        sens_ovlp: sensitivity calculated with the any-overlap method
+    '''
+
+    TP_ovlp, FP_ovlp, FN_ovlp = perf_measure_ovlp(y_true, y_pred, fs)
+
+    if np.sum(y_true) == 0:
+        sens_ovlp = float("nan")
+    else:
+        sens_ovlp = TP_ovlp/(TP_ovlp + FN_ovlp)
+
+    return sens_ovlp
+
+
+def get_FA_ovlp(y_true, y_pred, fs=1/2):
+    ''' Get the false alarm rate calculated with the any-overlap method.
+
+    Args:
+        y_true: array with the ground-truth labels of the segments
+        y_pred: array with the predicted labels of the segments
+        fs: sampling frequency of the predicted and ground-truth label arrays
+            (in this challenge, fs = 1/2)
+
+    Returns:
+        FA_ovlp: false alarm rate (false alarms per hour) calculated with the any-overlap method
+    '''
+
+    TP_ovlp, FP_ovlp, FN_ovlp = perf_measure_ovlp(y_true, y_pred, fs)
+
+    total_N = len(y_pred)*(1/fs)
+    FA_ovlp = FP_ovlp*3600/total_N
+
+    return FA_ovlp

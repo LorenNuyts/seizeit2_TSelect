@@ -102,24 +102,30 @@ class Data:
         self.fs = new_fs
 
 
-def switch_channels(desired_channels: list[str], included_channels: list[str], switchable_channels: dict) -> list[str]:
+def switch_channels(available_channels: list[str], desired_channels: list[str], switchable_channels: dict) -> list[str]:
     """
     Switch the channels in the included_channels list if the switchable_channels dictionary contains the channel to
     switch. A copy of the included_channels list is returned with the switched channels.
     """
-    missing_channels = [ch for ch in included_channels if ch not in desired_channels]
-    options = {ch for ch in desired_channels if ch not in included_channels}
-    result = included_channels.copy()
+    missing_channels = [ch for ch in desired_channels if ch not in available_channels]
+    options = {ch for ch in available_channels if ch not in desired_channels}
+    non_switched_channels = set()
+    result = desired_channels.copy()
     for ch in missing_channels:
         if ch in switchable_channels:
-            index = included_channels.index(ch)
+            index = desired_channels.index(ch)
+            switch_found = False
             for option in options:
                 if option in switchable_channels[ch]:
                     result[index] = option
                     options.remove(option)
+                    switch_found = True
                     break
+            if not switch_found:
+                non_switched_channels.add(ch)
 
-    if len(options) > 0:
-        warnings.warn(f"Could not find a suitable channel for {options}. The requested channels are {desired_channels}, "
-                         f"while the available channels are {included_channels}")
+
+    if len(non_switched_channels) > 0:
+        warnings.warn(f"Could not find a suitable channel for {non_switched_channels}. The available channels are {available_channels}, "
+                         f"while the requested channels are {desired_channels}")
     return result
