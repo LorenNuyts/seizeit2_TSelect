@@ -362,6 +362,7 @@ def evaluate(config, results):
     results.score = score
     results.thresholds = thresholds
     results.save_results(get_path_results(config, name))
+    average_nb_channels = np.mean([len(chs) for chs in config.selected_channels.values()]) if config.channel_selection else config.CH
 
     print(f"Best score: {'%.2f' % results.best_average_score[0]} at threshold {'%.2f' % results.best_average_score[1]}")
     print(f"Best F1: {'%.2f' % results.best_average_f1_ovlp[0]} at threshold {'%.2f' % results.best_average_f1_ovlp[1]}")
@@ -369,5 +370,5 @@ def evaluate(config, results):
     print(f"Best Sens: {'%.2f' % results.best_average_sens_ovlp[0]} at threshold {'%.2f' % results.best_average_sens_ovlp[1]}")
     print(f"Best Prec: {'%.2f' % results.best_average_prec_ovlp[0]} at threshold {'%.2f' % results.best_average_prec_ovlp[1]}")
     print("Total time: " + "%.2f" % results.average_total_time)
-    print("Average number of channels: " + "%.2f" % np.mean([len(chs) for chs in config.selected_channels.values()]))
+    print("Average number of channels: " + "%.2f" % average_nb_channels)
 
