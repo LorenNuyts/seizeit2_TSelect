@@ -516,7 +516,8 @@ def get_sens_ovlp(y_true, y_pred, fs=1/2):
     Returns:
         sens_ovlp: sensitivity calculated with the any-overlap method
     '''
-
+    if len(y_pred.shape) == 2:
+        y_pred = y_pred[:, 1]
     TP_ovlp, FP_ovlp, FN_ovlp = perf_measure_ovlp(y_true, y_pred, fs)
 
     if np.sum(y_true) == 0:
@@ -539,10 +540,33 @@ def get_FA_ovlp(y_true, y_pred, fs=1/2):
     Returns:
         FA_ovlp: false alarm rate (false alarms per hour) calculated with the any-overlap method
     '''
-
+    if len(y_pred.shape) == 2:
+        y_pred = y_pred[:, 1]
     TP_ovlp, FP_ovlp, FN_ovlp = perf_measure_ovlp(y_true, y_pred, fs)
 
     total_N = len(y_pred)*(1/fs)
     FA_ovlp = FP_ovlp*3600/total_N
 
     return FA_ovlp
+
+def get_sens_FA_score(y_true, y_pred, fs=1/2):
+    """ Get the score for the challenge.
+
+    Args:
+        y_true: array with the ground-truth labels of the segments
+        y_pred: array with the predicted labels of the segments
+        fs: sampling frequency of the predicted and ground-truth label arrays
+            (in this challenge, fs = 1/2)
+
+    Returns:
+        score: the score of the challenge. The score is calculated as: sens_ovlp*100 - 0.4*FA_ovlp
+    """
+    if len(y_pred.shape) == 2:
+        y_pred = y_pred[:, 1]
+
+    sens_ovlp = get_sens_ovlp(y_true, y_pred, fs)
+    FA_ovlp = get_FA_ovlp(y_true, y_pred, fs)
+
+    score = sens_ovlp*100 - 0.4*FA_ovlp
+
+    return score

@@ -117,8 +117,8 @@ def train(config, results, load_generators, save_generators):
             if config.channel_selection:
                 selection_start = time.process_time()
                 print('### Selecting channels....')
-                # channel_selector = TSelect(random_state=SEED, evaluation_metric=config.evaluation_metric)
-                channel_selector = TSelect(random_state=SEED)
+                channel_selector = TSelect(random_state=SEED, evaluation_metric=config.channel_selection_evaluation_metric)
+                # channel_selector = TSelect(random_state=SEED)
                 metadata = init_metadata()
                 # df = from_3d_numpy_to_multi_index(gen_train.data_segs.transpose(0, 2, 1), column_names=gen_train.channels)
                 df = gen_train.data_segs
