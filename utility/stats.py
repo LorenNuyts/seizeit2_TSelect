@@ -62,26 +62,36 @@ class Results:
     @property
     def best_average_f1_ovlp(self) -> (float, float):
         best_value = max(self.average_f1_ovlp_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
         return best_value, self.thresholds[self.average_f1_ovlp_all_thresholds.index(best_value)]
 
     @property
     def best_average_fah_ovlp(self) -> (float, float):
         best_value = max(self.average_fah_ovlp_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
         return best_value, self.thresholds[self.average_fah_ovlp_all_thresholds.index(best_value)]
 
     @property
     def best_average_prec_ovlp(self) -> (float, float):
         best_value = max(self.average_prec_ovlp_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
         return best_value, self.thresholds[self.average_prec_ovlp_all_thresholds.index(best_value)]
 
     @property
     def best_average_sens_ovlp(self) -> (float, float):
         best_value = max(self.average_sens_ovlp_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
         return best_value, self.thresholds[self.average_sens_ovlp_all_thresholds.index(best_value)]
 
     @property
     def best_average_score(self) -> (float, float):
         best_value = max(self.average_score_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
         return best_value, self.thresholds[self.average_score_all_thresholds.index(best_value)]
 
     @property
