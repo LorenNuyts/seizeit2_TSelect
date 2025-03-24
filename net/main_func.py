@@ -248,6 +248,7 @@ def evaluate(config, results):
     prec_epoch = []
     fah_epoch = []
     f1_epoch = []
+    rocauc = []
 
     score = []
 
@@ -269,6 +270,7 @@ def evaluate(config, results):
         prec_epoch_th = []
         fah_epoch_th = []
         f1_epoch_th = []
+        rocauc_th = []
 
         score_th = []
 
@@ -301,7 +303,7 @@ def evaluate(config, results):
         y_pred = np.where(np.array(rmsa) == 0, 0, y_pred)
 
         for th in thresholds:
-            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec = get_metrics_scoring(y_pred, y_true, pred_fs, th)
+            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec, rocauc = get_metrics_scoring(y_pred, y_true, pred_fs, th)
 
             sens_ovlp_th.append(sens_ovlp_rec)
             prec_ovlp_th.append(prec_ovlp_rec)
@@ -312,6 +314,7 @@ def evaluate(config, results):
             prec_epoch_th.append(prec_epoch_rec)
             fah_epoch_th.append(FA_epoch_rec)
             f1_epoch_th.append(f1_epoch_rec)
+            rocauc_th.append(rocauc)
             score_th.append(sens_ovlp_rec*100-0.4*FA_epoch_rec)
 
         sens_ovlp.append(sens_ovlp_th)
@@ -324,6 +327,7 @@ def evaluate(config, results):
         prec_epoch.append(prec_epoch_th)
         fah_epoch.append(fah_epoch_th)
         f1_epoch.append(f1_epoch_th)
+        rocauc.append(rocauc_th)
 
         score.append(score_th)
 
@@ -354,22 +358,32 @@ def evaluate(config, results):
         f.create_dataset('prec_epoch', data=prec_epoch)
         f.create_dataset('fah_epoch', data=fah_epoch)
         f.create_dataset('f1_epoch', data=f1_epoch)
+        f.create_dataset('rocauc', data=rocauc)
         f.create_dataset('score', data=score)
 
     results.sens_ovlp = sens_ovlp
     results.prec_ovlp = prec_ovlp
     results.fah_ovlp = fah_ovlp
     results.f1_ovlp = f1_ovlp
+    results.rocauc = rocauc
     results.score = score
     results.thresholds = thresholds
     results.save_results(get_path_results(config, name))
     average_nb_channels = np.mean([len(chs) for chs in config.selected_channels.values()]) if config.channel_selection else config.CH
 
     print(f"Best score: {'%.2f' % results.best_average_score[0]} at threshold {'%.2f' % results.best_average_score[1]}")
-    print(f"Best F1: {'%.2f' % results.best_average_f1_ovlp[0]} at threshold {'%.2f' % results.best_average_f1_ovlp[1]}")
-    print(f"Best FAH: {'%.2f' % results.best_average_fah_ovlp[0]} at threshold {'%.2f' % results.best_average_fah_ovlp[1]}")
-    print(f"Best Sens: {'%.2f' % results.best_average_sens_ovlp[0]} at threshold {'%.2f' % results.best_average_sens_ovlp[1]}")
-    print(f"Best Prec: {'%.2f' % results.best_average_prec_ovlp[0]} at threshold {'%.2f' % results.best_average_prec_ovlp[1]}")
+    # print(f"Best F1: {'%.2f' % results.best_[0]} at threshold {'%.2f' % results.best_average_f1_ovlp[1]}")
+    # print(f"Best FAH: {'%.2f' % results.best_average_fah_ovlp[0]} at threshold {'%.2f' % results.best_average_fah_ovlp[1]}")
+    # print(f"Best Sens: {'%.2f' % results.best_average_sens_ovlp[0]} at threshold {'%.2f' % results.best_average_sens_ovlp[1]}")
+    # print(f"Best Prec: {'%.2f' % results.best_average_prec_ovlp[0]} at threshold {'%.2f' % results.best_average_prec_ovlp[1]}")
+    print(f"F1 score at best threshold: {'%.2f' % results.average_f1_ovlp_best_threshold}")
+    print(f"FAH at best threshold: {'%.2f' % results.average_fah_ovlp_best_threshold}")
+    print(f"Sens at best threshold: {'%.2f' % results.average_sens_ovlp_best_threshold}")
+    print(f"Prec at best threshold: {'%.2f' % results.average_prec_ovlp_best_threshold}")
+    print(f"ROCAUC at best threshold: {'%.2f' % results.average_rocauc_best_threshold}")
+
+    print("####################################################")
+    print("Average selection time: " + "%.2f" % results.average_selection_time)
     print("Total time: " + "%.2f" % results.average_total_time)
     print("Average number of channels: " + "%.2f" % average_nb_channels)
 

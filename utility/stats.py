@@ -16,6 +16,7 @@ class Results:
         self.fah_ovlp: List[list] = []
         self.prec_ovlp: List[list] = []
         self.sens_ovlp: List[list] = []
+        self.rocauc: List[list] = []
         self.score: List[list] = []
         self.thresholds: list = []
 
@@ -23,7 +24,7 @@ class Results:
     def total_time(self) -> Dict[int, float]:
         total_time = {}
         for fold in self.train_time.keys():
-            selection_time = self.train_time[fold] if fold in self.selection_time.keys() else 0
+            selection_time = self.selection_time[fold] if fold in self.selection_time.keys() else 0
             total_time[fold] = selection_time + self.train_time[fold]
         return total_time
 
@@ -54,6 +55,10 @@ class Results:
     @property
     def average_sens_ovlp_all_thresholds(self) -> List[float]:
         return [sum(sens) / len(sens) for sens in zip(*self.sens_ovlp)]
+
+    @property
+    def average_rocauc_all_thresholds(self) -> List[float]:
+        return [sum(score) / len(score) for score in zip(*self.rocauc)]
 
     @property
     def average_score_all_thresholds(self) -> List[float]:
@@ -88,6 +93,13 @@ class Results:
         return best_value, self.thresholds[self.average_sens_ovlp_all_thresholds.index(best_value)]
 
     @property
+    def best_average_rocauc(self) -> (float, float):
+        best_value = max(self.average_rocauc_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
+        return best_value, self.thresholds[self.average_rocauc_all_thresholds.index(best_value)]
+
+    @property
     def best_average_score(self) -> (float, float):
         best_value = max(self.average_score_all_thresholds)
         if np.isnan(best_value):
@@ -117,6 +129,12 @@ class Results:
         best_threshold = self.best_average_score[1]
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_sens_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def average_rocauc_best_threshold(self) -> float:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_rocauc_all_thresholds[index_best_threshold]
 
     @property
     def average_score_best_threshold(self) -> float:

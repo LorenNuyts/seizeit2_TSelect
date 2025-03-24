@@ -501,7 +501,9 @@ def get_metrics_scoring(y_pred, y_true, fs, th):
 
     spec_epoch = TN_epoch/(TN_epoch + FP_epoch)
 
-    return sens_ovlp, prec_ovlp, FA_ovlp, f1_ovlp, sens_epoch, spec_epoch, prec_epoch, FA_epoch, f1_epoch
+    roc = aucc(y_true, y_pred)
+
+    return sens_ovlp, prec_ovlp, FA_ovlp, f1_ovlp, sens_epoch, spec_epoch, prec_epoch, FA_epoch, f1_epoch, roc
 
 
 def get_sens_ovlp(y_true, y_pred, fs=1/2):
