@@ -46,7 +46,9 @@ class Locations:
 class Keys:
     pass
 
-def get_base_config(base_dir, suffix=""):
+def get_base_config(base_dir, included_channels=None, suffix=""):
+    if included_channels is None:
+        included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
     config = Config()
     if 'dtai' in base_dir:
         config.data_path = '/cw/dtaidata/ml/2025-Epilepsy'
@@ -58,7 +60,7 @@ def get_base_config(base_dir, suffix=""):
         os.makedirs(config.save_dir)
 
     config.fs = 250  # Sampling frequency of the data after post-processing
-    config.included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
+    config.included_channels = included_channels
     config.CH = len(config.included_channels)  # Nr of EEG channels
     config.cross_validation = 'leave_one_person_out'  # validation type
     config.batch_size = 128  # batch size
@@ -97,8 +99,8 @@ def get_base_config(base_dir, suffix=""):
 
     return config
 
-def get_channel_selection_config(base_dir, evaluation_metric=auroc_score, suffix=""):
-    config = get_base_config(base_dir, suffix)
+def get_channel_selection_config(base_dir, included_channels=None, evaluation_metric=auroc_score, suffix=""):
+    config = get_base_config(base_dir, included_channels=included_channels, suffix=suffix)
     config.channel_selection = True
     config.selected_channels = None
     config.channel_selection_evaluation_metric = evaluation_metric

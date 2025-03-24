@@ -41,28 +41,28 @@ class Results:
         return sum(self.total_time.values()) / len(self.total_time)
 
     @property
-    def average_f1_ovlp_all_thresholds(self) -> List[float]:
-        return [sum(f1) / len(f1) for f1 in zip(*self.f1_ovlp)]
+    def average_f1_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(f1) for f1 in zip(*self.f1_ovlp)]
 
     @property
-    def average_fah_ovlp_all_thresholds(self) -> List[float]:
-        return [sum(fah) / len(fah) for fah in zip(*self.fah_ovlp)]
+    def average_fah_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(fah) for fah in zip(*self.fah_ovlp)]
 
     @property
-    def average_prec_ovlp_all_thresholds(self) -> List[float]:
-        return [sum(prec) / len(prec) for prec in zip(*self.prec_ovlp)]
+    def average_prec_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(prec) for prec in zip(*self.prec_ovlp)]
 
     @property
-    def average_sens_ovlp_all_thresholds(self) -> List[float]:
-        return [sum(sens) / len(sens) for sens in zip(*self.sens_ovlp)]
+    def average_sens_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(sens) for sens in zip(*self.sens_ovlp)]
 
     @property
-    def average_rocauc_all_thresholds(self) -> List[float]:
-        return [sum(score) / len(score) for score in zip(*self.rocauc)]
+    def average_rocauc_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(score) for score in zip(*self.rocauc)]
 
     @property
-    def average_score_all_thresholds(self) -> List[float]:
-        return [sum(score) / len(score) for score in zip(*self.score)]
+    def average_score_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(score) for score in zip(*self.score)]
 
     @property
     def best_average_f1_ovlp(self) -> (float, float):
@@ -107,40 +107,44 @@ class Results:
         return best_value, self.thresholds[self.average_score_all_thresholds.index(best_value)]
 
     @property
-    def average_f1_ovlp_best_threshold(self) -> float:
+    def average_f1_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_f1_ovlp_all_thresholds[index_best_threshold]
 
     @property
-    def average_fah_ovlp_best_threshold(self) -> float:
+    def average_fah_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_fah_ovlp_all_thresholds[index_best_threshold]
 
     @property
-    def average_prec_ovlp_best_threshold(self) -> float:
+    def average_prec_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_prec_ovlp_all_thresholds[index_best_threshold]
 
     @property
-    def average_sens_ovlp_best_threshold(self) -> float:
+    def average_sens_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_sens_ovlp_all_thresholds[index_best_threshold]
 
     @property
-    def average_rocauc_best_threshold(self) -> float:
+    def average_rocauc_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_rocauc_all_thresholds[index_best_threshold]
 
     @property
-    def average_score_best_threshold(self) -> float:
+    def average_score_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_score_all_thresholds[index_best_threshold]
+
+    @property
+    def median_f1_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(f1) for f1 in zip(*self.f1_ovlp)]
 
     @property
     def name(self) -> str:

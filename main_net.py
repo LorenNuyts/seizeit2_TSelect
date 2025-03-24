@@ -33,21 +33,31 @@ base_ = os.path.dirname(os.path.realpath(__file__))
 parser = argparse.ArgumentParser()
 parser.add_argument('--channel_selection', action='store_true')
 parser.add_argument("--evaluation_metric", type=str, nargs="?", default="roc_auc")
+parser.add_argument("--nodes", type=str, nargs="?", default="all")
 parser.add_argument("--suffix", type=str, nargs="?", default="")
 
 args = parser.parse_args()
 
 evaluation_metrics = {"roc_auc": auroc_score,
                       "score": get_sens_FA_score}
+suffix_ = args.suffix
+
+if args.nodes == "all":
+    included_nodes = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
+elif args.nodes == "wearables":
+    included_nodes = Nodes.wearable_nodes
+    suffix_ = "wearables" + ("__" if len(suffix_) != 0 else "") + suffix_
+else:
+    raise ValueError(f"Invalid nodes argument: {args.nodes}")
 
 ###########################################
 ## Initialize standard config parameters ##
 ###########################################
 
 if args.channel_selection:
-    config = get_channel_selection_config(base_, evaluation_metric=evaluation_metrics[args.evaluation_metric], suffix=args.suffix)
+    config = get_channel_selection_config(base_, evaluation_metric=evaluation_metrics[args.evaluation_metric], suffix=suffix_)
 else:
-    config = get_base_config(base_, suffix=args.suffix)
+    config = get_base_config(base_, suffix=suffix_)
 
 # ## Configuration for the generator and models:
 # config = Config()
