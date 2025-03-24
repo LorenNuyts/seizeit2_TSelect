@@ -124,7 +124,7 @@ def train(config, results, load_generators, save_generators):
                 df = gen_train.data_segs
                 # y = pd.Series(gen_train.labels[:, 0])
                 y = gen_train.labels[:, 0]
-                channel_selector.fit(df, y, metadata)
+                channel_selector.fit(df, y, X_val=gen_val.data_segs, y_val=gen_val.labels[:, 0], metadata=metadata)
                 selected_channels = [gen_train.channels[i] for i in channel_selector.selected_channels]
                 gen_train.change_included_channels(selected_channels)
                 gen_val.change_included_channels(selected_channels)
