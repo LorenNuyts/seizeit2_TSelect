@@ -30,14 +30,20 @@ class Results:
 
     @property
     def average_selection_time(self) -> float:
+        if len(self.selection_time) == 0:
+            return 0
         return sum(self.selection_time.values()) / len(self.selection_time)
 
     @property
     def average_train_time(self) -> float:
+        if len(self.train_time) == 0:
+            return 0
         return sum(self.train_time.values()) / len(self.train_time)
 
     @property
     def average_total_time(self) -> float:
+        if len(self.total_time) == 0:
+            return 0
         return sum(self.total_time.values()) / len(self.total_time)
 
     @property
