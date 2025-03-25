@@ -21,10 +21,9 @@ def print_table(configs: list, metrics: List[str], output_path: str):
         else:
             print(f"Results not found for {config.get_name()}")
             continue
-        try:
-            data[config.get_name()] = [getattr(results, metric, None) for metric in metrics]
-        except ZeroDivisionError as e:
-            print(f"Error in {config.get_name()}: {e}")
+        data[config.get_name()] = [getattr(results, metric, None) for metric in metrics]
+        # except ZeroDivisionError as e:
+        #     print(f"Error in {config.get_name()}: {e}")
 
     df = pd.DataFrame(data, index=metrics)
 
