@@ -143,8 +143,64 @@ class Results:
         return self.average_score_all_thresholds[index_best_threshold]
 
     @property
-    def median_f1_ovlp_all_thresholds(self) -> List[np.float32]:
-        return [np.nanmedian(f1) for f1 in zip(*self.f1_ovlp)]
+    def average_f1_ovlp_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_f1_ovlp_all_thresholds[index_th05]
+
+    @property
+    def average_fah_ovlp_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_fah_ovlp_all_thresholds[index_th05]
+
+    @property
+    def average_prec_ovlp_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_prec_ovlp_all_thresholds[index_th05]
+
+    @property
+    def average_sens_ovlp_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_sens_ovlp_all_thresholds[index_th05]
+
+    @property
+    def average_rocauc_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_rocauc_all_thresholds[index_th05]
+
+    @property
+    def average_score_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_score_all_thresholds[index_th05]
+
+    @property
+    def average_f1_th025(self) -> np.float32:
+        index_th025 = self.thresholds.index(0.25)
+        return self.average_f1_ovlp_all_thresholds[index_th025]
+
+    @property
+    def average_fah_th025(self) -> np.float32:
+        index_th025 = self.thresholds.index(0.25)
+        return self.average_fah_ovlp_all_thresholds[index_th025]
+
+    @property
+    def average_prec_th025(self) -> np.float32:
+        index_th025 = self.thresholds.index(0.25)
+        return self.average_prec_ovlp_all_thresholds[index_th025]
+
+    @property
+    def average_sens_th025(self) -> np.float32:
+        index_th025 = self.thresholds.index(0.25)
+        return self.average_sens_ovlp_all_thresholds[index_th025]
+
+    @property
+    def average_rocauc_th025(self) -> np.float32:
+        index_th025 = self.thresholds.index(0.25)
+        return self.average_rocauc_all_thresholds[index_th025]
+
+    @property
+    def average_score_th025(self) -> np.float32:
+        index_th025 = self.thresholds.index(0.25)
+        return self.average_score_all_thresholds[index_th025]
 
     @property
     def name(self) -> str:

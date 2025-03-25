@@ -34,6 +34,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--channel_selection', action='store_true')
 parser.add_argument("--evaluation_metric", type=str, nargs="?", default="roc_auc")
 parser.add_argument("--nodes", type=str, nargs="?", default="all")
+parser.add_argument("--auc", type=float, nargs="?", default=0.6)
+parser.add_argument("--corr", type=float, nargs="?", default=0.5)
 parser.add_argument("--suffix", type=str, nargs="?", default="")
 
 args = parser.parse_args()
@@ -55,7 +57,9 @@ else:
 ###########################################
 
 if args.channel_selection:
-    config = get_channel_selection_config(base_, evaluation_metric=evaluation_metrics[args.evaluation_metric], suffix=suffix_)
+    config = get_channel_selection_config(base_, evaluation_metric=evaluation_metrics[args.evaluation_metric],
+                                          auc_percentage=args.auc, corr_threshold=args.corr,
+                                          suffix=suffix_)
 else:
     config = get_base_config(base_, suffix=suffix_)
 

@@ -4,7 +4,7 @@ from typing import List
 
 import pandas as pd
 
-from utility.constants import get_base_config, get_channel_selection_config
+from utility.constants import get_base_config, get_channel_selection_config, Nodes
 from utility.paths import get_path_results
 from utility.stats import Results
 
@@ -34,11 +34,19 @@ if __name__ == '__main__':
     parser.add_argument("--suffix", type=str, nargs="?", default="")
     args = parser.parse_args()
     suffix_ = args.suffix
-    configs_ = [get_base_config(base_dir, suffix=suffix_), get_channel_selection_config(base_dir, suffix=suffix_)]
+    configs_ = [get_base_config(base_dir, suffix=suffix_),
+                get_base_config(base_dir, suffix=suffix_, included_channels=Nodes.wearable_nodes),
+                get_channel_selection_config(base_dir, suffix=suffix_),
+                get_channel_selection_config(base_dir, suffix=suffix_, included_channels=Nodes.wearable_nodes)]
     metrics_ = ['average_f1_ovlp_best_threshold', 'average_fah_ovlp_best_threshold', 'average_prec_ovlp_best_threshold',
-                'average_sens_ovlp_best_threshold', 'average_score_best_threshold',
+                'average_sens_ovlp_best_threshold', 'average_rocauc_best_threshold', 'average_score_best_threshold',
                 'best_average_f1_ovlp', 'best_average_fah_ovlp', 'best_average_prec_ovlp', 'best_average_sens_ovlp',
-                'best_average_score', 'average_selection_time', 'average_train_time', 'average_total_time', ]
+                'best_average_rocauc',
+                'best_average_score', 'average_selection_time', 'average_train_time', 'average_total_time',
+                'average_f1_ovlp_th025', 'average_fah_ovlp_th025', 'average_prec_ovlp_th025', 'average_sens_ovlp_th025',
+                'average_rocauc_th025', 'average_score_th025', 'average_f1_ovlp_th05', 'average_fah_ovlp_th05',
+                'average_prec_ovlp_th05', 'average_sens_ovlp_th05', 'average_rocauc_th05', 'average_score_th05',]
+
     if 'dtai' in base_dir:
         output_path_ = os.path.join('/cw/dtailocal/loren/2025-Epilepsy', 'tables', 'results.xlsx')
     else:

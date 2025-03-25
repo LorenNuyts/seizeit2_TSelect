@@ -99,12 +99,17 @@ def get_base_config(base_dir, included_channels=None, suffix=""):
 
     return config
 
-def get_channel_selection_config(base_dir, included_channels=None, evaluation_metric=auroc_score, suffix=""):
+def get_channel_selection_config(base_dir, included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
+                                 corr_threshold=0.5, suffix=""):
     config = get_base_config(base_dir, included_channels=included_channels, suffix=suffix)
     config.channel_selection = True
     config.selected_channels = None
     config.channel_selection_evaluation_metric = evaluation_metric
+    config.auc_percentage = auc_percentage
+    config.corr_threshold = corr_threshold
     config.add_to_name = (f'{"_channel_selection" if config.channel_selection else ""}'
+                          f'{f"_auc_percentage_{auc_percentage}" if auc_percentage != 0.6 else ""}'
+                            f'{f"_corr_threshold_{corr_threshold}" if corr_threshold != 0.5 else ""}'
                       f'{"_" + suffix if suffix != "" else ""}')  # str to add to the end of the experiment's config name
 
     return config
