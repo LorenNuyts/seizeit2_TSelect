@@ -303,7 +303,7 @@ def evaluate(config, results):
         y_pred = np.where(np.array(rmsa) == 0, 0, y_pred)
 
         for th in thresholds:
-            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec, rocauc = get_metrics_scoring(y_pred, y_true, pred_fs, th)
+            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec, rocauc_rec = get_metrics_scoring(y_pred, y_true, pred_fs, th)
 
             sens_ovlp_th.append(sens_ovlp_rec)
             prec_ovlp_th.append(prec_ovlp_rec)
@@ -314,7 +314,7 @@ def evaluate(config, results):
             prec_epoch_th.append(prec_epoch_rec)
             fah_epoch_th.append(FA_epoch_rec)
             f1_epoch_th.append(f1_epoch_rec)
-            rocauc_th.append(rocauc)
+            rocauc_th.append(rocauc_rec)
             score_th.append(sens_ovlp_rec*100-0.4*FA_epoch_rec)
 
         sens_ovlp.append(sens_ovlp_th)
