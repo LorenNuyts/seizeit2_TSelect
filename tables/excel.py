@@ -46,8 +46,8 @@ if __name__ == '__main__':
                 'best_average_f1_ovlp', 'best_average_fah_ovlp', 'best_average_prec_ovlp', 'best_average_sens_ovlp',
                 'best_average_rocauc',
                 'best_average_score', 'average_selection_time', 'average_train_time', 'average_total_time',
-                'average_f1_ovlp_th025', 'average_fah_ovlp_th025', 'average_prec_ovlp_th025', 'average_sens_ovlp_th025',
-                'average_rocauc_th025', 'average_score_th025', 'average_f1_ovlp_th05', 'average_fah_ovlp_th05',
+                'average_f1_ovlp_th024', 'average_fah_ovlp_th024', 'average_prec_ovlp_th024', 'average_sens_ovlp_th024',
+                'average_rocauc_th024', 'average_score_th024', 'average_f1_ovlp_th05', 'average_fah_ovlp_th05',
                 'average_prec_ovlp_th05', 'average_sens_ovlp_th05', 'average_rocauc_th05', 'average_score_th05',]
 
     if 'dtai' in base_dir:

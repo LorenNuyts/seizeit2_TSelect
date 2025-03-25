@@ -173,34 +173,34 @@ class Results:
         return self.average_score_all_thresholds[index_th05]
 
     @property
-    def average_f1_th025(self) -> np.float32:
-        index_th025 = self.thresholds.index(0.25)
-        return self.average_f1_ovlp_all_thresholds[index_th025]
+    def average_f1_th024(self) -> np.float32:
+        index_th024 = self.thresholds.index(0.24)
+        return self.average_f1_ovlp_all_thresholds[index_th024]
 
     @property
-    def average_fah_th025(self) -> np.float32:
-        index_th025 = self.thresholds.index(0.25)
-        return self.average_fah_ovlp_all_thresholds[index_th025]
+    def average_fah_th024(self) -> np.float32:
+        index_th024 = self.thresholds.index(0.24)
+        return self.average_fah_ovlp_all_thresholds[index_th024]
 
     @property
-    def average_prec_th025(self) -> np.float32:
-        index_th025 = self.thresholds.index(0.25)
-        return self.average_prec_ovlp_all_thresholds[index_th025]
+    def average_prec_th024(self) -> np.float32:
+        index_th024 = self.thresholds.index(0.24)
+        return self.average_prec_ovlp_all_thresholds[index_th024]
 
     @property
-    def average_sens_th025(self) -> np.float32:
-        index_th025 = self.thresholds.index(0.25)
-        return self.average_sens_ovlp_all_thresholds[index_th025]
+    def average_sens_th024(self) -> np.float32:
+        index_th024 = self.thresholds.index(0.24)
+        return self.average_sens_ovlp_all_thresholds[index_th024]
 
     @property
-    def average_rocauc_th025(self) -> np.float32:
-        index_th025 = self.thresholds.index(0.25)
-        return self.average_rocauc_all_thresholds[index_th025]
+    def average_rocauc_th024(self) -> np.float32:
+        index_th024 = self.thresholds.index(0.24)
+        return self.average_rocauc_all_thresholds[index_th024]
 
     @property
-    def average_score_th025(self) -> np.float32:
-        index_th025 = self.thresholds.index(0.25)
-        return self.average_score_all_thresholds[index_th025]
+    def average_score_th024(self) -> np.float32:
+        index_th024 = self.thresholds.index(0.24)
+        return self.average_score_all_thresholds[index_th024]
 
     @property
     def name(self) -> str:
