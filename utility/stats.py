@@ -179,34 +179,94 @@ class Results:
         return self.average_score_all_thresholds[index_th05]
 
     @property
-    def average_f1_th024(self) -> np.float32:
-        index_th024 = self.thresholds.index(0.24)
-        return self.average_f1_ovlp_all_thresholds[index_th024]
+    def median_f1_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(f1) for f1 in zip(*self.f1_ovlp)]
 
     @property
-    def average_fah_th024(self) -> np.float32:
-        index_th024 = self.thresholds.index(0.24)
-        return self.average_fah_ovlp_all_thresholds[index_th024]
+    def median_fah_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(fah) for fah in zip(*self.fah_ovlp)]
 
     @property
-    def average_prec_th024(self) -> np.float32:
-        index_th024 = self.thresholds.index(0.24)
-        return self.average_prec_ovlp_all_thresholds[index_th024]
+    def median_prec_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(prec) for prec in zip(*self.prec_ovlp)]
 
     @property
-    def average_sens_th024(self) -> np.float32:
-        index_th024 = self.thresholds.index(0.24)
-        return self.average_sens_ovlp_all_thresholds[index_th024]
+    def median_sens_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(sens) for sens in zip(*self.sens_ovlp)]
 
     @property
-    def average_rocauc_th024(self) -> np.float32:
-        index_th024 = self.thresholds.index(0.24)
-        return self.average_rocauc_all_thresholds[index_th024]
+    def median_rocauc_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(score) for score in zip(*self.rocauc)]
 
     @property
-    def average_score_th024(self) -> np.float32:
-        index_th024 = self.thresholds.index(0.24)
-        return self.average_score_all_thresholds[index_th024]
+    def median_score_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(score) for score in zip(*self.score)]
+
+    @property
+    def median_f1_ovlp_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_f1_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def median_fah_ovlp_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_fah_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def median_prec_ovlp_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_prec_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def median_sens_ovlp_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_sens_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def median_rocauc_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_rocauc_all_thresholds[index_best_threshold]
+
+    @property
+    def median_score_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_score_all_thresholds[index_best_threshold]
+
+    @property
+    def median_f1_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_f1_ovlp_all_thresholds[index_th05]
+
+    @property
+    def median_fah_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_fah_ovlp_all_thresholds[index_th05]
+
+    @property
+    def median_prec_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_prec_ovlp_all_thresholds[index_th05]
+
+    @property
+    def median_sens_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_sens_ovlp_all_thresholds[index_th05]
+
+    @property
+    def median_rocauc_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_rocauc_all_thresholds[index_th05]
+
+    @property
+    def median_score_th05(self) -> np.float32:
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_score_all_thresholds[index_th05]
 
     @property
     def name(self) -> str:

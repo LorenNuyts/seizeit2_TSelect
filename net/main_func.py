@@ -281,6 +281,7 @@ def evaluate(config, results):
         for fold_i in config.folds.keys():
             if rec[1] in config.folds[fold_i]['test']:
                 fold_nb = fold_i
+                break
 
         if fold_nb is None:
             raise ValueError('Recording not found in test set')
