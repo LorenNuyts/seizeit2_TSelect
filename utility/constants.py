@@ -47,8 +47,12 @@ class Keys:
     pass
 
 def get_base_config(base_dir, included_channels=None, suffix=""):
-    if included_channels is None:
+    if included_channels == "wearables":
+        included_channels = Nodes.wearable_nodes
+        suffix = "wearables" + ("__" if len(suffix) != 0 else "") + suffix
+    else:
         included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
+
     config = Config()
     if 'dtai' in base_dir:
         config.data_path = '/cw/dtaidata/ml/2025-Epilepsy'
@@ -94,7 +98,6 @@ def get_base_config(base_dir, included_channels=None, suffix=""):
 
     ###########################################
     ###########################################
-
     config.add_to_name = f'{"_" + suffix if suffix != "" else ""}'  # str to add to the end of the experiment's config name
 
     return config
