@@ -48,6 +48,9 @@ class Results:
 
     @property
     def average_nb_channels(self) -> float:
+        print("Channel selection: ", self.config.channel_selection)
+        print("Selected channels: ", self.config.selected_channels)
+        print("CH: ", self.config.CH)
         return np.nanmean([len(chs) for chs in self.config.selected_channels.values()]) if self.config.channel_selection else self.config.CH
 
     @property
