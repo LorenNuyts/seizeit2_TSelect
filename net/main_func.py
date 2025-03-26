@@ -390,3 +390,5 @@ def evaluate(config, results):
     print("Total time: " + "%.2f" % results.average_total_time)
     print("Average number of channels: " + "%.2f" % average_nb_channels)
 
+    results_save_path = get_path_results(config, name)
+    results.save_results(results_save_path)
