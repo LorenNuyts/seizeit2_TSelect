@@ -4,8 +4,7 @@ from typing import List
 
 import pandas as pd
 
-from main_net import evaluation_metrics
-from utility.constants import get_base_config, get_channel_selection_config, Nodes
+from utility.constants import get_base_config, get_channel_selection_config, Nodes, evaluation_metrics
 from utility.paths import get_path_results
 from utility.stats import Results
 

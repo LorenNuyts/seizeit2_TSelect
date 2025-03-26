@@ -11,7 +11,7 @@ subjects_with_seizures = ['SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376', 'SUBJ-7-438'
 
 def leave_one_person_out(root_dir: str, included_locations: list[str] = None, validation_set: Optional[float] = None,
                          seed: int = SEED):
-    testing = 'dtai' not in root_dir and True
+    testing = 'dtai' not in root_dir
     print("Testing setting:", testing)
     if testing:
         nb_subjects = 3 # ONLY FOR TESTING

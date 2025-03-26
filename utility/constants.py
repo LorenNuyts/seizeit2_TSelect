@@ -2,6 +2,7 @@ import os
 
 from TSelect.tselect.tselect.utils.metrics import auroc_score
 from net.DL_config import Config
+from net.utils import get_sens_FA_score
 
 SEED = 0
 
@@ -117,3 +118,7 @@ def get_channel_selection_config(base_dir, included_channels=None, evaluation_me
                       f'{config.add_to_name}')  # str to add to the end of the experiment's config name
 
     return config
+
+
+evaluation_metrics = {"roc_auc": auroc_score,
+                      "score": get_sens_FA_score}

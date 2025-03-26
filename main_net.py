@@ -1,11 +1,8 @@
 import argparse
-import os
 import random
-import shutil
 
-from net.utils import get_sens_FA_score
-from TSelect.tselect.tselect.utils.metrics import auroc_score
 from utility.constants import *
+from utility.constants import evaluation_metrics
 from utility.paths import get_path_results, get_path_config
 from utility.stats import Results
 
@@ -23,8 +20,6 @@ key_generator.random.seed(random_seed)
 
 from net import main_func
 
-from net.DL_config import Config
-
 base_ = os.path.dirname(os.path.realpath(__file__))
 
 ###########################################
@@ -40,8 +35,6 @@ parser.add_argument("--suffix", type=str, nargs="?", default="")
 
 args = parser.parse_args()
 
-evaluation_metrics = {"roc_auc": auroc_score,
-                      "score": get_sens_FA_score}
 suffix_ = args.suffix
 
 ###########################################
