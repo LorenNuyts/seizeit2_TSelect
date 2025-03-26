@@ -47,6 +47,10 @@ class Results:
         return sum(self.total_time.values()) / len(self.total_time)
 
     @property
+    def average_nb_channels(self) -> float:
+        return np.nanmean([len(chs) for chs in self.config.selected_channels.values()]) if self.config.channel_selection else self.config.CH
+
+    @property
     def average_f1_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(f1) for f1 in zip(*self.f1_ovlp)]
 

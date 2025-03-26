@@ -41,7 +41,7 @@ if __name__ == '__main__':
                 get_base_config(base_dir, suffix=suffix_, included_channels='wearables'),
                 get_channel_selection_config(base_dir, suffix=suffix_),
                 get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables')]
-    metrics_ = ['average_selection_time', 'average_train_time', 'average_total_time',
+    metrics_ = ['average_nb_channels', 'average_selection_time', 'average_train_time', 'average_total_time',
         'average_f1_ovlp_best_threshold', 'average_fah_ovlp_best_threshold', 'average_prec_ovlp_best_threshold',
                 'average_sens_ovlp_best_threshold', 'average_rocauc_best_threshold', 'average_score_best_threshold',
                 # 'best_average_f1_ovlp', 'best_average_fah_ovlp', 'best_average_prec_ovlp', 'best_average_sens_ovlp',
