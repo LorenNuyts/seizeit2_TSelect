@@ -4,6 +4,7 @@ from typing import List
 
 import pandas as pd
 
+from main_net import evaluation_metrics
 from utility.constants import get_base_config, get_channel_selection_config, Nodes
 from utility.paths import get_path_results
 from utility.stats import Results
@@ -40,7 +41,8 @@ if __name__ == '__main__':
     configs_ = [get_base_config(base_dir, suffix=suffix_),
                 get_base_config(base_dir, suffix=suffix_, included_channels='wearables'),
                 get_channel_selection_config(base_dir, suffix=suffix_),
-                get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables')]
+                get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables'),
+                get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score']),]
     metrics_ = ['average_nb_channels', 'average_selection_time', 'average_train_time', 'average_total_time',
         'average_f1_ovlp_best_threshold', 'average_fah_ovlp_best_threshold', 'average_prec_ovlp_best_threshold',
                 'average_sens_ovlp_best_threshold', 'average_rocauc_best_threshold', 'average_score_best_threshold',
