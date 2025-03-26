@@ -6,7 +6,7 @@ import shutil
 from net.utils import get_sens_FA_score
 from TSelect.tselect.tselect.utils.metrics import auroc_score
 from utility.constants import *
-from utility.paths import get_path_results
+from utility.paths import get_path_results, get_path_config
 from utility.stats import Results
 
 random_seed = 1
@@ -57,6 +57,9 @@ else:
 
 ###########################################
 ###########################################
+config_path = get_path_config(config, config.get_name())
+if os.path.exists(config_path):
+    config.load_config(config_path, config.get_name())
 
 ##### RESULTS:
 results = Results(config)
