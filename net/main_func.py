@@ -151,6 +151,7 @@ def train(config, results, load_generators, save_generators):
             results.train_time[fold_i] = end_train
 
             config.save_config(save_path=config_path)
+            results.config = config
             results.save_results(save_path=results_path)
 
     elif config.cross_validation == 'leave_one_seizure_out':
@@ -391,4 +392,5 @@ def evaluate(config, results):
     print("Average number of channels: " + "%.2f" % average_nb_channels)
 
     results_save_path = get_path_results(config, name)
+    results.config = config
     results.save_results(results_save_path)
