@@ -107,6 +107,8 @@ class Results:
 
     @property
     def best_average_score(self) -> (float, float):
+        if len(self.average_score_all_thresholds) == 0:
+            return np.nan, np.nan
         best_value = max(self.average_score_all_thresholds)
         if np.isnan(best_value):
             return np.nan, np.nan
@@ -115,66 +117,90 @@ class Results:
     @property
     def average_f1_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_f1_ovlp_all_thresholds[index_best_threshold]
 
     @property
     def average_fah_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_fah_ovlp_all_thresholds[index_best_threshold]
 
     @property
     def average_prec_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_prec_ovlp_all_thresholds[index_best_threshold]
 
     @property
     def average_sens_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_sens_ovlp_all_thresholds[index_best_threshold]
 
     @property
     def average_rocauc_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_rocauc_all_thresholds[index_best_threshold]
 
     @property
     def average_score_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_score_all_thresholds[index_best_threshold]
 
     @property
     def average_f1_ovlp_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.average_f1_ovlp_all_thresholds[index_th05]
 
     @property
     def average_fah_ovlp_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.average_fah_ovlp_all_thresholds[index_th05]
 
     @property
     def average_prec_ovlp_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.average_prec_ovlp_all_thresholds[index_th05]
 
     @property
     def average_sens_ovlp_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.average_sens_ovlp_all_thresholds[index_th05]
 
     @property
     def average_rocauc_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.average_rocauc_all_thresholds[index_th05]
 
     @property
     def average_score_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.average_score_all_thresholds[index_th05]
 
@@ -203,68 +229,101 @@ class Results:
         return [np.nanmedian(score) for score in zip(*self.score)]
 
     @property
+    def best_median_score(self) -> (float, float):
+        if len(self.median_score_all_thresholds) == 0:
+            return np.nan, np.nan
+        best_value = max(self.median_score_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
+        return best_value, self.thresholds[self.median_score_all_thresholds.index(best_value)]
+
+    @property
     def median_f1_ovlp_best_threshold(self) -> np.float32:
-        best_threshold = self.best_average_score[1]
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.median_f1_ovlp_all_thresholds[index_best_threshold]
 
     @property
     def median_fah_ovlp_best_threshold(self) -> np.float32:
-        best_threshold = self.best_average_score[1]
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.median_fah_ovlp_all_thresholds[index_best_threshold]
 
     @property
     def median_prec_ovlp_best_threshold(self) -> np.float32:
-        best_threshold = self.best_average_score[1]
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.median_prec_ovlp_all_thresholds[index_best_threshold]
 
     @property
     def median_sens_ovlp_best_threshold(self) -> np.float32:
-        best_threshold = self.best_average_score[1]
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.median_sens_ovlp_all_thresholds[index_best_threshold]
 
     @property
     def median_rocauc_best_threshold(self) -> np.float32:
-        best_threshold = self.best_average_score[1]
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.median_rocauc_all_thresholds[index_best_threshold]
 
     @property
     def median_score_best_threshold(self) -> np.float32:
-        best_threshold = self.best_average_score[1]
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.median_score_all_thresholds[index_best_threshold]
 
     @property
     def median_f1_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_f1_ovlp_all_thresholds[index_th05]
 
     @property
     def median_fah_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_fah_ovlp_all_thresholds[index_th05]
 
     @property
     def median_prec_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_prec_ovlp_all_thresholds[index_th05]
 
     @property
     def median_sens_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_sens_ovlp_all_thresholds[index_th05]
 
     @property
     def median_rocauc_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_rocauc_all_thresholds[index_th05]
 
     @property
     def median_score_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_score_all_thresholds[index_th05]
 

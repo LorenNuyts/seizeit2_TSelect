@@ -114,6 +114,6 @@ def get_channel_selection_config(base_dir, included_channels=None, evaluation_me
                           f'{f"_evaluation_metric_{evaluation_metric.__name__}" if evaluation_metric != auroc_score else ""}'
                           f'{f"_auc_percentage_{auc_percentage}" if auc_percentage != 0.6 else ""}'
                             f'{f"_corr_threshold_{corr_threshold}" if corr_threshold != 0.5 else ""}'
-                      f'{"_" + suffix if suffix != "" else ""}')  # str to add to the end of the experiment's config name
+                      f'{config.add_to_name}')  # str to add to the end of the experiment's config name
 
     return config

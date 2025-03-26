@@ -16,6 +16,7 @@ def print_table(configs: list, metrics: List[str], output_path: str):
     for config in configs:
         results_path = os.path.join(base_dir, "..", get_path_results(config, config.get_name()))
         results = Results(config)
+        print("Now handling: ", results_path)
         if os.path.exists(results_path):
             results.load_results(results_path)
         else:
@@ -37,9 +38,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     suffix_ = args.suffix
     configs_ = [get_base_config(base_dir, suffix=suffix_),
-                get_base_config(base_dir, suffix=suffix_, included_channels=Nodes.wearable_nodes),
+                get_base_config(base_dir, suffix=suffix_, included_channels='wearables'),
                 get_channel_selection_config(base_dir, suffix=suffix_),
-                get_channel_selection_config(base_dir, suffix=suffix_, included_channels=Nodes.wearable_nodes)]
+                get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables')]
     metrics_ = ['average_selection_time', 'average_train_time', 'average_total_time',
         'average_f1_ovlp_best_threshold', 'average_fah_ovlp_best_threshold', 'average_prec_ovlp_best_threshold',
                 'average_sens_ovlp_best_threshold', 'average_rocauc_best_threshold', 'average_score_best_threshold',
