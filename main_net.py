@@ -68,10 +68,10 @@ save_generators = False                                         # Boolean to sav
 # if os.path.exists(config.save_dir):
 #   shutil.rmtree(config.save_dir)
 
-# main_func.train(config, results, load_generators, save_generators)
-#
-# print('Getting predictions on the test set...')
-# main_func.predict(config)
+main_func.train(config, results, load_generators, save_generators)
+
+print('Getting predictions on the test set...')
+main_func.predict(config)
 
 print('Getting evaluation metrics...')
 main_func.evaluate(config, results)
