@@ -1,5 +1,6 @@
 import argparse
 import random
+import shutil
 
 from utility.constants import *
 from utility.constants import evaluation_metrics
@@ -32,6 +33,7 @@ parser.add_argument("--nodes", type=str, nargs="?", default="all")
 parser.add_argument("--auc", type=float, nargs="?", default=0.6)
 parser.add_argument("--corr", type=float, nargs="?", default=0.5)
 parser.add_argument("--suffix", type=str, nargs="?", default="")
+parser.add_argument('--reset', action='store_true')
 
 args = parser.parse_args()
 
@@ -65,9 +67,19 @@ if os.path.exists(results_path):
 load_generators = False                                          # Boolean to load generators from file
 save_generators = False                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
-# if os.path.exists(config.save_dir):
-#   shutil.rmtree(config.save_dir)
-
+if args.reset:
+    print('Deleting results folder...')
+    if os.path.exists(results_path):
+        shutil.rmtree(results_path)
+    print('Deleting models folder...')
+    model_path = os.path.join(config.save_dir, 'models', config.get_name())
+    if os.path.exists(model_path):
+        shutil.rmtree(model_path)
+    print("Deleting predictions folder...")
+    predictions_path = os.path.join(config.save_dir, 'predictions', config.get_name())
+    if os.path.exists(predictions_path):
+        shutil.rmtree(predictions_path)
+        
 main_func.train(config, results, load_generators, save_generators)
 
 print('Getting predictions on the test set...')

@@ -347,6 +347,6 @@ class Results:
         if not os.path.exists(results_path):
             raise ValueError('Directory is empty or does not exist')
         with open(results_path, 'rb') as input:
-            config = pickle.load(input)
+            results = pickle.load(input)
 
-        self.__dict__.update(config)
+        self.__dict__.update(results)
