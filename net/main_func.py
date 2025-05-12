@@ -154,6 +154,7 @@ def train(config, results, load_generators, save_generators):
             print('Total train duration = ', end_train / 60)
             results.train_time[fold_i] = end_train
 
+            config.reload_CH()
             config.save_config(save_path=config_path)
             results.config = config
             results.save_results(save_path=results_path)
@@ -208,7 +209,7 @@ def predict(config):
                         if config.channel_selection:
                             gen_test.change_included_channels(config.selected_channels[fold_i])
 
-                        config.reload_CH(fold_i)
+                        # config.reload_CH(fold_i)
 
                         model = net(config)
 
@@ -217,7 +218,7 @@ def predict(config):
                     with h5py.File(get_path_predictions(config, name, rec), 'w') as f:
                         f.create_dataset('y_pred', data=y_pred)
                         f.create_dataset('y_true', data=y_true)
-
+                    config.reload_CH()
                     gc.collect()
 
 

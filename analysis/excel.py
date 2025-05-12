@@ -5,7 +5,7 @@ from typing import List
 import pandas as pd
 
 from utility.constants import get_base_config, get_channel_selection_config, evaluation_metrics
-from utility.paths import get_path_results
+from utility.paths import get_path_results, get_path_config
 from utility.stats import Results
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -19,6 +19,9 @@ def print_table(configs: list, metrics: List[str], output_path: str):
         print("Now handling: ", results_path)
         if os.path.exists(results_path):
             results.load_results(results_path)
+            # config_path = os.path.join(base_dir, "..",get_path_config(config, config.get_name()))
+            # config.load_config(config_path, config.get_name())
+            # a=1
         else:
             print(f"Results not found for {config.get_name()}")
             continue
@@ -37,7 +40,8 @@ if __name__ == '__main__':
     parser.add_argument("--suffix", type=str, nargs="?", default="")
     args = parser.parse_args()
     suffix_ = args.suffix
-    configs_ = [get_base_config(base_dir, suffix=suffix_),
+    configs_ = [
+        get_base_config(base_dir, suffix=suffix_),
                 get_base_config(base_dir, suffix=suffix_, included_channels='wearables'),
                 get_channel_selection_config(base_dir, suffix=suffix_),
                 get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables'),

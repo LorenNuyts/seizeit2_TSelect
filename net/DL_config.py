@@ -46,6 +46,7 @@ class Config():
         self.factor = factor
         self.cross_validation = cross_validation
         self.savedir = save_dir
+        self.included_channels = None
         self.channel_selection = False
         self.selected_channels = None
 
@@ -60,6 +61,8 @@ class Config():
     def reload_CH(self, fold=None):
         if self.channel_selection and fold is not None:
             self.CH = len(self.selected_channels[fold])
+        elif self.channel_selection:
+            self.CH = len(self.included_channels)
 
     def save_config(self, save_path):
         name = self.get_name()

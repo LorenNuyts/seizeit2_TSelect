@@ -9,8 +9,10 @@ utility/__pycache__/
 
 net/save_dir/
 
-tables/tables/
+analysis/tables/
 
 net/save_dir2/
 
 __pycache__/
+
+analysis/figures/
