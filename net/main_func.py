@@ -178,7 +178,7 @@ def predict(config):
 
     if config.cross_validation == 'leave_one_person_out':
         for fold_i in config.folds.keys():
-            config.reload_CH(fold_i)
+            config.reload_CH(fold=fold_i)
             model_save_path = get_path_model(config, name, fold_i)
             test_subject = config.folds[fold_i]['test']
             test_recs_list = get_recs_list(config.data_path, config.locations, test_subject)
@@ -209,7 +209,7 @@ def predict(config):
                         if config.channel_selection:
                             gen_test.change_included_channels(config.selected_channels[fold_i])
 
-                        # config.reload_CH(fold_i)
+                        config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 
                         model = net(config)
 
