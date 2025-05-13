@@ -32,7 +32,7 @@ def print_table(configs: list, metrics: List[str], output_path: str):
     df = pd.DataFrame(data, index=metrics)
 
     print(df.to_csv(sep='\t', index=True))
-    df.to_excel(output_path)
+    # df.to_excel(output_path)
 
 
 if __name__ == '__main__':
@@ -40,12 +40,15 @@ if __name__ == '__main__':
     parser.add_argument("--suffix", type=str, nargs="?", default="")
     args = parser.parse_args()
     suffix_ = args.suffix
-    configs_ = [
+    configs_base = [
         get_base_config(base_dir, suffix=suffix_),
-                get_base_config(base_dir, suffix=suffix_, included_channels='wearables'),
                 get_channel_selection_config(base_dir, suffix=suffix_),
-                get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables'),
                 get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score']),]
+    configs_wearables = [
+        get_base_config(base_dir, suffix=suffix_, included_channels='wearables'),
+                get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables'),
+                get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score'],
+                                                included_channels='wearables'),]
     metrics_ = ['average_nb_channels', 'average_selection_time', 'average_train_time', 'average_total_time',
         'average_f1_ovlp_best_threshold', 'average_fah_ovlp_best_threshold', 'average_prec_ovlp_best_threshold',
                 'average_sens_ovlp_best_threshold', 'average_rocauc_best_threshold', 'average_score_best_threshold',
@@ -68,6 +71,11 @@ if __name__ == '__main__':
     if not os.path.exists(os.path.dirname(output_path_)):
         os.makedirs(os.path.dirname(output_path_))
 
-    print_table(configs_, metrics_, output_path_)
+    print("Base table: ")
+    print_table(configs_base, metrics_, output_path_)
+    print("########################################################\n")
+    print("Wearables table: ")
+    print_table(configs_wearables, metrics_, output_path_)
+
 
 
