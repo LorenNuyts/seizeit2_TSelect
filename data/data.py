@@ -55,7 +55,7 @@ class Data:
                 channels.extend(edf.getSignalLabels())
                 n = edf.signals_in_file
                 for i in range(n):
-                    # included_channels = switch_channels(channels, included_channels, Nodes.switchable_nodes)
+                    included_channels = switch_channels(channels, included_channels, Nodes.switchable_nodes)
                     if channels[i] in included_channels:
                         data.append(edf.readSignal(i))
                 edf._close()
@@ -104,8 +104,8 @@ class Data:
 
 def switch_channels(available_channels: list[str], desired_channels: list[str], switchable_channels: dict) -> list[str]:
     """
-    Switch the channels in the included_channels list if the switchable_channels dictionary contains the channel to
-    switch. A copy of the included_channels list is returned with the switched channels.
+    Switch the channels in the desired_channels list if the switchable_channels dictionary contains the channel to
+    switch. A copy of the desired_channels list is returned with the switched channels.
     """
     missing_channels = [ch for ch in desired_channels if ch not in available_channels]
     options = {ch for ch in available_channels if ch not in desired_channels}
