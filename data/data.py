@@ -52,16 +52,18 @@ class Data:
         if os.path.exists(edfFile):
             with pyedflib.EdfReader(edfFile) as edf :
                 samplingFrequencies.extend(edf.getSampleFrequencies())
-                channels.extend(edf.getSignalLabels())
+                channels_in_file = edf.getSignalLabels()
                 n = edf.signals_in_file
                 for i in range(n):
-                    included_channels = switch_channels(channels, included_channels, Nodes.switchable_nodes)
-                    if channels[i] in included_channels:
+                    included_channels = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
+                    if channels_in_file[i] in included_channels:
                         data.append(edf.readSignal(i))
+                        channels.append(channels_in_file[i])
+
                 edf._close()
 
                 samplingFrequencies = [fs for fs, ch in zip(samplingFrequencies, channels) if ch in included_channels]
-                channels = [ch for ch in channels if ch in included_channels]
+                # channels = [ch for ch in channels if ch in included_channels]
                 assert len([ch for ch in channels if ch not in Nodes.basic_eeg_nodes  + Nodes.optional_eeg_nodes +
                             Nodes.wearable_nodes + Nodes.eeg_acc +
                             Nodes.eeg_gyr + Nodes.ecg_emg_nodes + Nodes.other_nodes + Nodes.ecg_emg_acc +
@@ -96,7 +98,7 @@ class Data:
                 new_data.append(self.data[self.channels.index(ch)])
                 new_fs.append(self.fs[self.channels.index(ch)])
             else:
-                raise ValueError(f"Channel {ch} not found in data object")
+                raise ValueError(f"Channel {ch} not found in data object. Available channels are: {self.channels}")
         self.data = new_data
         self.channels = channels
         self.fs = new_fs
