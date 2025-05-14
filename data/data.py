@@ -114,7 +114,8 @@ def switch_channels(available_channels: list[str], desired_channels: list[str], 
     non_switched_channels = set()
     result = desired_channels.copy()
     for ch in missing_channels:
-        if ch in Nodes.wearable_nodes and len({c for c in Nodes.wearable_nodes if c in available_channels}) >= 2:
+        if (ch in Nodes.wearable_nodes and len({c for c in Nodes.wearable_nodes if c in available_channels}) >= 2 and
+            len({c for c in Nodes.wearable_nodes if c in desired_channels}) >= 3):
             continue # Skip if 2 out of 3 wearable nodes are available
         if ch in switchable_channels:
             index = desired_channels.index(ch)
