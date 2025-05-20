@@ -29,7 +29,9 @@ class Config():
 
     """
 
-    def __init__(self, data_path=None, model='ChronoNet', dataset='SZ2', fs=None, CH=None, frame=2, stride=1, stride_s=0.5, boundary=0.5, batch_size=64, sample_type='subsample', factor=5, l2=0, lr=0.01, dropoutRate=0, nb_epochs=50, class_weights = {0:1, 1:1}, cross_validation='fixed', save_dir='savedir'):
+    def __init__(self, data_path=None, model='ChronoNet', dataset='SZ2', fs=None, CH=None, frame=2, stride=1,
+                 stride_s=0.5, boundary=0.5, batch_size=64, sample_type='subsample', factor=5, l2=0, lr=0.01,
+                 dropoutRate=0, nb_epochs=50, class_weights = {0:1, 1:1}, cross_validation='fixed', save_dir='savedir'):
 
         self.data_path = data_path
         self.model = model
@@ -45,7 +47,7 @@ class Config():
         self.sample_type = sample_type
         self.factor = factor
         self.cross_validation = cross_validation
-        self.savedir = save_dir
+        self.save_dir = save_dir
         self.included_channels = None
         self.channel_selection = False
         self.selected_channels = None

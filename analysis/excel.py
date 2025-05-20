@@ -57,8 +57,8 @@ if __name__ == '__main__':
 
                 'average_f1_ovlp_th05', 'average_fah_ovlp_th05',
                 'average_prec_ovlp_th05', 'average_sens_ovlp_th05', 'average_rocauc_th05', 'average_score_th05',
-                'median_f1_best_threshold', 'median_fah_best_threshold', 'median_prec_best_threshold',
-                'median_sens_best_threshold', 'median_rocauc_best_threshold', 'median_score_best_threshold',
+                'median_f1_ovlp_best_threshold', 'median_fah_ovlp_best_threshold', 'median_prec_ovlp_best_threshold',
+                'median_sens_ovlp_best_threshold', 'median_rocauc_best_threshold', 'median_score_best_threshold',
                 'median_f1_th05', 'median_fah_th05', 'median_prec_th05', 'median_sens_th05', 'median_rocauc_th05',
                 'median_score_th05',
                 ]

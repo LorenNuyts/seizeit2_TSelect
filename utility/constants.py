@@ -47,6 +47,13 @@ class Locations:
 class Keys:
     pass
 
+class Paths:
+    remote_data_path = "/cw/dtaidata/ml/2025-Epilepsy"
+    local_data_path = "/media/loren/Seagate Basic/Epilepsy use case"  # path to dataset
+    remote_save_dir = "/cw/dtailocal/loren/2025-Epilepsy/net/save_dir"
+    local_save_dir = "net/save_dir"  # save directory of intermediate and output files
+
+
 def get_base_config(base_dir, included_channels=None, suffix=""):
     if included_channels is None:
         included_channels = "all"
@@ -61,11 +68,11 @@ def get_base_config(base_dir, included_channels=None, suffix=""):
 
     config = Config()
     if 'dtai' in base_dir:
-        config.data_path = '/cw/dtaidata/ml/2025-Epilepsy'
-        config.save_dir = '/cw/dtailocal/loren/2025-Epilepsy/net/save_dir'
+        config.data_path = Paths.remote_data_path
+        config.save_dir = Paths.remote_save_dir
     else:
-        config.data_path = "/media/loren/Seagate Basic/Epilepsy use case"  # path to dataset
-        config.save_dir = 'net/save_dir'  # save directory of intermediate and output files
+        config.data_path = Paths.local_data_path  # path to dataset
+        config.save_dir = Paths.local_save_dir
     if not os.path.exists(config.save_dir):
         os.makedirs(config.save_dir)
 

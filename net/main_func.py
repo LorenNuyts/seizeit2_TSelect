@@ -19,7 +19,7 @@ from net.utils import get_metrics_scoring
 
 from data.data import Data
 from utility import get_recs_list
-from utility.constants import SEED
+from utility.constants import SEED, Paths
 from utility.paths import get_path_predictions, get_path_config, get_path_model_weights, get_path_model, \
     get_path_predictions_folder, get_path_results
 
@@ -231,6 +231,13 @@ def evaluate(config, results):
     name = config.get_name()
     config_path = get_path_config(config, name)
     config.load_config(config_path, name)
+
+    # Loading the results from barabas on my personal computer
+    if 'dtai' in results.config.save_dir and 'dtai' not in os.path.dirname(os.path.realpath(__file__)):
+        config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
+        config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
+        results.config.save_dir = results.config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
+        results.config.data_path = results.config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
 
     pred_path = get_path_predictions_folder(config, name)
     pred_fs = 1
