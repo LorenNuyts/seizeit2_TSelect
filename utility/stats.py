@@ -15,6 +15,7 @@ class Results:
         self.train_time: Dict[int, float] = {}
         self.f1_ovlp: List[list] = []
         self.fah_ovlp: List[list] = []
+        self.fah_epoch: List[list] = []
         self.prec_ovlp: List[list] = []
         self.sens_ovlp: List[list] = []
         self.rocauc: List[list] = []
@@ -99,6 +100,14 @@ class Results:
         return [np.nanvar(fah) for fah in zip(*self.fah_ovlp)]
 
     @property
+    def average_fah_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(fah) for fah in zip(*self.fah_epoch)]
+
+    @property
+    def variance_fah_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanvar(fah) for fah in zip(*self.fah_epoch)]
+
+    @property
     def average_prec_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(prec) for prec in zip(*self.prec_ovlp)]
 
@@ -143,6 +152,13 @@ class Results:
         if np.isnan(best_value):
             return np.nan, np.nan
         return best_value, self.thresholds[self.average_fah_ovlp_all_thresholds.index(best_value)]
+
+    @property
+    def best_average_fah_epoch(self) -> (float, float):
+        best_value = max(self.average_fah_epoch_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
+        return best_value, self.thresholds[self.average_fah_epoch_all_thresholds.index(best_value)]
 
     @property
     def best_average_prec_ovlp(self) -> (float, float):
@@ -191,6 +207,14 @@ class Results:
         return self.average_fah_ovlp_all_thresholds[index_best_threshold]
 
     @property
+    def average_fah_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_fah_epoch_all_thresholds[index_best_threshold]
+
+    @property
     def average_prec_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
         if np.isnan(best_threshold):
@@ -237,6 +261,13 @@ class Results:
         return self.average_fah_ovlp_all_thresholds[index_th05]
 
     @property
+    def average_fah_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_fah_epoch_all_thresholds[index_th05]
+
+    @property
     def average_prec_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
@@ -279,6 +310,14 @@ class Results:
             return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.variance_fah_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def variance_fah_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.variance_fah_epoch_all_thresholds[index_best_threshold]
 
     @property
     def variance_prec_ovlp_best_threshold(self) -> np.float32:
@@ -327,6 +366,13 @@ class Results:
         return self.variance_fah_ovlp_all_thresholds[index_th05]
 
     @property
+    def variance_fah_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.variance_fah_epoch_all_thresholds[index_th05]
+
+    @property
     def variance_prec_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
@@ -361,6 +407,10 @@ class Results:
     @property
     def median_fah_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmedian(fah) for fah in zip(*self.fah_ovlp)]
+
+    @property
+    def median_fah_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(fah) for fah in zip(*self.fah_epoch)]
 
     @property
     def median_prec_ovlp_all_thresholds(self) -> List[np.float32]:
@@ -402,6 +452,14 @@ class Results:
             return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.median_fah_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def median_fah_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_fah_epoch_all_thresholds[index_best_threshold]
 
     @property
     def median_prec_ovlp_best_threshold(self) -> np.float32:
@@ -448,6 +506,13 @@ class Results:
             return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_fah_ovlp_all_thresholds[index_th05]
+
+    @property
+    def median_fah_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_fah_epoch_all_thresholds[index_th05]
 
     @property
     def median_prec_ovlp_th05(self) -> np.float32:

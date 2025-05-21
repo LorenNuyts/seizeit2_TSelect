@@ -10,25 +10,6 @@ from utility.stats import Results
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
-# def print_table(configs: list, metrics: List[str], output_path: str):
-#     data = {}
-#
-#     for config in configs:
-#         results_path = os.path.join(base_dir, "..", get_path_results(config, config.get_name()))
-#         results = Results(config)
-#         print("Now handling: ", results_path)
-#         if os.path.exists(results_path):
-#             results.load_results(results_path)
-#         else:
-#             print(f"Results not found for {config.get_name()}")
-#             continue
-#         data[config.get_name()] = [getattr(results, metric, None) for metric in metrics]
-#
-#     df = pd.DataFrame(data, index=metrics)
-#
-#     print(df.to_csv(sep='\t', index=True))
-    # df.to_excel(output_path)
-
 def print_table(configs: list, metrics: List[str], output_path: str):
     data = {}
 
@@ -89,14 +70,16 @@ if __name__ == '__main__':
                 get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score'],
                                                 included_channels='wearables'),]
     metrics_ = ['average_nb_channels', 'average_selection_time', 'average_train_time', 'average_total_time',
-        'average_f1_ovlp_best_threshold', 'average_fah_ovlp_best_threshold', 'average_prec_ovlp_best_threshold',
+        'average_f1_ovlp_best_threshold', 'average_fah_ovlp_best_threshold', 'average_fah_epoch_best_threshold',
+                'average_prec_ovlp_best_threshold',
                 'average_sens_ovlp_best_threshold', 'average_rocauc_best_threshold', 'average_score_best_threshold',
                 # 'best_average_f1_ovlp', 'best_average_fah_ovlp', 'best_average_prec_ovlp', 'best_average_sens_ovlp',
                 # 'best_average_rocauc', 'best_average_score',
 
-                'average_f1_ovlp_th05', 'average_fah_ovlp_th05',
+                'average_f1_ovlp_th05', 'average_fah_ovlp_th05', 'average_fah_epoch_th05',
                 'average_prec_ovlp_th05', 'average_sens_ovlp_th05', 'average_rocauc_th05', 'average_score_th05',
-                'median_f1_ovlp_best_threshold', 'median_fah_ovlp_best_threshold', 'median_prec_ovlp_best_threshold',
+                'median_f1_ovlp_best_threshold', 'median_fah_ovlp_best_threshold', 'median_fah_epoch_best_threshold',
+                'median_prec_ovlp_best_threshold',
                 'median_sens_ovlp_best_threshold', 'median_rocauc_best_threshold', 'median_score_best_threshold',
                 'median_f1_ovlp_th05', 'median_fah_ovlp_th05', 'median_prec_ovlp_th05', 'median_sens_ovlp_th05',
                 'median_rocauc_th05', 'median_score_th05'
