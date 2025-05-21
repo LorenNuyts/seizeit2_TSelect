@@ -1,8 +1,9 @@
 import os
 import pickle
-from typing import Dict, List
+from typing import Dict, List, Any
 
 import numpy as np
+from numpy import floating
 
 from net.DL_config import Config
 
@@ -35,10 +36,28 @@ class Results:
         return sum(self.selection_time.values()) / len(self.selection_time)
 
     @property
+    def variance_selection_time(self) -> float | floating[Any]:
+        if len(self.selection_time) == 0:
+            return 0
+        return np.nanvar(list(self.selection_time.values()))
+
+    @property
     def average_train_time(self) -> float:
         if len(self.train_time) == 0:
             return 0
         return sum(self.train_time.values()) / len(self.train_time)
+
+    @property
+    def variance_train_time(self) -> float | floating[Any]:
+        if len(self.train_time) == 0:
+            return 0
+        return np.nanvar(list(self.train_time.values()))
+
+    @property
+    def variance_selection_time(self) -> float | floating[Any]:
+        if len(self.selection_time) == 0:
+            return 0
+        return np.nanvar(list(self.selection_time.values()))
 
     @property
     def average_total_time(self) -> float:
@@ -47,35 +66,69 @@ class Results:
         return sum(self.total_time.values()) / len(self.total_time)
 
     @property
+    def variance_total_time(self) -> float | floating[Any]:
+        if len(self.total_time) == 0:
+            return 0
+        return np.nanvar(list(self.total_time.values()))
+
+    @property
     def average_nb_channels(self) -> float:
-        print("Channel selection: ", self.config.channel_selection)
-        print("Selected channels: ", self.config.selected_channels)
-        print("CH: ", self.config.CH)
+        # print("Channel selection: ", self.config.channel_selection)
+        # print("Selected channels: ", self.config.selected_channels)
+        # print("CH: ", self.config.CH)
         return np.nanmean([len(chs) for chs in self.config.selected_channels.values()]) if self.config.channel_selection else self.config.CH
+
+    @property
+    def variance_nb_channels(self) -> float:
+        return np.nanvar([len(chs) for chs in self.config.selected_channels.values()]) if self.config.channel_selection else 0
 
     @property
     def average_f1_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(f1) for f1 in zip(*self.f1_ovlp)]
 
     @property
+    def variance_f1_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanvar(f1) for f1 in zip(*self.f1_ovlp)]
+
+    @property
     def average_fah_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(fah) for fah in zip(*self.fah_ovlp)]
+
+    @property
+    def variance_fah_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanvar(fah) for fah in zip(*self.fah_ovlp)]
 
     @property
     def average_prec_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(prec) for prec in zip(*self.prec_ovlp)]
 
     @property
+    def variance_prec_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanvar(prec) for prec in zip(*self.prec_ovlp)]
+
+    @property
     def average_sens_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(sens) for sens in zip(*self.sens_ovlp)]
+
+    @property
+    def variance_sens_ovlp_all_thresholds(self) -> List[np.float32]:
+        return [np.nanvar(sens) for sens in zip(*self.sens_ovlp)]
 
     @property
     def average_rocauc_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(score) for score in zip(*self.rocauc)]
 
     @property
+    def variance_rocauc_all_thresholds(self) -> List[np.float32]:
+        return [np.nanvar(score) for score in zip(*self.rocauc)]
+
+    @property
     def average_score_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(score) for score in zip(*self.score)]
+
+    @property
+    def variance_score_all_thresholds(self) -> List[np.float32]:
+        return [np.nanvar(score) for score in zip(*self.score)]
 
     @property
     def best_average_f1_ovlp(self) -> (float, float):
@@ -212,6 +265,96 @@ class Results:
         return self.average_score_all_thresholds[index_th05]
 
     @property
+    def variance_f1_ovlp_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.variance_f1_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def variance_fah_ovlp_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.variance_fah_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def variance_prec_ovlp_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.variance_prec_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def variance_sens_ovlp_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.variance_sens_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def variance_rocauc_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.variance_rocauc_all_thresholds[index_best_threshold]
+
+    @property
+    def variance_score_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.variance_score_all_thresholds[index_best_threshold]
+
+    @property
+    def variance_f1_ovlp_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.variance_f1_ovlp_all_thresholds[index_th05]
+
+    @property
+    def variance_fah_ovlp_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.variance_fah_ovlp_all_thresholds[index_th05]
+
+    @property
+    def variance_prec_ovlp_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.variance_prec_ovlp_all_thresholds[index_th05]
+
+    @property
+    def variance_sens_ovlp_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.variance_sens_ovlp_all_thresholds[index_th05]
+
+    @property
+    def variance_rocauc_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.variance_rocauc_all_thresholds[index_th05]
+
+    @property
+    def variance_score_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.variance_score_all_thresholds[index_th05]
+
+    @property
     def median_f1_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmedian(f1) for f1 in zip(*self.f1_ovlp)]
 
@@ -293,28 +436,28 @@ class Results:
         return self.median_score_all_thresholds[index_best_threshold]
 
     @property
-    def median_f1_th05(self) -> np.float32:
+    def median_f1_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_f1_ovlp_all_thresholds[index_th05]
 
     @property
-    def median_fah_th05(self) -> np.float32:
+    def median_fah_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_fah_ovlp_all_thresholds[index_th05]
 
     @property
-    def median_prec_th05(self) -> np.float32:
+    def median_prec_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_prec_ovlp_all_thresholds[index_th05]
 
     @property
-    def median_sens_th05(self) -> np.float32:
+    def median_sens_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)

@@ -10,6 +10,25 @@ from utility.stats import Results
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
+# def print_table(configs: list, metrics: List[str], output_path: str):
+#     data = {}
+#
+#     for config in configs:
+#         results_path = os.path.join(base_dir, "..", get_path_results(config, config.get_name()))
+#         results = Results(config)
+#         print("Now handling: ", results_path)
+#         if os.path.exists(results_path):
+#             results.load_results(results_path)
+#         else:
+#             print(f"Results not found for {config.get_name()}")
+#             continue
+#         data[config.get_name()] = [getattr(results, metric, None) for metric in metrics]
+#
+#     df = pd.DataFrame(data, index=metrics)
+#
+#     print(df.to_csv(sep='\t', index=True))
+    # df.to_excel(output_path)
+
 def print_table(configs: list, metrics: List[str], output_path: str):
     data = {}
 
@@ -19,20 +38,40 @@ def print_table(configs: list, metrics: List[str], output_path: str):
         print("Now handling: ", results_path)
         if os.path.exists(results_path):
             results.load_results(results_path)
-            # config_path = os.path.join(base_dir, "..",get_path_config(config, config.get_name()))
-            # config.load_config(config_path, config.get_name())
-            # a=1
         else:
             print(f"Results not found for {config.get_name()}")
             continue
-        data[config.get_name()] = [getattr(results, metric, None) for metric in metrics]
-        # except ZeroDivisionError as e:
-        #     print(f"Error in {config.get_name()}: {e}")
+
+        values = []
+        for metric in metrics:
+            value = getattr(results, metric, None)
+            if value is None:
+                formatted = "N/A"
+            else:
+                # Derive variance metric name
+                if "median" in metric:
+                    variance_metric = metric.replace("median", "variance")
+                elif "average" in metric:
+                    variance_metric = metric.replace("average", "variance")
+                else:
+                    variance_metric = None
+
+                if variance_metric:
+                    variance = getattr(results, variance_metric, None)
+                else:
+                    variance = None
+
+                if variance is not None:
+                    formatted = f"{value:.3f} ± {variance:.2f}"
+                else:
+                    formatted = f"{value:.3f}"
+
+            values.append(formatted)
+
+        data[config.get_name()] = values
 
     df = pd.DataFrame(data, index=metrics)
-
     print(df.to_csv(sep='\t', index=True))
-    # df.to_excel(output_path)
 
 
 if __name__ == '__main__':
@@ -59,8 +98,8 @@ if __name__ == '__main__':
                 'average_prec_ovlp_th05', 'average_sens_ovlp_th05', 'average_rocauc_th05', 'average_score_th05',
                 'median_f1_ovlp_best_threshold', 'median_fah_ovlp_best_threshold', 'median_prec_ovlp_best_threshold',
                 'median_sens_ovlp_best_threshold', 'median_rocauc_best_threshold', 'median_score_best_threshold',
-                'median_f1_th05', 'median_fah_th05', 'median_prec_th05', 'median_sens_th05', 'median_rocauc_th05',
-                'median_score_th05',
+                'median_f1_ovlp_th05', 'median_fah_ovlp_th05', 'median_prec_ovlp_th05', 'median_sens_ovlp_th05',
+                'median_rocauc_th05', 'median_score_th05'
                 ]
 
     if 'dtai' in base_dir:
