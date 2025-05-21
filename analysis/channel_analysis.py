@@ -21,6 +21,7 @@ def count_selected_channels_across_folds(configs: List[Config], output_path: str
         else:
             print(f"Results not found for {config.get_name()}")
             continue
+        nb_folds = len(results.config.selected_channels.keys())
         channels = results.config.selected_channels
         channel_count = {}
         for fold in channels:
@@ -38,7 +39,7 @@ def count_selected_channels_across_folds(configs: List[Config], output_path: str
         # Create horizontal bar plot
         plt.figure(figsize=(10, 6))
         plt.barh(channels, counts, color='skyblue')
-        plt.xlabel("Number of folds the channel is selected")
+        plt.xlabel("Number of folds the channel is selected out of the {} folds".format(nb_folds))
         plt.title("Channel Counts")
         plt.gca().invert_yaxis()  # Invert y-axis to have the highest count on top
 
@@ -59,7 +60,9 @@ if __name__ == '__main__':
     configs_ = [
                 get_channel_selection_config(base_dir, suffix=suffix_),
                 get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables'),
-                get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score']),]
+                get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score']),
+                get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables',
+                evaluation_metric=evaluation_metrics['score'])]
 
     if 'dtai' in base_dir:
         output_path_ = os.path.join('/cw/dtailocal/loren/2025-Epilepsy', 'figures', 'channel_counts')

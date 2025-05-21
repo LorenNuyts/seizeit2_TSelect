@@ -380,7 +380,7 @@ def evaluate(config, results):
     results.sens_ovlp = sens_ovlp
     results.prec_ovlp = prec_ovlp
     results.fah_ovlp = fah_ovlp
-    results.f1_epoch = f1_epoch
+    results.fah_epoch = fah_epoch
     results.f1_ovlp = f1_ovlp
     results.rocauc = rocauc
     results.score = score
