@@ -55,12 +55,6 @@ class Results:
         return np.nanvar(list(self.train_time.values()))
 
     @property
-    def variance_selection_time(self) -> float | floating[Any]:
-        if len(self.selection_time) == 0:
-            return 0
-        return np.nanvar(list(self.selection_time.values()))
-
-    @property
     def average_total_time(self) -> float:
         if len(self.total_time) == 0:
             return 0
@@ -71,6 +65,11 @@ class Results:
         if len(self.total_time) == 0:
             return 0
         return np.nanvar(list(self.total_time.values()))
+
+    @property
+    def nb_channels(self) -> List[int]:
+        return [len(chs) for chs in
+                           self.config.selected_channels.values()] if self.config.channel_selection else self.config.CH
 
     @property
     def average_nb_channels(self) -> float:
