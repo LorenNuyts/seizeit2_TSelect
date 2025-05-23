@@ -51,6 +51,7 @@ class Config():
         self.included_channels = None
         self.channel_selection = False
         self.selected_channels = None
+        self.pretty_name = None
 
         # models parameters
         self.data_format = tf.keras.backend.image_data_format

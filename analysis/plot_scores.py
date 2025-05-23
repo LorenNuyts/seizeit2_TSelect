@@ -2,6 +2,7 @@ import argparse
 import os
 import shutil
 
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
@@ -49,26 +50,31 @@ def violin_plot(configs: list, metric: str, threshold: float, output_path: str):
             threshold_index = results.thresholds.index(threshold)
             values_threshold =list(zip(*all_values))[threshold_index]
             for val in values_threshold:
+                if np.isnan(val):
+                    continue
+                label = config.pretty_name if config.pretty_name else full_to_short_names[config.get_name()]
                 data.append({
-                    "Configuration": full_to_short_names[config.get_name()],
+                    "Configuration": label,
                     "Value": val
                 })
 
-            if not data:
-                print("No data collected for plotting.")
-                return
+            # Print how many values were NaN
+            print(f"Number of NaN values for {config.get_name()} with threshold {threshold}: ",
+                  len([val for val in values_threshold if np.isnan(val)]),
+                  f"out of {len(values_threshold)} values")
 
             df = pd.DataFrame(data)
 
             plt.figure(figsize=(10, 6))
-            sns.violinplot(data=df, x="Configuration", y="Value", inner="box")
+            sns.violinplot(data=df, x="Configuration", y="Value", inner="box", cut=0)
             plt.xlabel("")
             plt.ylabel(metric.replace("_", " ").title())
             plt.tight_layout()
 
             if output_path:
                 plot_path = os.path.splitext(output_path)[0] + (f"_{metric.replace('.', '_')}"
-                                                                f"_th{str(threshold).replace('.', '')}.png")
+                                                                f"_th{str(threshold).replace('.', '')}"
+                                                                f"_cut.png")
                 if not os.path.exists(os.path.dirname(plot_path)):
                     os.makedirs(os.path.dirname(plot_path))
                 plt.savefig(plot_path)
@@ -93,14 +99,15 @@ if __name__ == '__main__':
         raise ValueError(f"Metric {metric_} is not allowed. Choose from {allowed_metrics}")
 
     configs_base = [
-        get_base_config(base_dir, suffix=suffix_),
-        get_channel_selection_config(base_dir, suffix=suffix_),
-        get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score']), ]
-    configs_wearables = [
-        get_base_config(base_dir, suffix=suffix_, included_channels='wearables'),
-        get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables'),
+        get_base_config(base_dir, suffix=suffix_, pretty_name="Baseline"),
+        get_channel_selection_config(base_dir, suffix=suffix_, pretty_name="Channel Selection (AUROC)"),
         get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score'],
-                                     included_channels='wearables'), ]
+                                     pretty_name="Channel Selection (Score)"), ]
+    configs_wearables = [
+        get_base_config(base_dir, suffix=suffix_, included_channels='wearables', pretty_name="Baseline"),
+        get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables', pretty_name="Channel Selection (AUROC)"),
+        get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score'],
+                                     included_channels='wearables', pretty_name="Channel Selection (Score)"), ]
 
     if 'dtai' in base_dir:
         output_path_ = os.path.join('/cw/dtailocal/loren/2025-Epilepsy', 'figures', 'plots_scores')

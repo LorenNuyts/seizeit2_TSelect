@@ -5,8 +5,6 @@ import time
 import h5py
 import pickle
 import numpy as np
-import pandas as pd
-from sktime.datatypes._panel._convert import from_3d_numpy_to_multi_index
 from tqdm import tqdm
 
 import tensorflow as tf
@@ -18,8 +16,9 @@ from net.routines import train_net, predict_net
 from net.utils import get_metrics_scoring
 
 from data.data import Data
+from net.MiniRocket_LR import MiniRocketLR
 from utility import get_recs_list
-from utility.constants import SEED, Paths
+from utility.constants import SEED, Paths, Keys
 from utility.paths import get_path_predictions, get_path_config, get_path_model_weights, get_path_model, \
     get_path_predictions_folder, get_path_results
 
@@ -31,8 +30,8 @@ def train(config, results, load_generators, save_generators):
 
         Args:
             config (cls): a config object with the data input type and model parameters
-            results (cls): a results object to store the results
-            load_generators (bool): boolean to load the training and validation generators from file
+            results (cls): a Results object to store the results
+            load_generators (bool): boolean to load the training and validation generators from a file
             save_generators (bool): boolean to save the training and validation generators
     """
 
@@ -44,7 +43,7 @@ def train(config, results, load_generators, save_generators):
         from net.EEGnet import net
     elif config.model == 'DeepConvNet':
         from net.DeepConv_Net import net
-    else:
+    elif config.model.lower() != Keys.minirocketLR.lower():
         raise ValueError('Model not recognized')
 
     if not os.path.exists(os.path.join(config.save_dir, 'models')):
@@ -63,9 +62,14 @@ def train(config, results, load_generators, save_generators):
     results.save_results(save_path=results_path)
 
     if config.cross_validation == 'leave_one_person_out':
-        for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(leave_one_person_out(config.data_path, included_locations=config.locations,
+        for fold_i, subjects in enumerate(leave_one_person_out(config.data_path, included_locations=config.locations,
                                                                  validation_set=config.validation_percentage)):
 
+            if config.validation_percentage is not None:
+                (train_subjects, validation_subjects, test_subject) = subjects
+            else:
+                (train_subjects, test_subject) = subjects
+                validation_subjects = None
             model_save_path = get_path_model(config, name, fold_i)
             if os.path.exists(model_save_path) and os.path.exists(get_path_model(config, name, fold_i+1)):
                 print('    | Model of fold {} already exists'.format(fold_i))
@@ -143,14 +147,24 @@ def train(config, results, load_generators, save_generators):
                 results.selection_time[fold_i] = time.process_time() - selection_start
 
             print('### Training model....')
+            if config.model.lower() == Keys.minirocketLR.lower():
+                model = MiniRocketLR()
+                start_train = time.time()
+                # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
+                model.fit(config, gen_train, gen_val, model_save_path)
+                # train_net(config, model, gen_train, gen_val, model_save_path)
 
-            model = net(config)
+                end_train = time.time() - start_train
 
-            start_train = time.time()
+            else:
 
-            train_net(config, model, gen_train, gen_val, model_save_path)
+                model = net(config)
 
-            end_train = time.time() - start_train
+                start_train = time.time()
+
+                train_net(config, model, gen_train, gen_val, model_save_path)
+
+                end_train = time.time() - start_train
             print('Total train duration = ', end_train / 60)
             results.train_time[fold_i] = end_train
 
@@ -193,7 +207,7 @@ def predict(config):
                 from net.ChronoNet import net
             elif config.model == 'EEGnet':
                 from net.EEGnet import net
-            else:
+            elif config.model.lower() != Keys.minirocketLR.lower():
                 raise ValueError('Model not recognized')
 
             for rec in tqdm(test_recs_list):
@@ -211,9 +225,15 @@ def predict(config):
 
                         config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 
-                        model = net(config)
+                        if config.model.lower() == Keys.minirocketLR.lower():
+                            model = MiniRocketLR(model_save_path)
+                            y_pred, y_true = model.predict(gen_test)
 
-                        y_pred, y_true = predict_net(gen_test, model_weights_path, model)
+
+                        else:
+                            model = net(config)
+
+                            y_pred, y_true = predict_net(gen_test, model_weights_path, model)
 
                     with h5py.File(get_path_predictions(config, name, rec), 'w') as f:
                         f.create_dataset('y_pred', data=y_pred)
@@ -229,8 +249,8 @@ def predict(config):
 def evaluate(config, results):
 
     name = config.get_name()
-    config_path = get_path_config(config, name)
-    config.load_config(config_path, name)
+    # config_path = get_path_config(config, name)
+    # config.load_config(config_path, name)
 
     # Loading the results from barabas on my personal computer
     if 'dtai' in results.config.save_dir and 'dtai' not in os.path.dirname(os.path.realpath(__file__)):

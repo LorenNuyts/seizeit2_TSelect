@@ -71,11 +71,6 @@ class SequentialGenerator(keras.utils.Sequence):
                 for ch_i, ch in enumerate(rec_data.channels):
                     index_channels = self.channels.index(ch)
                     self.data_segs[count, :, index_channels] = rec_data[ch_i][start_seg:stop_seg]
-                # for ch, ch_data in enumerate(rec_data):
-                #     self.data_segs[count, :, ch] = ch_data[start_seg:stop_seg]
-                # self.data_segs[count, :, :] = rec_data[:][start_seg:stop_seg]
-                # self.data_segs[count, :, 0] = rec_data[0][start_seg:stop_seg]
-                # self.data_segs[count, :, 1] = rec_data[1][start_seg:stop_seg]
 
             if s[3] == 1:
                 self.labels[count, :] = [0, 1]

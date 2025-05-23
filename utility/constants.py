@@ -45,7 +45,7 @@ class Locations:
     aachen = "University_of_Aachen"
 
 class Keys:
-    pass
+    minirocketLR = "MiniRocketLR"
 
 class Paths:
     remote_data_path = "/cw/dtaidata/ml/2025-Epilepsy"
@@ -54,7 +54,22 @@ class Paths:
     local_save_dir = "net/save_dir"  # save directory of intermediate and output files
 
 
-def get_base_config(base_dir, included_channels=None, suffix=""):
+def get_base_config(base_dir, model="ChronoNet", included_channels=None, pretty_name=None, suffix=""):
+    """
+    Function to get the base configuration for the model. The function sets the parameters for the model, including
+    the data path, save directory, sampling frequency, number of channels, batch size, window size, stride, balancing
+    factor, validation percentage, and network hyperparameters. The function also sets the model architecture,
+    dataset, and sampling method. The function returns a Config object with the specified parameters.
+    Args:
+        base_dir (str): path to the base directory where the data is stored.
+        model (str): model architecture (Options: Chrononet, EEGnet, DeepConvNet, MiniRocketLR)
+        included_channels (list): list of channels to include in the model. If None, all channels are included.
+        pretty_name (str): pretty name for the experiment.
+        suffix (str): suffix to add to the end of the experiment's config name.
+
+    Returns:
+        config (Config): Config object with the specified parameters.
+    """
     if included_channels is None:
         included_channels = "all"
 
@@ -67,6 +82,8 @@ def get_base_config(base_dir, included_channels=None, suffix=""):
         raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all' or 'wearables'.")
 
     config = Config()
+    if pretty_name:
+        config.pretty_name = pretty_name
     if 'dtai' in base_dir:
         config.data_path = Paths.remote_data_path
         config.save_dir = Paths.remote_save_dir
@@ -86,7 +103,11 @@ def get_base_config(base_dir, included_channels=None, suffix=""):
     config.stride_s = 0.5  # stride between segments (of seizure EEG) in seconds
     config.boundary = 0.5  # proportion of seizure data in a window to consider the segment in the positive class
     config.factor = 5  # balancing factor between nr of segments in each class
-    config.validation_percentage = 0.2  # proportion of the training set to use for validation
+    # proportion of the training set to use for validation
+    if model.lower() == Keys.minirocketLR.lower():
+        config.validation_percentage = None
+    else:
+        config.validation_percentage = 0.2
     config.folds = {}  # dictionary to store the folds
 
     ## Network hyper-parameters
@@ -99,7 +120,7 @@ def get_base_config(base_dir, included_channels=None, suffix=""):
     ###########################################
 
     ##### INPUT CONFIGS:
-    config.model = 'ChronoNet'  # model architecture (you have 3: Chrononet, EEGnet, DeepConvNet)
+    config.model = model  # model architecture (you have 3: Chrononet, EEGnet, DeepConvNet)
     config.dataset = 'SZ2'  # patients to use (check 'datasets' folder)
     config.sample_type = 'subsample'  # sampling method (subsample = remove background EEG segments)
 
@@ -115,9 +136,10 @@ def get_base_config(base_dir, included_channels=None, suffix=""):
 
     return config
 
-def get_channel_selection_config(base_dir, included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
-                                 corr_threshold=0.5, suffix=""):
-    config = get_base_config(base_dir, included_channels=included_channels, suffix=suffix)
+def get_channel_selection_config(base_dir, model="ChronoNet", included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
+                                 corr_threshold=0.5, pretty_name=None, suffix=""):
+    config = get_base_config(base_dir, model=model, included_channels=included_channels, pretty_name=pretty_name,
+                             suffix=suffix)
     config.channel_selection = True
     config.selected_channels = None
     config.channel_selection_evaluation_metric = evaluation_metric
