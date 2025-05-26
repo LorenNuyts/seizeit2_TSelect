@@ -19,19 +19,24 @@ class MiniRocketLR:
             self.load(model_load_path)
 
     def fit(self, config, gen_train, gen_val, model_save_path):
+        X_train = gen_train.data_segs
+        y_train = gen_train.labels[:, 0]  # Assuming binary classification and one-hot encoding
+
+        # If validation data is provided, append it
         if gen_val is not None:
-            warnings.warn("The validation set is not used in this model. It will be ignored.")
+            X_val = gen_val.data_segs
+            y_val = gen_val.labels[:, 0]
 
-        X = gen_train.data_segs
-        y = gen_train.labels[:, 0]  # Assuming binary classification and one-hot encoding
+            X_train = np.concatenate([X_train, X_val], axis=0)
+            y_train = np.concatenate([y_train, y_val], axis=0)
 
-        # Ensure correct shape
-        X = self._ensure_shape(X)
+        # Ensure a correct shape
+        X_train = self._ensure_shape(X_train)
 
         # Fit and transform
-        self.rocket.fit(X)
-        X_transformed = self.rocket.transform(X)
-        self.classifier.fit(X_transformed, y)
+        self.rocket.fit(X_train)
+        X_transformed = self.rocket.transform(X_train)
+        self.classifier.fit(X_transformed, y_train)
         self.is_fitted = True
 
         # Save model

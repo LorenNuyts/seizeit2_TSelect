@@ -103,11 +103,7 @@ def get_base_config(base_dir, model="ChronoNet", included_channels=None, pretty_
     config.stride_s = 0.5  # stride between segments (of seizure EEG) in seconds
     config.boundary = 0.5  # proportion of seizure data in a window to consider the segment in the positive class
     config.factor = 5  # balancing factor between nr of segments in each class
-    # proportion of the training set to use for validation
-    if model.lower() == Keys.minirocketLR.lower():
-        config.validation_percentage = None
-    else:
-        config.validation_percentage = 0.2
+    config.validation_percentage = 0.2  # proportion of the training set to use for validation
     config.folds = {}  # dictionary to store the folds
 
     ## Network hyper-parameters
