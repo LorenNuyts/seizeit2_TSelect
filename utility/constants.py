@@ -14,6 +14,7 @@ subjects_with_seizures = {'SUBJ-1a-159', 'SUBJ-7-376', 'SUBJ-4-259', 'SUBJ-1a-35
                           'SUBJ-4-230', 'SUBJ-4-466', 'SUBJ-6-256', 'SUBJ-7-449', 'SUBJ-6-275', 'SUBJ-4-139',
                           'SUBJ-6-311', 'SUBJ-6-393', 'SUBJ-1a-353', 'SUBJ-4-254', 'SUBJ-7-331', 'SUBJ-7-441'}
 
+excluded_subjects = {'SUBJ-1a-076', 'SUBJ-1a-306'}
 
 class Nodes:
 
@@ -33,20 +34,32 @@ class Nodes:
     CROSStop = 'CROSStop SD'
     wearable_nodes = [BTEleft, BTEright, CROSStop]
 
-    eeg_acc = ['EEG SD ACC X', 'EEG SD ACC Y', 'EEG SD ACC Z']
-    eeg_gyr = ['EEG SD GYR A', 'EEG SD GYR B', 'EEG SD GYR C']
+    eeg_sd_acc_x = 'EEG SD ACC X'
+    eeg_sd_acc_y = 'EEG SD ACC Y'
+    eeg_sd_acc_z = 'EEG SD ACC Z'
+    eeg_sd_gyr_a = 'EEG SD GYR A'
+    eeg_sd_gyr_b = 'EEG SD GYR B'
+    eeg_sd_gyr_c = 'EEG SD GYR C'
+    eeg_acc = [eeg_sd_acc_x, eeg_sd_acc_y, eeg_sd_acc_z]
+    eeg_gyr = [eeg_sd_gyr_a, eeg_sd_gyr_b, eeg_sd_gyr_c]
 
     ecg = 'ECG+'
     ecg_emg_nodes = [ecg, 'sEMG+', 'EMG Li Ar', 'EMG EMG Re', 'ECG SD', 'EMG SD']
-    ecg_emg_acc = ['ECGEMG SD ACC X', 'ECGEMG SD ACC Y', 'ECGEMG SD ACC Z']
-    ecg_emg_gyr = ['ECGEMG SD GYR A', 'ECGEMG SD GYR B', 'ECGEMG SD GYR C']
+    ecg_emg_sd_acc_x = 'ECGEMG SD ACC X'
+    ecg_emg_sd_acc_y = 'ECGEMG SD ACC Y'
+    ecg_emg_sd_acc_z = 'ECGEMG SD ACC Z'
+    ecg_emg_sd_gyr_a = 'ECGEMG SD GYR A'
+    ecg_emg_sd_gyr_b = 'ECGEMG SD GYR B'
+    ecg_emg_sd_gyr_c = 'ECGEMG SD GYR C'
+    ecg_emg_sd_acc = [ecg_emg_sd_acc_x, ecg_emg_sd_acc_y, ecg_emg_sd_acc_z]
+    ecg_emg_sd_gyr = [ecg_emg_sd_gyr_a, ecg_emg_sd_gyr_b, ecg_emg_sd_gyr_c]
 
     other_nodes = ['Ment+', 'A1*', 'A2*', 'MKR+', 'B1', 'B2', 'Light Stimuli']
 
     switchable_nodes = {
         BTEright: [BTEleft, CROSStop],
         BTEleft: [BTEright, CROSStop],
-        CROSStop: [BTEright, BTEleft]
+        CROSStop: [BTEright, BTEleft],
     }
 
     @staticmethod

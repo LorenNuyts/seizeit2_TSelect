@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy as np
 
-from utility.constants import SEED, subjects_with_seizures
+from utility.constants import SEED, subjects_with_seizures, excluded_subjects
 
 
 # subjects_with_seizures = ['SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376', 'SUBJ-7-438', 'SUBJ-7-441', 'SUBJ-7-449']
@@ -30,6 +30,8 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
             for subject in os.listdir(location_path):
                 # REMOVE IF NOT TESTING
                 if testing and included_subjects is not None and subject not in included_subjects:
+                    continue
+                if subject in excluded_subjects:
                     continue
                 all_subjects.append(subject)
                 # REMOVE IF NOT TESTING

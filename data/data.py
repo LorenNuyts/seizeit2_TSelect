@@ -65,10 +65,10 @@ class Data:
 
                 samplingFrequencies = [fs for fs, ch in zip(samplingFrequencies, channels) if ch in included_channels]
                 # channels = [ch for ch in channels if ch in included_channels]
-                assert len([ch for ch in channels if ch not in Nodes.basic_eeg_nodes  + Nodes.optional_eeg_nodes +
+                assert len([ch for ch in channels if ch not in Nodes.basic_eeg_nodes + Nodes.optional_eeg_nodes +
                             Nodes.wearable_nodes + Nodes.eeg_acc + Nodes.eeg_ears +
-                            Nodes.eeg_gyr + Nodes.ecg_emg_nodes + Nodes.other_nodes + Nodes.ecg_emg_acc +
-                            Nodes.ecg_emg_gyr]) == 0, 'Unknown channel found'
+                            Nodes.eeg_gyr + Nodes.ecg_emg_nodes + Nodes.other_nodes + Nodes.ecg_emg_sd_acc +
+                            Nodes.ecg_emg_sd_gyr]) == 0, 'Unknown channel found'
                 assert len(data) == len(channels), 'Data and channels do not have the same length'
         else:
             warnings.warn('Recording ' + recording[0] + ' ' + recording[1] + ' does not contain exist')

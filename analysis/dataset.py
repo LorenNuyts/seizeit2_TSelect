@@ -11,7 +11,7 @@ base_dir = os.path.dirname(os.path.realpath(__file__))
 def channel_names(root_dir, locations):
     known_nodes = (Nodes.basic_eeg_nodes + Nodes.optional_eeg_nodes + Nodes.wearable_nodes + Nodes.eeg_ears +
                    Nodes.eeg_acc + Nodes.eeg_gyr + Nodes.ecg_emg_nodes +
-                   Nodes.other_nodes + Nodes.ecg_emg_acc + Nodes.ecg_emg_gyr)
+                   Nodes.other_nodes + Nodes.ecg_emg_sd_acc + Nodes.ecg_emg_sd_gyr)
     unknown_nodes = dict()
     for location in os.listdir(root_dir):
         if locations is not None and location not in locations:
@@ -63,9 +63,41 @@ def subjects_with_seizures(root_dir, locations):
     print("Subjects with seizures found in the dataset:")
     print(seizure_subjects)
 
+def channel_differences_between_subjects(root_dir, locations):
+    ref_channels_per_location = dict()
+    channel_differences = dict()
+    for location in os.listdir(root_dir):
+        if locations is not None and location not in locations:
+            continue
+        print("Processing location:", location)
+        location_path = os.path.join(root_dir, location)
+        for subject in os.listdir(location_path):
+            print("     | Processing subject:", subject)
+            subject_path = os.path.join(location_path, subject)
+            for recording in os.listdir(subject_path):
+                if recording.endswith(".edf"):
+                    edf_file = os.path.join(subject_path, recording)
+                    with pyedflib.EdfReader(edf_file) as edf:
+                        channels_in_file = edf.getSignalLabels()
+                        if location not in ref_channels_per_location:
+                            ref_channels_per_location[location] = set(channels_in_file)
+                            print(f"Reference channels for {location}: {ref_channels_per_location[location]}")
+                            continue
+                        else:
+                            if set(channels_in_file) != ref_channels_per_location[location]:
+                                if location not in channel_differences:
+                                    channel_differences[location] = dict()
+                                channel_differences[location][f"{subject}_{recording}"] = set(channels_in_file).symmetric_difference(ref_channels_per_location[location])
+                                print(f"Channel differences: {set(channels_in_file).symmetric_difference(ref_channels_per_location[location])}")
+    print("Reference channels per location:")
+    print(ref_channels_per_location)
+    print("Channel differences between subjects:")
+    print(channel_differences)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures"],)
+    parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures",
+                                                   "channel_differences"],)
     parser.add_argument("--locations", type=str, nargs="?", default="all")
     args = parser.parse_args()
 
@@ -87,5 +119,7 @@ if __name__ == '__main__':
         subjects_with_seizures(data_path, locations=locations_)
     elif args.task == "channel_names":
         channel_names(data_path, locations=locations_)
+    elif args.task == "channel_differences":
+        channel_differences_between_subjects(data_path, locations=locations_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")
