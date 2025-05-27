@@ -53,6 +53,7 @@ class Data:
             with pyedflib.EdfReader(edfFile) as edf :
                 samplingFrequencies.extend(edf.getSampleFrequencies())
                 channels_in_file = edf.getSignalLabels()
+                channels_in_file = Nodes.match_nodes(channels_in_file, included_channels)
                 n = edf.signals_in_file
                 for i in range(n):
                     included_channels = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
@@ -65,7 +66,7 @@ class Data:
                 samplingFrequencies = [fs for fs, ch in zip(samplingFrequencies, channels) if ch in included_channels]
                 # channels = [ch for ch in channels if ch in included_channels]
                 assert len([ch for ch in channels if ch not in Nodes.basic_eeg_nodes  + Nodes.optional_eeg_nodes +
-                            Nodes.wearable_nodes + Nodes.eeg_acc +
+                            Nodes.wearable_nodes + Nodes.eeg_acc + Nodes.eeg_ears +
                             Nodes.eeg_gyr + Nodes.ecg_emg_nodes + Nodes.other_nodes + Nodes.ecg_emg_acc +
                             Nodes.ecg_emg_gyr]) == 0, 'Unknown channel found'
                 assert len(data) == len(channels), 'Data and channels do not have the same length'

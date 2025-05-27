@@ -5,8 +5,8 @@ from typing import List
 
 from matplotlib import pyplot as plt
 
-from net.DL_config import Config
-from utility.constants import get_channel_selection_config, evaluation_metrics
+from net.DL_config import Config, get_channel_selection_config
+from utility.constants import evaluation_metrics
 from utility.paths import get_path_results
 from utility.stats import Results
 

@@ -1,39 +1,104 @@
-import os
-
 from TSelect.tselect.tselect.utils.metrics import auroc_score
-from net.DL_config import Config
 from net.utils import get_sens_FA_score
 
 SEED = 0
 
+# This variable is used to make sure there is at least one subject with seizures in the validation set.
+subjects_with_seizures = {'SUBJ-1a-159', 'SUBJ-7-376', 'SUBJ-4-259', 'SUBJ-1a-358', 'SUBJ-1a-153', 'SUBJ-6-463',
+                          'SUBJ-1a-006', 'SUBJ-1b-178', 'SUBJ-6-430', 'SUBJ-6-472', 'SUBJ-6-298', 'SUBJ-6-304',
+                          'SUBJ-4-149', 'SUBJ-5-294', 'SUBJ-4-166', 'SUBJ-1b-307', 'SUBJ-4-145', 'SUBJ-1a-082',
+                          'SUBJ-4-097', 'SUBJ-4-151', 'SUBJ-4-169', 'SUBJ-4-385', 'SUBJ-4-392', 'SUBJ-1b-223',
+                          'SUBJ-5-255', 'SUBJ-4-265', 'SUBJ-1a-471', 'SUBJ-1b-222', 'SUBJ-1a-482', 'SUBJ-4-203',
+                          'SUBJ-7-438', 'SUBJ-6-261', 'SUBJ-1b-315', 'SUBJ-4-346', 'SUBJ-1b-077', 'SUBJ-6-276',
+                          'SUBJ-6-483', 'SUBJ-7-379', 'SUBJ-6-273', 'SUBJ-1a-489', 'SUBJ-6-216', 'SUBJ-4-305',
+                          'SUBJ-4-230', 'SUBJ-4-466', 'SUBJ-6-256', 'SUBJ-7-449', 'SUBJ-6-275', 'SUBJ-4-139',
+                          'SUBJ-6-311', 'SUBJ-6-393', 'SUBJ-1a-353', 'SUBJ-4-254', 'SUBJ-7-331', 'SUBJ-7-441'}
+
+
 class Nodes:
 
     basic_eeg_nodes = ['Fp1', 'Fp2', 'F3', 'Fz', 'F4', 'C3', 'Cz', 'C4', 'P3', 'Pz', 'P4', 'O1', 'O2']
-    optional_eeg_nodes = ['AF11', 'AF12', 'AF1', 'AF2', 'AF7', 'AF8', 'B2', 'F7', 'F8', 'P7', 'P8', 'F9', 'F10', 'T9',
-                          'T10',
-                          'P9', 'P10', 'FC5', 'FC1', 'FC2', 'FC6', 'CP5', 'CP1', 'CP2', 'CP6', 'PO1', 'PO2', 'Iz', 'T7',
-                          'T8',
-                          'A1', 'A2', 'FT9', 'FT10', 'FT7', 'FT8', 'TP7', 'TP8']
+    T_nodes = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10']
+    optional_eeg_nodes = ['AF11', 'AF12', 'AF1', 'AF2', 'AF7', 'AF8', 'B2', 'F7', 'F8', 'P7', 'P8', 'F9', 'F10',
+                          'P9', 'P10', 'FC5', 'FC1', 'FC2', 'FC6', 'CP5', 'CP1', 'CP2', 'CP6', 'PO1', 'PO2', 'Iz',
+                          'A1', 'A2', 'FT9', 'FT10', 'FT7', 'FT8', 'TP7', 'TP8'] + T_nodes
+    eeg_left_top = 'EEG LiOorTop'
+    eeg_right_top = 'EEG ReOorTop'
+    eeg_left_behind = 'EEG LiOorAchter'
+    eeg_right_behind = 'EEG ReOorAchter'
+    eeg_ears = ['EEG ReOorAchter', 'EEG LiOorAchter', 'EEG ReOorTop', 'EEG LiOorTop']
 
-    wearable_nodes = ['BTEleft SD', 'BTEright SD', 'CROSStop SD']
     BTEleft = 'BTEleft SD'
     BTEright = 'BTEright SD'
     CROSStop = 'CROSStop SD'
+    wearable_nodes = [BTEleft, BTEright, CROSStop]
 
     eeg_acc = ['EEG SD ACC X', 'EEG SD ACC Y', 'EEG SD ACC Z']
     eeg_gyr = ['EEG SD GYR A', 'EEG SD GYR B', 'EEG SD GYR C']
 
-    ecg_emg_nodes = ['ECG+', 'sEMG+', 'ECG SD', 'EMG SD']
+    ecg = 'ECG+'
+    ecg_emg_nodes = [ecg, 'sEMG+', 'EMG Li Ar', 'EMG EMG Re', 'ECG SD', 'EMG SD']
     ecg_emg_acc = ['ECGEMG SD ACC X', 'ECGEMG SD ACC Y', 'ECGEMG SD ACC Z']
     ecg_emg_gyr = ['ECGEMG SD GYR A', 'ECGEMG SD GYR B', 'ECGEMG SD GYR C']
 
-    other_nodes = ['Ment+', 'A1*', 'A2*', 'MKR+', 'B1', 'B2']
+    other_nodes = ['Ment+', 'A1*', 'A2*', 'MKR+', 'B1', 'B2', 'Light Stimuli']
 
     switchable_nodes = {
         BTEright: [BTEleft, CROSStop],
         BTEleft: [BTEright, CROSStop],
         CROSStop: [BTEright, BTEleft]
     }
+
+    @staticmethod
+    def format_node_name(node:str):
+        if "EEG".lower() in node.lower():
+            if "LiOorAcht".lower() in node:
+                return Nodes.eeg_left_behind
+            elif "LiOorTop".lower() in node:
+                return Nodes.eeg_left_top
+            elif "ReOorAcht".lower() in node:
+                return Nodes.eeg_right_behind
+            elif "ReOorTop".lower() in node:
+                return Nodes.eeg_right_top
+            else:
+                node = node.replace("EEG ", "")
+                node = node.replace("eeg ", "")
+        if "ref" in node.lower():
+            node = node.replace("-Ref", "")
+            node = node.replace("-REF", "")
+        # if "ReOorAcht".lower() in node.lower() or "ReOorTop".lower() in node.lower():
+        #     return Nodes.BTEright
+        # if "LiOorAcht".lower() in node.lower() or "LiOorTop".lower() in node.lower():
+        #     return Nodes.BTEleft
+        if node.lower() == "ECG".lower():
+            return Nodes.ecg
+        if "unspec" in node.lower():
+            node = node.replace("unspec", "")
+            node = node.replace("Unspec", "")
+        return node
+
+    @staticmethod
+    def match_nodes(nodes: list[str], possibilities: list[str]) -> list[str]:
+        result = []
+        # Ignore case and whitespace in the nodes
+        stripped_nodes = [node.strip().lower() for node in nodes]
+        stripped_possibilities = [possibility.strip().lower() for possibility in possibilities]
+
+        for i, stripped_node in enumerate(stripped_nodes):
+            if stripped_node in stripped_possibilities:
+                index = stripped_possibilities.index(stripped_node)
+                result.append(possibilities[index])
+                continue
+            formatted_node = Nodes.format_node_name(stripped_node).lower().strip()
+            if formatted_node in stripped_possibilities:
+                index = stripped_possibilities.index(formatted_node)
+                result.append(possibilities[index])
+            else:
+                # If the node is not found, just leave it as is
+                result.append(nodes[i])
+
+        assert len(set(result)) == len(result), "Duplicate nodes found in the list"
+        return result
 
 
 class Locations:
@@ -44,6 +109,18 @@ class Locations:
     leuven_pediatric = "University_Hospital_Leuven_Pediatric"
     aachen = "University_of_Aachen"
 
+    @staticmethod
+    def to_acronym(loc):
+        acronyms = {
+            Locations.coimbra: "COI",
+            Locations.freiburg: "FRB",
+            Locations.karolinska: "KAR",
+            Locations.leuven_adult: "LEU-AD",
+            Locations.leuven_pediatric: "LEU-PE",
+            Locations.aachen: "AAC"
+        }
+        return acronyms.get(loc, loc)
+
 class Keys:
     minirocketLR = "MiniRocketLR"
 
@@ -52,102 +129,6 @@ class Paths:
     local_data_path = "/media/loren/Seagate Basic/Epilepsy use case"  # path to dataset
     remote_save_dir = "/cw/dtailocal/loren/2025-Epilepsy/net/save_dir"
     local_save_dir = "net/save_dir"  # save directory of intermediate and output files
-
-
-def get_base_config(base_dir, model="ChronoNet", included_channels=None, pretty_name=None, suffix=""):
-    """
-    Function to get the base configuration for the model. The function sets the parameters for the model, including
-    the data path, save directory, sampling frequency, number of channels, batch size, window size, stride, balancing
-    factor, validation percentage, and network hyperparameters. The function also sets the model architecture,
-    dataset, and sampling method. The function returns a Config object with the specified parameters.
-    Args:
-        base_dir (str): path to the base directory where the data is stored.
-        model (str): model architecture (Options: Chrononet, EEGnet, DeepConvNet, MiniRocketLR)
-        included_channels (list): list of channels to include in the model. If None, all channels are included.
-        pretty_name (str): pretty name for the experiment.
-        suffix (str): suffix to add to the end of the experiment's config name.
-
-    Returns:
-        config (Config): Config object with the specified parameters.
-    """
-    if included_channels is None:
-        included_channels = "all"
-
-    if included_channels == "all":
-        included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
-    elif included_channels == "wearables":
-        included_channels = Nodes.wearable_nodes
-        suffix = "wearables" + ("__" if len(suffix) != 0 else "") + suffix
-    else:
-        raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all' or 'wearables'.")
-
-    config = Config()
-    if pretty_name:
-        config.pretty_name = pretty_name
-    if 'dtai' in base_dir:
-        config.data_path = Paths.remote_data_path
-        config.save_dir = Paths.remote_save_dir
-    else:
-        config.data_path = Paths.local_data_path  # path to dataset
-        config.save_dir = Paths.local_save_dir
-    if not os.path.exists(config.save_dir):
-        os.makedirs(config.save_dir)
-
-    config.fs = 250  # Sampling frequency of the data after post-processing
-    config.included_channels = included_channels
-    config.CH = len(config.included_channels)  # Nr of EEG channels
-    config.cross_validation = 'leave_one_person_out'  # validation type
-    config.batch_size = 128  # batch size
-    config.frame = 2  # window size of input segments in seconds
-    config.stride = 1  # stride between segments (of background EEG) in seconds
-    config.stride_s = 0.5  # stride between segments (of seizure EEG) in seconds
-    config.boundary = 0.5  # proportion of seizure data in a window to consider the segment in the positive class
-    config.factor = 5  # balancing factor between nr of segments in each class
-    config.validation_percentage = 0.2  # proportion of the training set to use for validation
-    config.folds = {}  # dictionary to store the folds
-
-    ## Network hyper-parameters
-    config.dropoutRate = 0.5
-    config.nb_epochs = 300
-    config.l2 = 0.01
-    config.lr = 0.01
-
-    ###########################################
-    ###########################################
-
-    ##### INPUT CONFIGS:
-    config.model = model  # model architecture (you have 3: Chrononet, EEGnet, DeepConvNet)
-    config.dataset = 'SZ2'  # patients to use (check 'datasets' folder)
-    config.sample_type = 'subsample'  # sampling method (subsample = remove background EEG segments)
-
-    ###########################################
-    ###########################################
-
-    ##### DATA CONFIGS:
-    config.locations = [Locations.coimbra]  # locations to use
-
-    ###########################################
-    ###########################################
-    config.add_to_name = f'{"_" + suffix if suffix != "" else ""}'  # str to add to the end of the experiment's config name
-
-    return config
-
-def get_channel_selection_config(base_dir, model="ChronoNet", included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
-                                 corr_threshold=0.5, pretty_name=None, suffix=""):
-    config = get_base_config(base_dir, model=model, included_channels=included_channels, pretty_name=pretty_name,
-                             suffix=suffix)
-    config.channel_selection = True
-    config.selected_channels = None
-    config.channel_selection_evaluation_metric = evaluation_metric
-    config.auc_percentage = auc_percentage
-    config.corr_threshold = corr_threshold
-    config.add_to_name = (f'{"_channel_selection" if config.channel_selection else ""}'
-                          f'{f"_evaluation_metric_{evaluation_metric.__name__}" if evaluation_metric != auroc_score else ""}'
-                          f'{f"_auc_percentage_{auc_percentage}" if auc_percentage != 0.6 else ""}'
-                            f'{f"_corr_threshold_{corr_threshold}" if corr_threshold != 0.5 else ""}'
-                      f'{config.add_to_name}')  # str to add to the end of the experiment's config name
-
-    return config
 
 
 evaluation_metrics = {"roc_auc": auroc_score,

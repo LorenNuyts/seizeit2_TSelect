@@ -2,6 +2,10 @@ import tensorflow as tf
 import pickle
 import os
 
+from TSelect.tselect.tselect.utils.metrics import auroc_score
+from utility.constants import Locations, Nodes, Paths
+
+
 class Config():
     """ Class to create and store an experiment configuration object with the architecture hyper-parameters, input and sampling types.
     
@@ -48,6 +52,7 @@ class Config():
         self.factor = factor
         self.cross_validation = cross_validation
         self.save_dir = save_dir
+        self.locations = []
         self.included_channels = None
         self.channel_selection = False
         self.selected_channels = None
@@ -84,7 +89,106 @@ class Config():
 
         
     def get_name(self):
+        locations_str = "-".join([Locations.to_acronym(loc) for loc in self.locations])
         if hasattr(self, 'add_to_name'):
-            return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor),  self.add_to_name])
+            return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), locations_str, self.add_to_name])
         else:
-            return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor)])
+            return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), locations_str])
+
+
+def get_base_config(base_dir, model="ChronoNet", included_channels=None, pretty_name=None, suffix=""):
+    """
+    Function to get the base configuration for the model. The function sets the parameters for the model, including
+    the data path, save directory, sampling frequency, number of channels, batch size, window size, stride, balancing
+    factor, validation percentage, and network hyperparameters. The function also sets the model architecture,
+    dataset, and sampling method. The function returns a Config object with the specified parameters.
+    Args:
+        base_dir (str): path to the base directory where the data is stored.
+        model (str): model architecture (Options: Chrononet, EEGnet, DeepConvNet, MiniRocketLR)
+        included_channels (list): list of channels to include in the model. If None, all channels are included.
+        pretty_name (str): pretty name for the experiment.
+        suffix (str): suffix to add to the end of the experiment's config name.
+
+    Returns:
+        config (Config): Config object with the specified parameters.
+    """
+    if included_channels is None:
+        included_channels = "all"
+
+    if included_channels == "all":
+        included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
+    elif included_channels == "wearables":
+        included_channels = Nodes.wearable_nodes
+        suffix = "wearables" + ("__" if len(suffix) != 0 else "") + suffix
+    else:
+        raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all' or 'wearables'.")
+
+    config = Config()
+    if pretty_name:
+        config.pretty_name = pretty_name
+    if 'dtai' in base_dir:
+        config.data_path = Paths.remote_data_path
+        config.save_dir = Paths.remote_save_dir
+    else:
+        config.data_path = Paths.local_data_path  # path to dataset
+        config.save_dir = Paths.local_save_dir
+    if not os.path.exists(config.save_dir):
+        os.makedirs(config.save_dir)
+
+    config.fs = 250  # Sampling frequency of the data after post-processing
+    config.included_channels = included_channels
+    config.CH = len(config.included_channels)  # Nr of EEG channels
+    config.cross_validation = 'leave_one_person_out'  # validation type
+    config.batch_size = 128  # batch size
+    config.frame = 2  # window size of input segments in seconds
+    config.stride = 1  # stride between segments (of background EEG) in seconds
+    config.stride_s = 0.5  # stride between segments (of seizure EEG) in seconds
+    config.boundary = 0.5  # proportion of seizure data in a window to consider the segment in the positive class
+    config.factor = 5  # balancing factor between nr of segments in each class
+    config.validation_percentage = 0.2  # proportion of the training set to use for validation
+    config.folds = {}  # dictionary to store the folds
+
+    ## Network hyper-parameters
+    config.dropoutRate = 0.5
+    config.nb_epochs = 300
+    config.l2 = 0.01
+    config.lr = 0.01
+
+    ###########################################
+    ###########################################
+
+    ##### INPUT CONFIGS:
+    config.model = model  # model architecture (you have 3: Chrononet, EEGnet, DeepConvNet)
+    config.dataset = 'SZ2'  # patients to use (check 'datasets' folder)
+    config.sample_type = 'subsample'  # sampling method (subsample = remove background EEG segments)
+
+    ###########################################
+    ###########################################
+
+    ##### DATA CONFIGS:
+    # config.locations = [Locations.coimbra]  # locations to use
+    config.locations = [Locations.leuven_adult]  # locations to use
+
+    ###########################################
+    ###########################################
+    config.add_to_name = f'{"_" + suffix if suffix != "" else ""}'  # str to add to the end of the experiment's config name
+
+    return config
+
+
+def get_channel_selection_config(base_dir, model="ChronoNet", included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
+                                 corr_threshold=0.5, pretty_name=None, suffix=""):
+    config = get_base_config(base_dir, model=model, included_channels=included_channels, pretty_name=pretty_name,
+                             suffix=suffix)
+    config.channel_selection = True
+    config.selected_channels = None
+    config.channel_selection_evaluation_metric = evaluation_metric
+    config.auc_percentage = auc_percentage
+    config.corr_threshold = corr_threshold
+    config.add_to_name = (f'{"_channel_selection" if config.channel_selection else ""}'
+                          f'{f"_evaluation_metric_{evaluation_metric.__name__}" if evaluation_metric != auroc_score else ""}'
+                          f'{f"_auc_percentage_{auc_percentage}" if auc_percentage != 0.6 else ""}'
+                            f'{f"_corr_threshold_{corr_threshold}" if corr_threshold != 0.5 else ""}'
+                      f'{config.add_to_name}')  # str to add to the end of the experiment's config name
+
+    return config
