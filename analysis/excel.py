@@ -2,6 +2,7 @@ import argparse
 import os
 from typing import List
 
+import numpy as np
 import pandas as pd
 
 from utility.constants import evaluation_metrics
@@ -44,7 +45,7 @@ def print_table(configs: list, metrics: List[str], output_path: str):
                     variance = None
 
                 if variance is not None:
-                    formatted = f"{value:.3f} ± {variance:.2f}"
+                    formatted = f"{value:.3f} ± {np.sqrt(variance):.2f}"
                 else:
                     formatted = f"{value:.3f}"
 
@@ -86,6 +87,11 @@ if __name__ == '__main__':
                 'median_prec_ovlp_th05', 'median_sens_ovlp_th05',
                 'median_rocauc_th05', 'median_score_th05'
                 ]
+    # metrics_ = ['average_nb_channels', 'average_total_time',
+    #             'median_score_th05', 'median_sens_ovlp_th05', 'median_fah_epoch_th05', 'median_fah_ovlp_th05',
+    #             'median_score_best_threshold',
+    #             'median_sens_ovlp_best_threshold', 'median_fah_epoch_best_threshold', 'median_fah_ovlp_best_threshold',
+    #             ]
 
     if 'dtai' in base_dir:
         output_path_ = os.path.join('/cw/dtailocal/loren/2025-Epilepsy', 'tables', 'results.xlsx')

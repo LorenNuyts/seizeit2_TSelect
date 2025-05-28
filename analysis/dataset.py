@@ -94,10 +94,36 @@ def channel_differences_between_subjects(root_dir, locations):
     print("Channel differences between subjects:")
     print(channel_differences)
 
+
+def rank_locations(root_dir, locations):
+    location_counts = {loc: [0,0] for loc in locations}
+    for location in os.listdir(root_dir):
+        if locations is not None and location not in locations:
+            continue
+        print("Processing location:", location)
+        location_path = os.path.join(root_dir, location)
+        location_counts[location][1] = len(os.listdir(location_path))
+        for subject in os.listdir(location_path):
+            print("     | Processing subject:", subject)
+            subject_path = os.path.join(location_path, subject)
+            for recording in os.listdir(subject_path):
+                if recording.endswith(".tsv"):
+                    df = pd.read_csv(os.path.join(subject_path, recording), delimiter="\t", skiprows=4)
+                    for i, e in df.iterrows():
+                        if e['class'] == 'seizure' and e['main type'] == 'focal':
+                            location_counts[location][0] += 1
+
+        # Sort locations by number of seizures and number of subjects, from highest to lowest
+        sorted_locations = sorted(location_counts.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)
+        print("Locations ranked by number of seizures and subjects:")
+        for loc, counts in sorted_locations:
+            print(f"{loc}: {counts[0]} seizures, {counts[1]} subjects")
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures",
-                                                   "channel_differences"],)
+                                                   "channel_differences", "rank_locations"],)
     parser.add_argument("--locations", type=str, nargs="?", default="all")
     args = parser.parse_args()
 
@@ -121,5 +147,7 @@ if __name__ == '__main__':
         channel_names(data_path, locations=locations_)
     elif args.task == "channel_differences":
         channel_differences_between_subjects(data_path, locations=locations_)
+    elif args.task == "rank_locations":
+        rank_locations(data_path, locations=locations_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")

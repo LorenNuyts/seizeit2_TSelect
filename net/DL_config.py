@@ -90,10 +90,16 @@ class Config():
         
     def get_name(self):
         locations_str = "-".join([Locations.to_acronym(loc) for loc in self.locations])
-        if hasattr(self, 'add_to_name'):
-            return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), locations_str, self.add_to_name])
-        else:
-            return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), locations_str])
+        base_name = '_'.join([self.model, self.sample_type, 'factor' + str(self.factor)])
+        if locations_str != "":
+            base_name += '_' + locations_str
+        if hasattr(self, 'add_to_name') and self.add_to_name != "":
+            base_name = base_name + '_' + self.add_to_name
+        return base_name
+        # if hasattr(self, 'add_to_name'):
+        #     return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), self.add_to_name])
+        # else:
+        #     return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor)])
 
 
 def get_base_config(base_dir, model="ChronoNet", included_channels=None, pretty_name=None, suffix=""):
