@@ -20,9 +20,23 @@ class Nodes:
 
     basic_eeg_nodes = ['Fp1', 'Fp2', 'F3', 'Fz', 'F4', 'C3', 'Cz', 'C4', 'P3', 'Pz', 'P4', 'O1', 'O2']
     T_nodes = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10']
-    optional_eeg_nodes = ['AF11', 'AF12', 'AF1', 'AF2', 'AF7', 'AF8', 'B2', 'F7', 'F8', 'P7', 'P8', 'F9', 'F10',
-                          'P9', 'P10', 'FC5', 'FC1', 'FC2', 'FC6', 'CP5', 'CP1', 'CP2', 'CP6', 'PO1', 'PO2', 'Iz',
-                          'A1', 'A2', 'FT9', 'FT10', 'FT7', 'FT8', 'TP7', 'TP8'] + T_nodes
+    optional_F_nodes = ['F7', 'F8', 'F9', 'F10']
+    optional_P_nodes = ['P7', 'P8', 'P9', 'P10']
+    optional_FC_nodes = ['FC1', 'FC2', 'FC5', 'FC6']
+    optional_AF_nodes = ['AF1', 'AF2', 'AF7', 'AF8', 'AF11', 'AF12']
+    optional_eeg_nodes = (['B2',
+                          'CP5', 'CP1', 'CP2', 'CP6',
+                           'PO1', 'PO2',
+                           'Iz',
+                          'A1', 'A2',
+                           'FT9', 'FT10', 'FT7', 'FT8',
+                           'TP7', 'TP8']
+                          + T_nodes
+                          + optional_F_nodes
+                          + optional_P_nodes
+                          + optional_FC_nodes
+                          + optional_AF_nodes)
+
     eeg_left_top = 'EEG LiOorTop'
     eeg_right_top = 'EEG ReOorTop'
     eeg_left_behind = 'EEG LiOorAchter'
@@ -44,7 +58,9 @@ class Nodes:
     eeg_gyr = [eeg_sd_gyr_a, eeg_sd_gyr_b, eeg_sd_gyr_c]
 
     ecg = 'ECG+'
-    ecg_emg_nodes = [ecg, 'sEMG+', 'EMG Li Ar', 'EMG EMG Re', 'ECG SD', 'EMG SD']
+    ecg_nodes = [ecg, 'ECG SD']
+    emg_nodes = ['sEMG+', 'EMG Li Ar', 'EMG EMG Li', 'EMG EMG Re', 'EMG SD']
+    ecg_emg_nodes = ecg_nodes + emg_nodes
     ecg_emg_sd_acc_x = 'ECGEMG SD ACC X'
     ecg_emg_sd_acc_y = 'ECGEMG SD ACC Y'
     ecg_emg_sd_acc_z = 'ECGEMG SD ACC Z'
@@ -62,6 +78,15 @@ class Nodes:
         CROSStop: [BTEright, BTEleft],
     }
 
+    @classmethod
+    def all_nodes(cls):
+        """
+        Returns a list of all known nodes
+        """
+        return (Nodes.basic_eeg_nodes + Nodes.optional_eeg_nodes + Nodes.wearable_nodes + Nodes.eeg_ears +
+                   Nodes.eeg_acc + Nodes.eeg_gyr + Nodes.ecg_emg_nodes +
+                   Nodes.other_nodes + Nodes.ecg_emg_sd_acc + Nodes.ecg_emg_sd_gyr)
+
     @staticmethod
     def format_node_name(node:str):
         if "EEG".lower() in node.lower():
@@ -78,16 +103,13 @@ class Nodes:
                 node = node.replace("eeg ", "")
         if "ref" in node.lower():
             node = node.replace("-Ref", "")
+            node = node.replace("-ref", "")
             node = node.replace("-REF", "")
-        # if "ReOorAcht".lower() in node.lower() or "ReOorTop".lower() in node.lower():
-        #     return Nodes.BTEright
-        # if "LiOorAcht".lower() in node.lower() or "LiOorTop".lower() in node.lower():
-        #     return Nodes.BTEleft
         if node.lower() == "ECG".lower():
             return Nodes.ecg
-        if "unspec" in node.lower():
-            node = node.replace("unspec", "")
-            node = node.replace("Unspec", "")
+        # if "unspec" in node.lower():
+        #     node = node.replace("unspec", "")
+        #     node = node.replace("Unspec", "")
         return node
 
     @staticmethod
@@ -122,8 +144,28 @@ class Locations:
     leuven_pediatric = "University_Hospital_Leuven_Pediatric"
     aachen = "University_of_Aachen"
 
+    @classmethod
+    def all_keys(cls):
+        """
+        Returns a list of all keys in the Locations class that do not start with '__' and are not callable.
+        """
+        return [k for k in cls.__dict__ if not k.startswith('__') and not callable(getattr(cls, k))]
+
+    @classmethod
+    def get(cls, key):
+        """
+        Returns the value of the key in the Locations class if it exists.
+        """
+        if key in cls.all_keys():
+            return getattr(cls, key)
+        else:
+            raise ValueError(f"Invalid location: '{key}'. Choose from: {', '.join(cls.all_keys())}")
+
     @staticmethod
     def to_acronym(loc):
+        """
+        Converts a location to its acronym.
+        """
         acronyms = {
             Locations.coimbra: "COI",
             Locations.freiburg: "FRB",

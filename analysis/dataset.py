@@ -9,9 +9,10 @@ from utility.constants import Nodes, Paths, Locations
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 def channel_names(root_dir, locations):
-    known_nodes = (Nodes.basic_eeg_nodes + Nodes.optional_eeg_nodes + Nodes.wearable_nodes + Nodes.eeg_ears +
-                   Nodes.eeg_acc + Nodes.eeg_gyr + Nodes.ecg_emg_nodes +
-                   Nodes.other_nodes + Nodes.ecg_emg_sd_acc + Nodes.ecg_emg_sd_gyr)
+    # known_nodes = (Nodes.basic_eeg_nodes + Nodes.optional_eeg_nodes + Nodes.wearable_nodes + Nodes.eeg_ears +
+    #                Nodes.eeg_acc + Nodes.eeg_gyr + Nodes.ecg_emg_nodes +
+    #                Nodes.other_nodes + Nodes.ecg_emg_sd_acc + Nodes.ecg_emg_sd_gyr)
+    known_nodes = Nodes.all_nodes()
     unknown_nodes = dict()
     for location in os.listdir(root_dir):
         if locations is not None and location not in locations:
@@ -30,12 +31,13 @@ def channel_names(root_dir, locations):
                             channels = Nodes.match_nodes(channels_in_file, known_nodes)
                             for ch in channels:
                                 if ch not in known_nodes:
+                                    print(f"Unknown channel found: {ch}")
                                     if location in unknown_nodes:
                                         unknown_nodes[location].add(ch)
                                     else:
                                         unknown_nodes[location] = {ch}
                         except (ValueError, AssertionError) as e:
-                            print("Error enctountered", e)
+                            print("Error encountered", e)
                             continue
     print("Unknown nodes found in the dataset:")
     print(unknown_nodes)

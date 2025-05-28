@@ -24,6 +24,9 @@ from net import main_func
 
 base_ = os.path.dirname(os.path.realpath(__file__))
 
+def parse_location(value):
+    return Locations.get(value)
+
 ###########################################
 ### Parse parameters from command line ####
 ###########################################
@@ -31,6 +34,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--channel_selection', action='store_true')
 parser.add_argument("--model", type=str, nargs="?", default="ChronoNet")
 parser.add_argument("--evaluation_metric", type=str, nargs="?", default="roc_auc")
+parser.add_argument(
+    '--locations',
+    nargs='+',  # accept multiple inputs
+    type=parse_location,
+    default=[Locations.leuven_adult],
+    help=f"List of locations. Choose from: {', '.join(Locations.all_keys())}. "
+         f"Defaults to [{Locations.leuven_adult}]."
+)
 parser.add_argument("--nodes", type=str, nargs="?", default="all")
 parser.add_argument("--auc", type=float, nargs="?", default=0.6)
 parser.add_argument("--corr", type=float, nargs="?", default=0.5)
@@ -40,18 +51,28 @@ parser.add_argument('--reset', action='store_true')
 args = parser.parse_args()
 
 suffix_ = args.suffix
+unique_locations = list(dict.fromkeys(args.locations))
+
+############################################
+##### Print the settings for this run ######
+############################################
+
+print("Locations:", unique_locations)
+print("Channel selection:", args.channel_selection)
+print("Evaluation metric:", args.evaluation_metric)
+print("Model:", args.model)
 
 ###########################################
 ## Initialize standard config parameters ##
 ###########################################
 
 if args.channel_selection:
-    config = get_channel_selection_config(base_, model=args.model,
+    config = get_channel_selection_config(base_, unique_locations, model=args.model,
                                           evaluation_metric=evaluation_metrics[args.evaluation_metric],
                                           auc_percentage=args.auc, corr_threshold=args.corr,
                                           suffix=suffix_, included_channels=args.nodes)
 else:
-    config = get_base_config(base_, model=args.model, suffix=suffix_, included_channels=args.nodes)
+    config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes)
 
 ###########################################
 ###########################################
