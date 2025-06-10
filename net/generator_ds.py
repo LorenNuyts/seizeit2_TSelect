@@ -50,8 +50,19 @@ class SequentialGenerator(keras.utils.Sequence):
             rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
                                      included_channels=self.config.included_channels)
             rec_data.apply_preprocess(self.config)
-            if self.channels is None:
-                self.channels = rec_data.channels
+
+            if set(rec_data.channels) != set(self.channels):
+                rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
+            if rec_data.channels != self.channels:
+                rec_data.reorder_channels(self.channels)
+
+            if rec_data.channels != self.channels and len(self.channels) != 0:
+                print("Rec channels:", rec_data.channels)
+                print("self.channels:", self.channels)
+            assert rec_data.channels == self.channels
+
+            # if self.channels is None:
+            #     self.channels = rec_data.channels
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
             segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
@@ -115,8 +126,18 @@ class SegmentedGenerator(keras.utils.Sequence):
             rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
                                      included_channels=self.config.included_channels)
             rec_data.apply_preprocess(self.config)
-            if self.channels is None:
-                self.channels = rec_data.channels
+
+            if set(rec_data.channels) != set(self.channels):
+                rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
+            if rec_data.channels != self.channels:
+                rec_data.reorder_channels(self.channels)
+
+            if rec_data.channels != self.channels and len(self.channels) != 0:
+                print("Rec channels:", rec_data.channels)
+                print("self.channels:", self.channels)
+            assert rec_data.channels == self.channels
+            # if self.channels is None:
+            #     self.channels = rec_data.channels
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
             segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
