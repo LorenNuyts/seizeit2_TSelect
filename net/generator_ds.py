@@ -51,6 +51,8 @@ class SequentialGenerator(keras.utils.Sequence):
                                      included_channels=self.config.included_channels)
             rec_data.apply_preprocess(self.config)
 
+            if self.channels is None:
+                self.channels = rec_data.channels
             if set(rec_data.channels) != set(self.channels):
                 rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
             if rec_data.channels != self.channels:
@@ -61,8 +63,6 @@ class SequentialGenerator(keras.utils.Sequence):
                 print("self.channels:", self.channels)
             assert rec_data.channels == self.channels
 
-            # if self.channels is None:
-            #     self.channels = rec_data.channels
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
             segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
@@ -127,6 +127,8 @@ class SegmentedGenerator(keras.utils.Sequence):
                                      included_channels=self.config.included_channels)
             rec_data.apply_preprocess(self.config)
 
+            if self.channels is None:
+                self.channels = rec_data.channels
             if set(rec_data.channels) != set(self.channels):
                 rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
             if rec_data.channels != self.channels:
@@ -136,8 +138,6 @@ class SegmentedGenerator(keras.utils.Sequence):
                 print("Rec channels:", rec_data.channels)
                 print("self.channels:", self.channels)
             assert rec_data.channels == self.channels
-            # if self.channels is None:
-            #     self.channels = rec_data.channels
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
             segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
