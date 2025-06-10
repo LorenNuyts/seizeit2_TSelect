@@ -66,7 +66,7 @@ def subjects_with_seizures(root_dir, locations):
     print(seizure_subjects)
 
 def channel_differences_between_subjects(root_dir, locations):
-    ref_channels_per_location = dict()
+    ref_channels = set(Nodes.basic_eeg_nodes)
     channel_differences = dict()
     for location in os.listdir(root_dir):
         if locations is not None and location not in locations:
@@ -81,18 +81,14 @@ def channel_differences_between_subjects(root_dir, locations):
                     edf_file = os.path.join(subject_path, recording)
                     with pyedflib.EdfReader(edf_file) as edf:
                         channels_in_file = edf.getSignalLabels()
-                        if location not in ref_channels_per_location:
-                            ref_channels_per_location[location] = set(channels_in_file)
-                            print(f"Reference channels for {location}: {ref_channels_per_location[location]}")
-                            continue
-                        else:
-                            if set(channels_in_file) != ref_channels_per_location[location]:
-                                if location not in channel_differences:
-                                    channel_differences[location] = dict()
-                                channel_differences[location][f"{subject}_{recording}"] = set(channels_in_file).symmetric_difference(ref_channels_per_location[location])
-                                print(f"Channel differences: {set(channels_in_file).symmetric_difference(ref_channels_per_location[location])}")
+                        formatted_channels = set(Nodes.match_nodes(channels_in_file, list(ref_channels)))
+                        if not ref_channels.issubset(formatted_channels):
+                            if location not in channel_differences:
+                                channel_differences[location] = dict()
+                            channel_differences[location][f"{subject}_{recording}"] = ref_channels - set(formatted_channels)
+                            print(f"Channel differences: {ref_channels - set(formatted_channels)}")
     print("Reference channels per location:")
-    print(ref_channels_per_location)
+    print(ref_channels)
     print("Channel differences between subjects:")
     print(channel_differences)
 

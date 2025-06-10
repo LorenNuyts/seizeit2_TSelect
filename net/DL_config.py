@@ -124,7 +124,7 @@ def get_base_config(base_dir, locations, model="ChronoNet",
         included_channels = "all"
 
     if included_channels == "all":
-        included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes + Nodes.eeg_ears
+        included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
     elif included_channels == "wearables":
         included_channels = Nodes.wearable_nodes
         suffix = "wearables" + ("__" if len(suffix) != 0 else "") + suffix

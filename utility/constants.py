@@ -17,10 +17,19 @@ subjects_with_seizures = {'SUBJ-1a-159', 'SUBJ-7-376', 'SUBJ-4-259', 'SUBJ-1a-35
 excluded_subjects = {'SUBJ-1a-076', 'SUBJ-1a-306'}
 
 class Nodes:
+    midline_nodes = ['Fz', 'Cz', 'Pz']
+    prefrontal_nodes = ['Fp1', 'Fp2']
+    frontal_nodes = ['F3', 'F4', 'F7', 'F8']
+    temporal_nodes = ['T3', 'T4', 'T5', 'T6']
+    parietal_nodes = ['P3', 'P4']
+    occipital_nodes = ['O1', 'O2']
+    central_nodes = ['C3', 'C4']
+    a_nodes = ['A1', 'A2']  # Ear nodes
 
-    basic_eeg_nodes = ['Fp1', 'Fp2', 'F3', 'Fz', 'F4', 'C3', 'Cz', 'C4', 'P3', 'Pz', 'P4', 'O1', 'O2']
-    T_nodes = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10']
-    optional_F_nodes = ['F7', 'F8', 'F9', 'F10']
+    basic_eeg_nodes = (midline_nodes + prefrontal_nodes + frontal_nodes + temporal_nodes +
+                        parietal_nodes + occipital_nodes + central_nodes)
+    T_nodes = ['T1', 'T2', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10']
+    optional_F_nodes = ['F9', 'F10']
     optional_P_nodes = ['P7', 'P8', 'P9', 'P10']
     optional_FC_nodes = ['FC1', 'FC2', 'FC5', 'FC6']
     optional_AF_nodes = ['AF1', 'AF2', 'AF7', 'AF8', 'AF11', 'AF12']
@@ -70,7 +79,7 @@ class Nodes:
     ecg_emg_sd_acc = [ecg_emg_sd_acc_x, ecg_emg_sd_acc_y, ecg_emg_sd_acc_z]
     ecg_emg_sd_gyr = [ecg_emg_sd_gyr_a, ecg_emg_sd_gyr_b, ecg_emg_sd_gyr_c]
 
-    other_nodes = ['Ment+', 'A1*', 'A2*', 'MKR+', 'B1', 'B2', 'Light Stimuli']
+    other_nodes = ['Ment+', 'MKR+', 'B1', 'B2', 'Light Stimuli']
 
     switchable_nodes = {
         BTEright: [BTEleft, CROSStop],
@@ -107,6 +116,8 @@ class Nodes:
             node = node.replace("-REF", "")
         if node.lower() == "ECG".lower():
             return Nodes.ecg
+        if '*' in node:
+            node = node.replace("*", "")
         # if "unspec" in node.lower():
         #     node = node.replace("unspec", "")
         #     node = node.replace("Unspec", "")
