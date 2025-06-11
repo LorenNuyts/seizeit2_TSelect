@@ -146,6 +146,11 @@ def get_base_config(base_dir, locations, model="ChronoNet",
     config.fs = 250  # Sampling frequency of the data after post-processing
     config.included_channels = included_channels
     config.CH = len(config.included_channels)  # Nr of EEG channels
+    if Nodes.BTEleft in config.included_channels and Nodes.BTEright in config.included_channels and \
+        Nodes.CROSStop in config.included_channels:
+        config.CH -= 1  # Only two of the three wearable channels can be used at the same time,
+                        # so we reduce the number of channels by 1
+
     config.cross_validation = 'leave_one_person_out'  # validation type
     config.batch_size = 128  # batch size
     config.frame = 2  # window size of input segments in seconds
