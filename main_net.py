@@ -5,6 +5,7 @@ import shutil
 
 from net.DL_config import get_base_config, get_channel_selection_config
 from utility.constants import *
+from utility.constants import parse_location
 from utility.paths import get_path_results, get_path_config
 from utility.stats import Results
 
@@ -24,9 +25,6 @@ from net import main_func
 
 base_ = os.path.dirname(os.path.realpath(__file__))
 
-def parse_location(value):
-    return Locations.get(value)
-
 ###########################################
 ### Parse parameters from command line ####
 ###########################################
@@ -45,6 +43,7 @@ parser.add_argument(
 parser.add_argument("--nodes", type=str, nargs="?", default="all")
 parser.add_argument("--auc", type=float, nargs="?", default=0.6)
 parser.add_argument("--corr", type=float, nargs="?", default=0.5)
+parser.add_argument("--batch_size", type=int, nargs="?", default=7)
 parser.add_argument("--suffix", type=str, nargs="?", default="")
 parser.add_argument('--reset', action='store_true')
 
@@ -70,9 +69,10 @@ if args.channel_selection:
     config = get_channel_selection_config(base_, unique_locations, model=args.model,
                                           evaluation_metric=evaluation_metrics[args.evaluation_metric],
                                           auc_percentage=args.auc, corr_threshold=args.corr,
-                                          suffix=suffix_, included_channels=args.nodes)
+                                          suffix=suffix_, included_channels=args.nodes, batch_size=args.batch_size)
 else:
-    config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes)
+    config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
+                             batch_size=args.batch_size)
 
 ###########################################
 ###########################################

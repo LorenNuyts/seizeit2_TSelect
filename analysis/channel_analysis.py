@@ -6,7 +6,7 @@ from typing import List
 from matplotlib import pyplot as plt
 
 from net.DL_config import Config, get_channel_selection_config
-from utility.constants import evaluation_metrics
+from utility.constants import evaluation_metrics, Locations, parse_location
 from utility.paths import get_path_results
 from utility.stats import Results
 
@@ -43,26 +43,37 @@ def count_selected_channels_across_folds(configs: List[Config], output_path: str
         plt.title("Channel Counts")
         plt.gca().invert_yaxis()  # Invert y-axis to have the highest count on top
 
-        if output_path:
-            output_file = os.path.join(output_path, f"{config.get_name()}_channel_counts.png")
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)
-            plt.savefig(output_file)
-        else:
-            plt.show()
+        # if output_path:
+        #     output_file = os.path.join(output_path, f"{config.get_name()}_channel_counts.png")
+        #     if not os.path.exists(output_path):
+        #         os.makedirs(output_path)
+        #     plt.savefig(output_file)
+        # else:
+        #     plt.show()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--suffix", type=str, nargs="?", default="")
+    parser.add_argument(
+        '--locations',
+        nargs='+',  # accept multiple inputs
+        type=parse_location,
+        default=[Locations.leuven_adult],
+        help=f"List of locations. Choose from: {', '.join(Locations.all_keys())}. "
+             f"Defaults to [{Locations.leuven_adult}]."
+    )
     args = parser.parse_args()
     suffix_ = args.suffix
     configs_ = [
-                get_channel_selection_config(base_dir, suffix=suffix_),
-                get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables'),
-                get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score']),
-                get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables',
-                evaluation_metric=evaluation_metrics['score'])]
+                # get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_),
+                # get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_,
+                #                              included_channels='wearables'),
+                get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_,
+                                             evaluation_metric=evaluation_metrics['score']),
+                get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_,
+                                             included_channels='wearables',
+                                             evaluation_metric=evaluation_metrics['score'])]
 
     if 'dtai' in base_dir:
         output_path_ = os.path.join('/cw/dtailocal/loren/2025-Epilepsy', 'figures', 'channel_counts')

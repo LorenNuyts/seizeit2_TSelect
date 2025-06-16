@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import pyedflib
 
+from data.data import switch_channels
 from utility.constants import Nodes, Paths, Locations
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -82,11 +83,12 @@ def channel_differences_between_subjects(root_dir, locations):
                     with pyedflib.EdfReader(edf_file) as edf:
                         channels_in_file = edf.getSignalLabels()
                         formatted_channels = set(Nodes.match_nodes(channels_in_file, list(ref_channels)))
-                        if not ref_channels.issubset(formatted_channels):
+                        switched_channels = set(switch_channels(list(ref_channels), list(formatted_channels),  Nodes.switchable_nodes))
+                        if not ref_channels.issubset(switched_channels):
                             if location not in channel_differences:
                                 channel_differences[location] = dict()
-                            channel_differences[location][f"{subject}_{recording}"] = ref_channels - set(formatted_channels)
-                            print(f"Channel differences: {ref_channels - set(formatted_channels)}")
+                            channel_differences[location][f"{subject}_{recording}"] = ref_channels - set(switched_channels)
+                            print(f"Channel differences: {ref_channels - set(switched_channels)}")
     print("Reference channels per location:")
     print(ref_channels)
     print("Channel differences between subjects:")
@@ -117,11 +119,34 @@ def rank_locations(root_dir, locations):
         for loc, counts in sorted_locations:
             print(f"{loc}: {counts[0]} seizures, {counts[1]} subjects")
 
+def average_memory_size_subject(root_dir, locations, channels=Nodes.basic_eeg_nodes):
+    total_memory = 0
+    total_subjects = 0
+    n_channels = len(channels)
+    for location in os.listdir(root_dir):
+        if locations is not None and location not in locations:
+            continue
+        print("Processing location:", location)
+        location_path = os.path.join(root_dir, location)
+        for subject in os.listdir(location_path):
+            print("     | Processing subject:", subject)
+            subject_path = os.path.join(location_path, subject)
+            for recording in os.listdir(subject_path):
+                if recording.endswith(".edf"):
+                    edf_file = os.path.join(subject_path, recording)
+                    with pyedflib.EdfReader(edf_file) as edf:
+                        n_samples = edf.getNSamples()[0]
+                        memory_size = n_channels * n_samples * 8  # Assuming 8 bytes per sample (float64)
+                        total_memory += memory_size
+                        total_subjects += 1
+    average_memory = total_memory / total_subjects if total_subjects > 0 else 0
+    print(f"Average memory size per subject: {average_memory / (1024 * 1024):.2f} MB")
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures",
-                                                   "channel_differences", "rank_locations"],)
+                                                   "channel_differences", "rank_locations", "average_memory_size"],)
     parser.add_argument("--locations", type=str, nargs="?", default="all")
     args = parser.parse_args()
 
@@ -147,5 +172,7 @@ if __name__ == '__main__':
         channel_differences_between_subjects(data_path, locations=locations_)
     elif args.task == "rank_locations":
         rank_locations(data_path, locations=locations_)
+    elif args.task == "average_memory_size":
+        average_memory_size_subject(data_path, locations=locations_, channels=Nodes.basic_eeg_nodes)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")

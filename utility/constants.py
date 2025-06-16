@@ -29,7 +29,7 @@ class Nodes:
 
     basic_eeg_nodes = (midline_nodes + prefrontal_nodes + frontal_nodes + temporal_nodes +
                         parietal_nodes + occipital_nodes + central_nodes)
-    T_nodes = ['T1', 'T2', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10']
+    T_nodes = ['T1', 'T2', 'T7', 'T8', 'T9', 'T10']
     optional_F_nodes = ['F9', 'F10']
     optional_P_nodes = ['P7', 'P8', 'P9', 'P10']
     optional_FC_nodes = ['FC1', 'FC2', 'FC5', 'FC6']
@@ -86,6 +86,14 @@ class Nodes:
         BTEright: [BTEleft, CROSStop],
         BTEleft: [BTEright, CROSStop],
         CROSStop: [BTEright, BTEleft],
+        'T3': ['T7'],
+        'T4': ['T8'],
+        'T5': ['P7'],
+        'T6': ['P8'],
+        'T7': ['T3'],
+        'T8': ['T4'],
+        'P7': ['T5'],
+        'P8': ['T6'],
     }
 
     @classmethod
@@ -188,6 +196,11 @@ class Locations:
         }
         return acronyms.get(loc, loc)
 
+
+def parse_location(value):
+    return Locations.get(value)
+
+
 class Keys:
     minirocketLR = "MiniRocketLR"
 
@@ -200,3 +213,5 @@ class Paths:
 
 evaluation_metrics = {"roc_auc": auroc_score,
                       "score": get_sens_FA_score}
+
+

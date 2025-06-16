@@ -102,7 +102,7 @@ class Config():
         #     return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor)])
 
 
-def get_base_config(base_dir, locations, model="ChronoNet",
+def get_base_config(base_dir, locations, model="ChronoNet", batch_size=7,
                     included_channels=None, pretty_name=None, suffix=""):
     """
     Function to get the base configuration for the model. The function sets the parameters for the model, including
@@ -113,6 +113,7 @@ def get_base_config(base_dir, locations, model="ChronoNet",
         base_dir (str): path to the base directory where the data is stored.
         locations (list): list of locations to use for the experiment.
         model (str): model architecture (Options: Chrononet, EEGnet, DeepConvNet, MiniRocketLR)
+        batch_size (int): batch size for training the model.
         included_channels (list): list of channels to include in the model. If None, all channels are included.
         pretty_name (str): pretty name for the experiment.
         suffix (str): suffix to add to the end of the experiment's config name.
@@ -152,7 +153,7 @@ def get_base_config(base_dir, locations, model="ChronoNet",
                         # so we reduce the number of channels by 1
 
     config.cross_validation = 'leave_one_person_out'  # validation type
-    config.batch_size = 128  # batch size
+    config.batch_size = batch_size  # batch size
     config.frame = 2  # window size of input segments in seconds
     config.stride = 1  # stride between segments (of background EEG) in seconds
     config.stride_s = 0.5  # stride between segments (of seizure EEG) in seconds
@@ -188,10 +189,11 @@ def get_base_config(base_dir, locations, model="ChronoNet",
     return config
 
 
-def get_channel_selection_config(base_dir, locations, model="ChronoNet", included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
+def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_size=7,
+                                 included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
                                  corr_threshold=0.5, pretty_name=None, suffix=""):
     config = get_base_config(base_dir, locations, model=model, included_channels=included_channels,
-                             pretty_name=pretty_name,
+                             pretty_name=pretty_name, batch_size=batch_size,
                              suffix=suffix)
     config.channel_selection = True
     config.selected_channels = None
