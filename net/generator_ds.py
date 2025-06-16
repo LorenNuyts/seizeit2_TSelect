@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 from tensorflow import keras
 from tqdm import tqdm
@@ -255,10 +257,19 @@ class SequentialGenerator(keras.utils.Sequence):
     def __data_generation__(self, keys):
         batch_segments = [self.segments[k] for k in keys]
         batch_data = []
+        loading_time = 0
+        preprocessing_time = 0
+        channel_time = 0
+        segmenting_time = 0
         for s in batch_segments:
+            time_start = time.process_time()
             rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
                                      included_channels=self.config.included_channels)
+            loading_time += time.process_time() - time_start
+            time_start = time.process_time()
             rec_data.apply_preprocess(self.config)
+            preprocessing_time += time.process_time() - time_start
+            time_start = time.process_time()
 
             if self.channels is None:
                 self.channels = rec_data.channels
@@ -271,6 +282,8 @@ class SequentialGenerator(keras.utils.Sequence):
                 print("Rec channels:", rec_data.channels)
                 print("self.channels:", self.channels)
             assert rec_data.channels == self.channels
+            channel_time += time.process_time() - time_start
+            time_start = time.process_time()
 
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
@@ -279,9 +292,12 @@ class SequentialGenerator(keras.utils.Sequence):
                 index_channels = self.channels.index(ch)
                 segment_data[:, index_channels] = rec_data[ch_i][start_seg:stop_seg]
             batch_data.append(segment_data)
+            segmenting_time += time.process_time() - time_start
         batch_data = np.array(batch_data)
         if self.config.model in ['DeepConvNet', 'EEGnet']:
             batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
+        print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
+              f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
         return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):

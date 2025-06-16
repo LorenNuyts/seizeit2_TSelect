@@ -96,10 +96,6 @@ class Config():
         if hasattr(self, 'add_to_name') and self.add_to_name != "":
             base_name = base_name + '_' + self.add_to_name
         return base_name
-        # if hasattr(self, 'add_to_name'):
-        #     return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), self.add_to_name])
-        # else:
-        #     return '_'.join([self.model, self.sample_type, 'factor' + str(self.factor)])
 
 
 def get_base_config(base_dir, locations, model="ChronoNet", batch_size=7,
