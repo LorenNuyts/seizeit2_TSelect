@@ -354,8 +354,8 @@ class SegmentedGenerator(keras.utils.Sequence):
         loaded_rec_data = {}
         for s in batch_segments:
             time_start = time.process_time()
-            if self.recs[int(s[0])] in loaded_rec_data:
-                rec_data = loaded_rec_data[self.recs[int(s[0])]]
+            if "_".join(self.recs[int(s[0])]) in loaded_rec_data:
+                rec_data = loaded_rec_data["_".join(self.recs[int(s[0])])]
             else:
                 rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
                                          included_channels=self.config.included_channels)
@@ -378,7 +378,7 @@ class SegmentedGenerator(keras.utils.Sequence):
                 assert rec_data.channels == self.channels
                 channel_time += time.process_time() - time_start
                 time_start = time.process_time()
-                loaded_rec_data[self.recs[int(s[0])]] = rec_data
+                loaded_rec_data["_".join(self.recs[int(s[0])])] = rec_data
 
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
