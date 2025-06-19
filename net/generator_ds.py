@@ -261,29 +261,34 @@ class SequentialGenerator(keras.utils.Sequence):
         preprocessing_time = 0
         channel_time = 0
         segmenting_time = 0
+        loaded_rec_data = {}
         for s in batch_segments:
             time_start = time.process_time()
-            rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
-                                     included_channels=self.config.included_channels)
-            loading_time += time.process_time() - time_start
-            time_start = time.process_time()
-            rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
-            preprocessing_time += time.process_time() - time_start
-            time_start = time.process_time()
+            if "_".join(self.recs[int(s[0])]) in loaded_rec_data:
+                rec_data = loaded_rec_data["_".join(self.recs[int(s[0])])]
+            else:
+                rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
+                                         included_channels=self.config.included_channels)
+                loading_time += time.process_time() - time_start
+                time_start = time.process_time()
+                rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
+                preprocessing_time += time.process_time() - time_start
+                time_start = time.process_time()
 
-            if self.channels is None:
-                self.channels = rec_data.channels
-            if set(rec_data.channels) != set(self.channels):
-                rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
-            if rec_data.channels != self.channels:
-                rec_data.reorder_channels(self.channels)
+                if self.channels is None:
+                    self.channels = rec_data.channels
+                if set(rec_data.channels) != set(self.channels):
+                    rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
+                if rec_data.channels != self.channels:
+                    rec_data.reorder_channels(self.channels)
 
-            if rec_data.channels != self.channels and len(self.channels) != 0:
-                print("Rec channels:", rec_data.channels)
-                print("self.channels:", self.channels)
-            assert rec_data.channels == self.channels
-            channel_time += time.process_time() - time_start
-            time_start = time.process_time()
+                if rec_data.channels != self.channels and len(self.channels) != 0:
+                    print("Rec channels:", rec_data.channels)
+                    print("self.channels:", self.channels)
+                assert rec_data.channels == self.channels
+                channel_time += time.process_time() - time_start
+                time_start = time.process_time()
+                loaded_rec_data["_".join(self.recs[int(s[0])])] = rec_data
 
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
