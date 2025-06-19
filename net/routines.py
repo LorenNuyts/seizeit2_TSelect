@@ -96,17 +96,14 @@ def train_net(config, model: keras.Model, gen_train: keras.utils.Sequence, gen_v
     else:
         callbacks_list = [mc, csv_logger, lr_sched]
 
-    print("DEBUG:", type(model))
-    print("DEBUG fit:", model.fit)
-
     hist = model.fit(gen_train, validation_data=gen_val,
                      epochs=config.nb_epochs,
                      callbacks=callbacks_list,
                      shuffle=False,
                      verbose=1,
-                     class_weight=config.class_weights,
-                     use_multiprocessing=True,
-                     workers=get_num_workers(),)
+                     class_weight=config.class_weights,)
+                     # use_multiprocessing=True,
+                     # workers=get_num_workers(),)
 
     # serialize weights to HDF5
     best_model = model
