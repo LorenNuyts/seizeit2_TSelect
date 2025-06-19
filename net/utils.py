@@ -317,7 +317,7 @@ def merge_events(events, distance):
 
 
 def get_events(events, margin):
-    ''' Converts the unprocessed events to the post-processed events based on physiological constrains:
+    """ Converts the unprocessed events to the post-processed events based on physiological constrains:
     - seizure alarm events distanced by 0.2*margin (in seconds) are merged together
     - only events with a duration longer than margin*0.8 are kept
     (for more info, check: K. Vandecasteele et al., “Visual seizure annotation and automated seizure detection using
@@ -330,7 +330,7 @@ def get_events(events, margin):
 
     Returns:
         ev_list: list of events times in seconds after merging and discarding short events.
-    '''
+    """
     events_merge = merge_events(events, 0.2*margin)
     ev_list = []
     for i in range(len(events_merge)):
@@ -342,18 +342,18 @@ def get_events(events, margin):
 
 
 def post_processing(y_pred, fs, th, margin):
-    ''' Post process the predictions given by the model based on physiological constraints: a seizure is
+    """ Post process the predictions given by the model based on physiological constraints: a seizure is
     not shorter than 10 seconds and events separated by 2 seconds are merged together.
 
     Args:
-        y_pred: array with the seizure classification probabilties (of each segment)
+        y_pred: array with the seizure classification probabilities (of each segment)
         fs: sampling frequency of the y_pred array (1/window length - in this challenge fs = 1/2)
         th: threshold value for seizure probability (float between 0 and 1)
         margin: float, the desired margin in seconds (check get_events)
-    
+
     Returns:
         pred: array with the processed classified labels by the model
-    '''
+    """
     pred = (y_pred > th)
     events = mask2eventList(pred, fs)
     events = get_events(events, margin)
@@ -363,15 +363,15 @@ def post_processing(y_pred, fs, th, margin):
 
 
 def getOverlap(a, b):
-    ''' If > 0, the two intervals overlap.
+    """ If > 0, the two intervals overlap.
     a = [start_a, end_a]; b = [start_b, end_b]
-    '''
+    """
     return max(0, min(a[1], b[1]) - max(a[0], b[0]))
 
 
 def perf_measure_epoch(y_true, y_pred):
-    ''' Calculate the performance metrics based on the EPOCH method.
-    
+    """ Calculate the performance metrics based on the EPOCH method.
+
     Args:
         y_true: array with the ground-truth labels of the segments
         y_pred: array with the predicted labels of the segments
@@ -381,7 +381,7 @@ def perf_measure_epoch(y_true, y_pred):
         FP: false positives
         TN: true negatives
         FN: false negatives
-    '''
+    """
 
     TP = 0
     FP = 0
@@ -402,8 +402,8 @@ def perf_measure_epoch(y_true, y_pred):
 
 
 def perf_measure_ovlp(y_true, y_pred, fs):
-    ''' Calculate the performance metrics based on the any-overlap method.
-    
+    """ Calculate the performance metrics based on the any-overlap method.
+
     Args:
         y_true: array with the ground-truth labels of the segments
         y_pred: array with the predicted labels of the segments
@@ -414,7 +414,7 @@ def perf_measure_ovlp(y_true, y_pred, fs):
         TP: true positives
         FP: false positives
         FN: false negatives
-    '''
+    """
     true_events = mask2eventList(y_true, fs)
     pred_events = mask2eventList(y_pred, fs)
 
@@ -442,17 +442,17 @@ def perf_measure_ovlp(y_true, y_pred, fs):
 
 
 def get_metrics_scoring(y_pred, y_true, fs, th):
-    ''' Get the score for the challenge.
+    """ Get the score for the challenge.
 
     Args:
         pred_file: path to the prediction file containing the objects 'filenames',
                    'predictions' and 'labels' (as returned by 'predict_net' function)
-    
+
     Returns:
         score: the score of the challenge
         sens_ovlp: sensitivity calculated with the any-overlap method
         FA_epoch: false alarm rate (false alarms per hour) calculated with the EPOCH method
-    '''
+    """
 
     total_N = len(y_pred)*(1/fs)
     total_seiz = np.sum(y_true)
@@ -510,7 +510,7 @@ def get_metrics_scoring(y_pred, y_true, fs, th):
 
 
 def get_sens_ovlp(y_true, y_pred, fs=1/2, th=0.5):
-    ''' Get the sensitivity calculated with the any-overlap method.
+    """ Get the sensitivity calculated with the any-overlap method.
 
     Args:
         y_true: array with the ground-truth labels of the segments
@@ -521,7 +521,7 @@ def get_sens_ovlp(y_true, y_pred, fs=1/2, th=0.5):
 
     Returns:
         sens_ovlp: sensitivity calculated with the any-overlap method
-    '''
+    """
     if len(y_pred.shape) == 2:
         y_pred = y_pred[:, 1]
     y_pred = post_processing(y_pred, fs=fs, th=th, margin=10)
@@ -536,7 +536,7 @@ def get_sens_ovlp(y_true, y_pred, fs=1/2, th=0.5):
 
 
 def get_FA_ovlp(y_true, y_pred, fs=1/2, th=0.5):
-    ''' Get the false alarm rate calculated with the any-overlap method.
+    """ Get the false alarm rate calculated with the any-overlap method.
 
     Args:
         y_true: array with the ground-truth labels of the segments
@@ -547,7 +547,7 @@ def get_FA_ovlp(y_true, y_pred, fs=1/2, th=0.5):
 
     Returns:
         FA_ovlp: false alarm rate (false alarms per hour) calculated with the any-overlap method
-    '''
+    """
     if len(y_pred.shape) == 2:
         y_pred = y_pred[:, 1]
     y_pred = post_processing(y_pred, fs=fs, th=th, margin=10)

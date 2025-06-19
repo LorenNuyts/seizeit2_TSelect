@@ -19,36 +19,6 @@ def get_recs_list(root_dir: str, locations: List[str], subjects: List[str]):
 
     return recs
 
-# def polars_to_pandas(pl_df: pl.DataFrame) -> pd.DataFrame:
-#     # Extract column names
-#     subject_col = pl_df.columns[0]  # First column (subject ID)
-#     windows_col = pl_df.columns[1]  # Second column (time windows)
-#     channel_cols = pl_df.columns[2:]  # Remaining columns (features)
-#
-#     # Initialize list to store expanded rows
-#     expanded_rows = []
-#
-#     # Iterate over Polars DataFrame rows
-#     for i_row, row in enumerate(pl_df.iter_rows(named=True)):
-#         subject_id = row[subject_col]
-#         # window = row[windows_col]
-#         channels = {col: row[col] for col in channel_cols}
-#
-#         # Create t rows for each subject, one for each time step
-#         t = len(next(iter(channels.values())))  # Assuming all arrays have the same length t
-#         for i in range(t):
-#             expanded_rows.append(
-#                 {"subject_id": f"{subject_id}_{i_row}", "time": i, **{col: channels[col][i] for col in channel_cols}}
-#             )
-#
-#     # Convert expanded rows into a Pandas DataFrame
-#     pandas_df = pd.DataFrame(expanded_rows)
-#
-#     # Set MultiIndex with `subject_id` and `time`
-#     pandas_df.set_index(["subject_id", "time"], inplace=True)
-#
-#     return pandas_df
-
 def smooth_predictions(predictions: np.ndarray, nb_considered_windows: int = 10, nb_required_positive_values: int = 8) \
         -> np.ndarray:
     from numpy.lib.stride_tricks import sliding_window_view
