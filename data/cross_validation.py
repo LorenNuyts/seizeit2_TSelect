@@ -1,14 +1,11 @@
 import math
 import os
-import random
 from typing import Optional
 
 import numpy as np
 
-from utility.constants import SEED, subjects_with_seizures, excluded_subjects
+from utility.constants import SEED, subjects_with_seizures, excluded_subjects, Locations
 
-
-# subjects_with_seizures = ['SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376', 'SUBJ-7-438', 'SUBJ-7-441', 'SUBJ-7-449']
 
 def leave_one_person_out(root_dir: str, included_locations: list[str] = None, validation_set: Optional[float] = None,
                          seed: int = SEED):
@@ -16,8 +13,10 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
     print("Testing setting:", testing)
     if testing:
         nb_subjects = 3 # ONLY FOR TESTING
-        # included_subjects = ['SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376'] # Coimbra subjects
-        included_subjects = ['SUBJ-1a-159', 'SUBJ-1a-358', 'SUBJ-1a-153'] # Leuven Adult subjects
+        if Locations.leuven_adult in included_locations:
+            included_subjects = ['SUBJ-1a-159', 'SUBJ-1a-358', 'SUBJ-1a-153']  # Leuven Adult subjects
+        else:
+            included_subjects = ['SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376'] # Coimbra subjects
     else:
         nb_subjects = None
         included_subjects = None
