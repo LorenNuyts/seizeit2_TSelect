@@ -20,7 +20,7 @@ def create_preprocessed_dataset(root_dir, config):
         root_dir (str): Root directory containing the dataset.
         config (cls): Configuration object with experiment parameters.
     """
-    for location in os.listdir(root_dir):
+    for location in config.locations:
         print("Processing location:", location)
         location_path = os.path.join(root_dir, location)
         if not os.path.isdir(location_path):
