@@ -43,7 +43,7 @@ parser.add_argument(
 parser.add_argument("--nodes", type=str, nargs="?", default="all")
 parser.add_argument("--auc", type=float, nargs="?", default=0.6)
 parser.add_argument("--corr", type=float, nargs="?", default=0.5)
-parser.add_argument("--batch_size", type=int, nargs="?", default=7)
+parser.add_argument("--batch_size", type=int, nargs="?", default=128)
 parser.add_argument("--suffix", type=str, nargs="?", default="")
 parser.add_argument('--reset', action='store_true')
 

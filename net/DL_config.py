@@ -98,7 +98,7 @@ class Config():
         return base_name
 
 
-def get_base_config(base_dir, locations, model="ChronoNet", batch_size=7,
+def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
                     included_channels=None, pretty_name=None, suffix=""):
     """
     Function to get the base configuration for the model. The function sets the parameters for the model, including
@@ -185,7 +185,7 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=7,
     return config
 
 
-def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_size=7,
+def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_size=128,
                                  included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
                                  corr_threshold=0.5, pretty_name=None, suffix=""):
     config = get_base_config(base_dir, locations, model=model, included_channels=included_channels,

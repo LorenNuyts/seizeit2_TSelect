@@ -34,11 +34,16 @@ def create_preprocessed_dataset(root_dir, config):
             recs = get_recs_list(root_dir, [location], [subject])
             for recording in recs:
                 print("         | Processing recording:", recording)
+
+                preprocessed_file = get_path_preprocessed_data(root_dir, recording)
+                if os.path.exists(preprocessed_file):
+                    print(f"         | Preprocessed data already exists at {preprocessed_file}, skipping.")
+                    continue
+                    
                 rec_data = Data.loadData(root_dir, recording,
                                          included_channels=config.included_channels)
                 rec_data.apply_preprocess(config)
 
-                preprocessed_file = get_path_preprocessed_data(root_dir, recording)
                 rec_data.store_h5(preprocessed_file)
                 print(f"         | Saved preprocessed data to {preprocessed_file}")
 
