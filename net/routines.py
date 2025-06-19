@@ -1,4 +1,6 @@
 import os
+
+import keras
 import numpy as np
 from net.utils import weighted_focal_loss, sens, spec, sens_ovlp, fah_ovlp, fah_epoch, faRate_epoch, score, decay_schedule
 from tensorflow.keras import backend as K
@@ -27,7 +29,7 @@ def get_num_workers(fraction=0.5, min_workers=1, max_workers=None):
     return workers
 
 
-def train_net(config, model, gen_train, gen_val, model_save_path):
+def train_net(config, model: keras.Model, gen_train: keras.utils.Sequence, gen_val: keras.utils.Sequence, model_save_path):
     ''' Routine to train the model with the desired configurations.
 
         Args:
@@ -93,6 +95,9 @@ def train_net(config, model, gen_train, gen_val, model_save_path):
         callbacks_list = [mc, es, csv_logger, lr_sched]
     else:
         callbacks_list = [mc, csv_logger, lr_sched]
+
+    print("DEBUG:", type(model))
+    print("DEBUG fit:", model.fit)
 
     hist = model.fit(gen_train, validation_data=gen_val,
                      epochs=config.nb_epochs,

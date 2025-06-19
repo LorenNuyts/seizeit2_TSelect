@@ -4,6 +4,8 @@ import gc
 import time
 import h5py
 import pickle
+
+import keras
 import numpy as np
 from tqdm import tqdm
 
@@ -93,7 +95,7 @@ def train(config, results, load_generators, save_generators):
                     raise ValueError('Unknown sample type: {}'.format(config.sample_type))
 
                 print('Generating training segments...')
-                gen_train = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
+                gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
 
                 if save_generators:
                     name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
@@ -109,7 +111,7 @@ def train(config, results, load_generators, save_generators):
                 val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
 
                 print('Generating validation segments...')
-                gen_val = SequentialGenerator(config, val_recs_list, val_segments, batch_size=config.batch_size, shuffle=False)
+                gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=config.batch_size, shuffle=False)
 
                 if save_generators:
                     with open('net/generators/gen_val.pkl', 'wb') as outp:
@@ -142,17 +144,17 @@ def train(config, results, load_generators, save_generators):
 
             print('### Training model....')
             if config.model.lower() == Keys.minirocketLR.lower():
-                model = MiniRocketLR()
+                model_minirocket = MiniRocketLR()
                 start_train = time.time()
                 # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
-                model.fit(config, gen_train, gen_val, model_save_path)
+                model_minirocket.fit(config, gen_train, gen_val, model_save_path)
                 # train_net(config, model, gen_train, gen_val, model_save_path)
 
                 end_train = time.time() - start_train
 
             else:
 
-                model = net(config)
+                model: keras.Model = net(config)
 
                 start_train = time.time()
 
