@@ -91,6 +91,8 @@ class Data:
             file_path (str): path to the HDF5 file.
         """
         import h5py
+        # If directory does not exist, create it
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with h5py.File(file_path, 'w') as h5f:
             for i, channel in enumerate(self.channels):
                 h5f.create_dataset(channel, data=self.data[i], compression='gzip')
