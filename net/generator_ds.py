@@ -1,4 +1,5 @@
 import time
+from collections import OrderedDict
 
 import numpy as np
 from tensorflow import keras
@@ -241,6 +242,8 @@ class SequentialGenerator(keras.utils.Sequence):
         self.channels = None
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
+        self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
+        self.cache_limit = 20000000  # Maximum number of cached recordings
         self.on_epoch_end()
 
     def __len__(self):
@@ -261,11 +264,11 @@ class SequentialGenerator(keras.utils.Sequence):
         preprocessing_time = 0
         channel_time = 0
         segmenting_time = 0
-        loaded_rec_data = {}
         for s in batch_segments:
             time_start = time.process_time()
-            if "_".join(self.recs[int(s[0])]) in loaded_rec_data:
-                rec_data = loaded_rec_data["_".join(self.recs[int(s[0])])]
+            rec_key = "_".join(self.recs[int(s[0])])
+            if rec_key in self.loaded_rec_data:
+                rec_data = self.loaded_rec_data[rec_key]
             else:
                 rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
                                          included_channels=self.config.included_channels)
@@ -288,7 +291,11 @@ class SequentialGenerator(keras.utils.Sequence):
                 assert rec_data.channels == self.channels
                 channel_time += time.process_time() - time_start
                 time_start = time.process_time()
-                loaded_rec_data["_".join(self.recs[int(s[0])])] = rec_data
+
+                # Check cache size and remove oldest entry if necessary
+                if len(self.loaded_rec_data) >= self.cache_limit:
+                    self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
+                self.loaded_rec_data[rec_key] = rec_data  # Add new entry
 
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
@@ -336,6 +343,8 @@ class SegmentedGenerator(keras.utils.Sequence):
         self.channels = None
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
+        self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
+        self.cache_limit = 20000000  # Maximum number of cached recordings
         self.on_epoch_end()
 
     def __len__(self):
@@ -356,11 +365,11 @@ class SegmentedGenerator(keras.utils.Sequence):
         preprocessing_time = 0
         channel_time = 0
         segmenting_time = 0
-        loaded_rec_data = {}
         for s in batch_segments:
             time_start = time.process_time()
-            if "_".join(self.recs[int(s[0])]) in loaded_rec_data:
-                rec_data = loaded_rec_data["_".join(self.recs[int(s[0])])]
+            rec_key = "_".join(self.recs[int(s[0])])
+            if rec_key in self.loaded_rec_data:
+                rec_data = self.loaded_rec_data[rec_key]
             else:
                 rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
                                          included_channels=self.config.included_channels)
@@ -383,7 +392,11 @@ class SegmentedGenerator(keras.utils.Sequence):
                 assert rec_data.channels == self.channels
                 channel_time += time.process_time() - time_start
                 time_start = time.process_time()
-                loaded_rec_data["_".join(self.recs[int(s[0])])] = rec_data
+
+                # Check cache size and remove oldest entry if necessary
+                if len(self.loaded_rec_data) >= self.cache_limit:
+                    self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
+                self.loaded_rec_data[rec_key] = rec_data  # Add new entry
 
             start_seg = int(s[1] * self.config.fs)
             stop_seg = int(s[2] * self.config.fs)
