@@ -97,7 +97,10 @@ def channel_differences_between_subjects(root_dir, locations):
 
 def rank_locations(root_dir, locations):
     location_counts = {loc: [0,0] for loc in locations}
+    location_average_time_steps = {}
     for location in os.listdir(root_dir):
+        time_steps = 0
+        nb_recordings = 0
         if locations is not None and location not in locations:
             continue
         print("Processing location:", location)
@@ -112,6 +115,16 @@ def rank_locations(root_dir, locations):
                     for i, e in df.iterrows():
                         if e['class'] == 'seizure' and e['main type'] == 'focal':
                             location_counts[location][0] += 1
+                elif recording.endswith(".edf"):
+                    edf_file = os.path.join(subject_path, recording)
+                    with pyedflib.EdfReader(edf_file) as edf:
+                        n_samples = edf.getNSamples()[0]
+                        time_steps += n_samples
+                        nb_recordings += 1
+        if nb_recordings > 0:
+            average_time_steps = time_steps / nb_recordings
+            location_average_time_steps[location] = average_time_steps
+            print(f"Average time steps for {location}: {average_time_steps}")
 
         # Sort locations by number of seizures and number of subjects, from highest to lowest
         sorted_locations = sorted(location_counts.items(), key=lambda x: (x[1][0], x[1][1]), reverse=True)

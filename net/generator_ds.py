@@ -267,7 +267,7 @@ class SequentialGenerator(keras.utils.Sequence):
                                      included_channels=self.config.included_channels)
             loading_time += time.process_time() - time_start
             time_start = time.process_time()
-            rec_data.apply_preprocess(self.config)
+            rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
             preprocessing_time += time.process_time() - time_start
             time_start = time.process_time()
 
@@ -357,7 +357,7 @@ class SegmentedGenerator(keras.utils.Sequence):
                                      included_channels=self.config.included_channels)
             loading_time += time.process_time() - time_start
             time_start = time.process_time()
-            rec_data.apply_preprocess(self.config)
+            rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
             preprocessing_time += time.process_time() - time_start
             time_start = time.process_time()
 

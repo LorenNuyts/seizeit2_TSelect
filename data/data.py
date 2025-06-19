@@ -6,6 +6,7 @@ import warnings
 
 from net.utils import pre_process_ch
 from utility.constants import Nodes
+from utility.paths import get_path_recording, get_path_preprocessed_data
 
 
 class Data:
@@ -25,6 +26,7 @@ class Data:
         self.data = data
         self.channels = channels
         self.fs = fs
+        self.__preprocessed = False
 
     @classmethod
     def loadData(
@@ -47,8 +49,11 @@ class Data:
         data = list()
         channels = list()
         samplingFrequencies = list()
+        h5_file = get_path_preprocessed_data(data_path, recording)
+        if os.path.exists(h5_file):
+            return Data.load_h5(h5_file)
 
-        edfFile = os.path.join(data_path, recording[0], recording[1], f"{recording[1]}_{recording[2]}.edf")
+        edfFile = get_path_recording(data_path, recording)
         if os.path.exists(edfFile):
             with pyedflib.EdfReader(edfFile) as edf :
                 samplingFrequencies.extend(edf.getSampleFrequencies())
@@ -79,9 +84,53 @@ class Data:
             samplingFrequencies,
         )
 
-    def apply_preprocess(self, config) -> None:
+    def store_h5(self, file_path: str) -> None:
+        """Store the data object in an HDF5 file.
+
+        Args:
+            file_path (str): path to the HDF5 file.
+        """
+        import h5py
+        with h5py.File(file_path, 'w') as h5f:
+            for i, channel in enumerate(self.channels):
+                h5f.create_dataset(channel, data=self.data[i], compression='gzip')
+            h5f.create_dataset('fs', data=self.fs, compression='gzip')
+    
+    @classmethod
+    def load_h5(cls, file_path: str):
+        """Load the data object from an HDF5 file.
+
+        Args:
+            file_path (str): path to the HDF5 file.
+        """
+        import h5py
+        with h5py.File(file_path, 'r') as h5f:
+            data = [h5f[channel][()] for channel in h5f.keys() if channel != 'fs']
+            channels = [channel for channel in h5f.keys() if channel != 'fs']
+            fs = h5f['fs'][()]
+            data = cls(data, channels, fs)
+            data.__preprocessed = True  # Mark as preprocessed if loaded from HDF5
+            return data
+
+    def apply_preprocess(self, config, store_preprocessed=False, recording=None) -> None:
+        """
+        Apply preprocessing to the data object.
+
+        Args:
+            config (Config): configuration object containing preprocessing parameters.
+            store_preprocessed (bool): whether to store the preprocessed data in an HDF5 file.
+            recording (List[str]): list of recording names, where the first element is the subject ID, the second is
+            the recording ID and the third is the segment ID. This argument is only used if store_preprocessed is True,
+            to determine the file path to store the preprocessed data.
+        """
+        if self.__preprocessed:
+            return
         for i, channel in enumerate(self.channels):
             self.data[i], self.fs[i] = pre_process_ch(self.data[i], self.fs[i], config.fs)
+        self.__preprocessed = True
+        if store_preprocessed:
+            preprocessed_file = get_path_preprocessed_data(config.data_path, recording)
+            self.store_h5(preprocessed_file)
 
     def __getitem__(self, index):
         return self.data[index]

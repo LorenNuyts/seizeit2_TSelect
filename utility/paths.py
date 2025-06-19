@@ -1,5 +1,12 @@
 import os
 
+def get_path_recording(data_path, recording):
+    return os.path.join(data_path, recording[0], recording[1], f"{recording[1]}_{recording[2]}.edf")
+
+def get_path_preprocessed_data(data_path, recording):
+    if 'dtai' in data_path:
+        data_path = "/cw/dtaidata/NoCsBack/2025-Epilepsy-Preprocessed"
+    return os.path.join(data_path, recording[0], recording[1], f"{recording[1]}_{recording[2]}.h5")
 
 def get_path_predictions(config, name, rec):
     return os.path.join(config.save_dir, 'predictions', name, rec[0] + '__' + rec[1] + '__'
