@@ -8,6 +8,25 @@ from tensorflow.keras.metrics import AUC
 from tensorflow.keras.callbacks import LearningRateScheduler
 
 
+def get_num_workers(fraction=0.5, min_workers=1, max_workers=None):
+    """
+    Determine number of workers based on CPU core count.
+
+    Args:
+        fraction (float): Fraction of total cores to use (e.g., 0.5 for half).
+        min_workers (int): Minimum number of workers.
+        max_workers (int or None): Maximum number of workers (or None for no cap).
+
+    Returns:
+        int: Number of workers to use.
+    """
+    total_cores = os.cpu_count() or 1
+    workers = max(min_workers, int(total_cores * fraction))
+    if max_workers is not None:
+        workers = min(workers, max_workers)
+    return workers
+
+
 def train_net(config, model, gen_train, gen_val, model_save_path):
     ''' Routine to train the model with the desired configurations.
 
@@ -80,7 +99,9 @@ def train_net(config, model, gen_train, gen_val, model_save_path):
                      callbacks=callbacks_list,
                      shuffle=False,
                      verbose=1,
-                     class_weight=config.class_weights)
+                     class_weight=config.class_weights,
+                     use_multiprocessing=True,
+                     workers=get_num_workers(),)
 
     # serialize weights to HDF5
     best_model = model

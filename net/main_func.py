@@ -109,7 +109,7 @@ def train(config, results, load_generators, save_generators):
                 val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
 
                 print('Generating validation segments...')
-                gen_val = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+                gen_val = SequentialGenerator(config, val_recs_list, val_segments, batch_size=config.batch_size, shuffle=False)
 
                 if save_generators:
                     with open('net/generators/gen_val.pkl', 'wb') as outp:
