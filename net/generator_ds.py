@@ -322,6 +322,7 @@ class SequentialGenerator(keras.utils.Sequence):
             batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
         print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
               f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
+        self.loaded_rec_data = OrderedDict()  # Clear cache after each batch to save memory
         return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):
@@ -435,6 +436,7 @@ class SegmentedGenerator(keras.utils.Sequence):
 
         print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
               f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
+        self.loaded_rec_data = OrderedDict()  # Clear cache after each batch to save memory
         return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):
