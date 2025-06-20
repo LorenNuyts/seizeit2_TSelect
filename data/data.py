@@ -107,18 +107,21 @@ class Data:
         """
         import h5py
         with h5py.File(file_path, 'r') as h5f:
-            data = []
-            channels = []
-            for channel in h5f.keys():
-                if channel != 'fs':
-                    data.append(h5f[channel][()])
-                    channels.append(channel)
-            # data = [h5f[channel][()] for channel in h5f.keys() if channel != 'fs']
-            # channels = [channel for channel in h5f.keys() if channel != 'fs']
-            fs = h5f['fs'][()]
-            data = cls(data, channels, fs)
-            data.__preprocessed = True  # Mark as preprocessed if loaded from HDF5
-            return data
+            try:
+                data = []
+                channels = []
+                for channel in h5f.keys():
+                    if channel != 'fs':
+                        data.append(h5f[channel][()])
+                        channels.append(channel)
+                # data = [h5f[channel][()] for channel in h5f.keys() if channel != 'fs']
+                # channels = [channel for channel in h5f.keys() if channel != 'fs']
+                fs = h5f['fs'][()]
+                data = cls(data, channels, fs)
+                data.__preprocessed = True  # Mark as preprocessed if loaded from HDF5
+                return data
+            except OSError:
+                raise ValueError(f"Could not load data from {file_path}. The file might be corrupted or not in the expected format.")
 
     def apply_preprocess(self, config, store_preprocessed=False, recording=None) -> None:
         """
