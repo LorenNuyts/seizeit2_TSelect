@@ -108,7 +108,7 @@ def train(config, results, load_generators, save_generators):
                 if save_generators:
                     path_generator_train = get_paths_generators_train(config, fold_i)
                     if not os.path.exists(os.path.dirname(path_generator_train)):
-                        os.makedirs(path_generator_train)
+                        os.makedirs(os.path.dirname(path_generator_train))
 
                     with open(path_generator_train, 'wb') as outp:
                         # noinspection PyTypeChecker
