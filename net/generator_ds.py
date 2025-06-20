@@ -243,7 +243,8 @@ class SequentialGenerator(keras.utils.Sequence):
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
         self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
-        self.cache_limit = 20000000  # Maximum number of cached recordings
+        self.cache_limit = self.get_cache_limit()
+        self.current_cache_size = 0
         self.on_epoch_end()
 
     def __len__(self):
@@ -252,6 +253,11 @@ class SequentialGenerator(keras.utils.Sequence):
     def __getitem__(self, index):
         keys = self.key_array[index * self.batch_size:(index + 1) * self.batch_size]
         return self.__data_generation__(keys)
+
+    def get_cache_limit(self):
+        """Calculate cache limit as 1/3 of available memory."""
+        free_memory = psutil.virtual_memory().available  # Get available memory in bytes
+        return free_memory // 3  # Set limit to 1/3 of free memory
 
     def on_epoch_end(self):
         if self.shuffle:
@@ -292,9 +298,14 @@ class SequentialGenerator(keras.utils.Sequence):
                 channel_time += time.process_time() - time_start
                 time_start = time.process_time()
 
+                # Calculate memory usage of the new entry
+                rec_data_size = sys.getsizeof(rec_data)
+                self.current_cache_size += rec_data_size
+
                 # Check cache size and remove oldest entry if necessary
-                if len(self.loaded_rec_data) >= self.cache_limit:
+                if self.current_cache_size > self.cache_limit:
                     self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
+                    self.current_cache_size -= rec_data_size
                 self.loaded_rec_data[rec_key] = rec_data  # Add new entry
 
             start_seg = int(s[1] * self.config.fs)
@@ -344,7 +355,8 @@ class SegmentedGenerator(keras.utils.Sequence):
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
         self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
-        self.cache_limit = 20000000  # Maximum number of cached recordings
+        self.cache_limit = self.get_cache_limit()  # Maximum number of cached recordings
+        self.current_cache_size = 0
         self.on_epoch_end()
 
     def __len__(self):
@@ -353,6 +365,11 @@ class SegmentedGenerator(keras.utils.Sequence):
     def __getitem__(self, index):
         keys = self.key_array[index * self.batch_size:(index + 1) * self.batch_size]
         return self.__data_generation__(keys)
+
+    def get_cache_limit(self):
+        """Calculate cache limit as 1/3 of available memory."""
+        free_memory = psutil.virtual_memory().available  # Get available memory in bytes
+        return free_memory // 3  # Set limit to 1/3 of free memory
 
     def on_epoch_end(self):
         if self.shuffle:
@@ -393,9 +410,14 @@ class SegmentedGenerator(keras.utils.Sequence):
                 channel_time += time.process_time() - time_start
                 time_start = time.process_time()
 
+                # Calculate memory usage of the new entry
+                rec_data_size = sys.getsizeof(rec_data)
+                self.current_cache_size += rec_data_size
+
                 # Check cache size and remove oldest entry if necessary
-                if len(self.loaded_rec_data) >= self.cache_limit:
+                if self.current_cache_size > self.cache_limit:
                     self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
+                    self.current_cache_size -= rec_data_size
                 self.loaded_rec_data[rec_key] = rec_data  # Add new entry
 
             start_seg = int(s[1] * self.config.fs)
