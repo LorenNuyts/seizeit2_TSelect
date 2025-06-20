@@ -26,3 +26,11 @@ def get_path_model(config, name, fold_i):
 
 def get_path_predictions_folder(config, name):
     return os.path.join(config.save_dir, 'predictions', name)
+
+def get_paths_generators_train(config, fold_i):
+    name = config.dataset + '_frame-' + str(config.frame) + '_sampletype-' + config.sample_type
+    return os.path.join('net/generators', 'fold_{}'.format(fold_i), 'gen_train_' + name + '.pkl')
+
+def get_paths_generators_val(config, fold_i):
+    name = config.dataset + '_frame-' + str(config.frame) + '_sampletype-' + config.sample_type
+    return os.path.join('net/generators', 'fold_{}'.format(fold_i), 'gen_val_' + name + '.pkl')
