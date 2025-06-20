@@ -107,8 +107,14 @@ class Data:
         """
         import h5py
         with h5py.File(file_path, 'r') as h5f:
-            data = [h5f[channel][()] for channel in h5f.keys() if channel != 'fs']
-            channels = [channel for channel in h5f.keys() if channel != 'fs']
+            data = []
+            channels = []
+            for channel in h5f.keys():
+                if channel != 'fs':
+                    data.append(h5f[channel][()])
+                    channels.append(channel)
+            # data = [h5f[channel][()] for channel in h5f.keys() if channel != 'fs']
+            # channels = [channel for channel in h5f.keys() if channel != 'fs']
             fs = h5f['fs'][()]
             data = cls(data, channels, fs)
             data.__preprocessed = True  # Mark as preprocessed if loaded from HDF5
