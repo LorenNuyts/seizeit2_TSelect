@@ -16,3 +16,5 @@ net/save_dir2/
 __pycache__/
 
 analysis/figures/
+
+net/generators/

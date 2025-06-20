@@ -2,6 +2,8 @@ import os
 import gc
 
 import time
+import warnings
+
 import h5py
 import pickle
 
@@ -22,7 +24,7 @@ from net.MiniRocket_LR import MiniRocketLR
 from utility import get_recs_list
 from utility.constants import SEED, Paths, Keys
 from utility.paths import get_path_predictions, get_path_config, get_path_model_weights, get_path_model, \
-    get_path_predictions_folder, get_path_results
+    get_path_predictions_folder, get_path_results, get_paths_generators_val, get_paths_generators_train
 
 from TSelect.tselect.tselect.utils import init_metadata
 from TSelect.tselect.tselect.channel_selectors.tselect import TSelect
@@ -79,16 +81,22 @@ def train(config, results, load_generators, save_generators):
 
             train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
 
+            gen_train = None
+            gen_val = None
             if load_generators:
                 print('Loading generators...')
-                name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
-                with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'rb') as inp:
-                    gen_train = pickle.load(inp)
+                # name = config.dataset + '_frame-' + str(config.frame) + '_sampletype-' + config.sample_type
+                path_generator_train = get_paths_generators_train(config, fold_i)
+                if os.path.exists(path_generator_train):
+                    with open(path_generator_train, 'rb') as inp:
+                        gen_train = pickle.load(inp)
 
-                with open('net/generators/gen_val.pkl', 'rb') as inp:
-                    gen_val = pickle.load(inp)
+                path_generator_val = get_paths_generators_val(config, fold_i)
+                if os.path.exists(path_generator_val):
+                    with open(get_paths_generators_val(config, fold_i), 'rb') as inp:
+                        gen_val = pickle.load(inp)
 
-            else:
+            if gen_train is None:
                 if config.sample_type == 'subsample':
                     train_segments = generate_data_keys_subsample(config, train_recs_list)
                 else:
@@ -98,14 +106,15 @@ def train(config, results, load_generators, save_generators):
                 gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
 
                 if save_generators:
-                    name = config.dataset + '_frame-' + config.frame + '_sampletype-' + config.sample_type
-                    if not os.path.exists('net/generators'):
-                        os.makedirs('net/generators')
+                    path_generator_train = get_paths_generators_train(config, fold_i)
+                    if not os.path.exists(os.path.dirname(path_generator_train)):
+                        os.makedirs(path_generator_train)
 
-                    with open(os.path.join('net/generators', 'gen_train_' + name + '.pkl'), 'wb') as outp:
+                    with open(path_generator_train, 'wb') as outp:
                         # noinspection PyTypeChecker
                         pickle.dump(gen_train, outp, pickle.HIGHEST_PROTOCOL)
 
+            if gen_val is None:
                 val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
 
                 val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
@@ -114,7 +123,11 @@ def train(config, results, load_generators, save_generators):
                 gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
 
                 if save_generators:
-                    with open('net/generators/gen_val.pkl', 'wb') as outp:
+                    path_generator_val = get_paths_generators_val(config, fold_i)
+                    if not os.path.exists(os.path.dirname(path_generator_val)):
+                        os.makedirs(os.path.dirname(path_generator_val))
+
+                    with open(path_generator_val, 'wb') as outp:
                         # noinspection PyTypeChecker
                         pickle.dump(gen_val, outp, pickle.HIGHEST_PROTOCOL)
 
