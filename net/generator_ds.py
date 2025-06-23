@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 from collections import OrderedDict
@@ -8,6 +9,7 @@ from tensorflow import keras
 from data.data import Data, switch_channels
 
 from utility.constants import Nodes
+from utility.paths import get_path_preprocessed_data
 
 
 # class SequentialGenerator(keras.utils.Sequence):
@@ -243,9 +245,9 @@ class SequentialGenerator(keras.utils.Sequence):
         self.channels = None
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
-        self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
-        self.cache_limit = self.get_cache_limit()
-        self.current_cache_size = 0
+        # self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
+        # self.cache_limit = self.get_cache_limit()
+        # self.current_cache_size = 0
         self.on_epoch_end()
 
     def __len__(self):
@@ -255,10 +257,10 @@ class SequentialGenerator(keras.utils.Sequence):
         keys = self.key_array[index * self.batch_size:(index + 1) * self.batch_size]
         return self.__data_generation__(keys)
 
-    def get_cache_limit(self):
-        """Calculate cache limit as 1/3 of available memory."""
-        free_memory = psutil.virtual_memory().available  # Get available memory in bytes
-        return free_memory // 3  # Set limit to 1/3 of free memory
+    # def get_cache_limit(self):
+    #     """Calculate cache limit as 1/3 of available memory."""
+    #     free_memory = psutil.virtual_memory().available  # Get available memory in bytes
+    #     return free_memory // 3  # Set limit to 1/3 of free memory
 
     def on_epoch_end(self):
         if self.shuffle:
@@ -273,48 +275,54 @@ class SequentialGenerator(keras.utils.Sequence):
         segmenting_time = 0
         for s in batch_segments:
             time_start = time.process_time()
-            rec_key = "_".join(self.recs[int(s[0])])
-            if rec_key in self.loaded_rec_data:
-                rec_data = self.loaded_rec_data[rec_key]
-            else:
-                rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
-                                         included_channels=self.config.included_channels)
+            path_preprocessed_data = get_path_preprocessed_data(self.config.data_path, self.recs[int(s[0])])
+
+            # If the preprocessed data does not exist, load and preprocess the entire recording
+            if not os.path.exists(path_preprocessed_data):
+                rec_data_segment = Data.loadData(self.config.data_path, self.recs[int(s[0])],
+                                                 included_channels=self.config.included_channels)
                 loading_time += time.process_time() - time_start
                 time_start = time.process_time()
-                rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
+                rec_data_segment.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
                 preprocessing_time += time.process_time() - time_start
                 time_start = time.process_time()
-
-                if self.channels is None:
-                    self.channels = rec_data.channels
-                if set(rec_data.channels) != set(self.channels):
-                    rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
-                if rec_data.channels != self.channels:
-                    rec_data.reorder_channels(self.channels)
-
-                if rec_data.channels != self.channels and len(self.channels) != 0:
-                    print("Rec channels:", rec_data.channels)
-                    print("self.channels:", self.channels)
-                assert rec_data.channels == self.channels
-                channel_time += time.process_time() - time_start
+                start_seg = int(s[1] * self.config.fs)
+                stop_seg = int(s[2] * self.config.fs)
+                # segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
+                # rec_data_segment.data = rec_data_segment.data[:, start_seg:stop_seg]
+                for ch_i, ch in enumerate(rec_data_segment.channels):
+                    index_channels = rec_data_segment.channels.index(ch)
+                    rec_data_segment.data[index_channels] = rec_data_segment[ch_i][start_seg:stop_seg]
+                rec_data_segment.__segment = (s[1], s[2])  # Store segment start and stop times
+                segmenting_time += time.process_time() - time_start
+                time_start = time.process_time()
+            # If the preprocessed data exists, load only the segment
+            else:
+                rec_data_segment = Data.loadSegment(self.config.data_path, self.recs[int(s[0])],
+                                                    start_time=s[1], stop_time=s[2], fs=self.config.fs,
+                                                    included_channels=self.config.included_channels)
+                loading_time += time.process_time() - time_start
                 time_start = time.process_time()
 
-                # Calculate memory usage of the new entry
-                rec_data_size = sys.getsizeof(rec_data)
-                self.current_cache_size += rec_data_size
+            if self.channels is None:
+                self.channels = rec_data_segment.channels
+            if set(rec_data_segment.channels) != set(self.channels):
+                rec_data_segment.channels = switch_channels(self.channels, rec_data_segment.channels,
+                                                            Nodes.switchable_nodes)
+            if rec_data_segment.channels != self.channels:
+                rec_data_segment.reorder_channels(self.channels)
 
-                # Check cache size and remove oldest entry if necessary
-                if self.current_cache_size > self.cache_limit:
-                    self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
-                    self.current_cache_size -= rec_data_size
-                self.loaded_rec_data[rec_key] = rec_data  # Add new entry
+            if rec_data_segment.channels != self.channels and len(self.channels) != 0:
+                print("Rec channels:", rec_data_segment.channels)
+                print("self.channels:", self.channels)
+            assert rec_data_segment.channels == self.channels
+            channel_time += time.process_time() - time_start
+            time_start = time.process_time()
 
-            start_seg = int(s[1] * self.config.fs)
-            stop_seg = int(s[2] * self.config.fs)
+            channel_indices = [self.channels.index(ch) for ch in rec_data_segment.channels]
             segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
-            for ch_i, ch in enumerate(rec_data.channels):
-                index_channels = self.channels.index(ch)
-                segment_data[:, index_channels] = rec_data[ch_i][start_seg:stop_seg]
+            segment_data[:, channel_indices] = np.array(rec_data_segment.data).T
+
             batch_data.append(segment_data)
             segmenting_time += time.process_time() - time_start
         batch_data = np.array(batch_data)
@@ -322,8 +330,59 @@ class SequentialGenerator(keras.utils.Sequence):
             batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
         print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
               f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
-        self.loaded_rec_data = OrderedDict()  # Clear cache after each batch to save memory
         return batch_data, self.labels[keys]
+
+        #     rec_key = "_".join(self.recs[int(s[0])])
+        #     if rec_key in self.loaded_rec_data:
+        #         rec_data = self.loaded_rec_data[rec_key]
+        #     else:
+        #         rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
+        #                                  included_channels=self.config.included_channels)
+        #         loading_time += time.process_time() - time_start
+        #         time_start = time.process_time()
+        #         rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
+        #         preprocessing_time += time.process_time() - time_start
+        #         time_start = time.process_time()
+        #
+        #         if self.channels is None:
+        #             self.channels = rec_data.channels
+        #         if set(rec_data.channels) != set(self.channels):
+        #             rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
+        #         if rec_data.channels != self.channels:
+        #             rec_data.reorder_channels(self.channels)
+        #
+        #         if rec_data.channels != self.channels and len(self.channels) != 0:
+        #             print("Rec channels:", rec_data.channels)
+        #             print("self.channels:", self.channels)
+        #         assert rec_data.channels == self.channels
+        #         channel_time += time.process_time() - time_start
+        #         time_start = time.process_time()
+        #
+        #         # Calculate memory usage of the new entry
+        #         rec_data_size = sys.getsizeof(rec_data)
+        #         self.current_cache_size += rec_data_size
+        #
+        #         # Check cache size and remove oldest entry if necessary
+        #         if self.current_cache_size > self.cache_limit:
+        #             self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
+        #             self.current_cache_size -= rec_data_size
+        #         self.loaded_rec_data[rec_key] = rec_data  # Add new entry
+        #
+        #     start_seg = int(s[1] * self.config.fs)
+        #     stop_seg = int(s[2] * self.config.fs)
+        #     segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
+        #     for ch_i, ch in enumerate(rec_data.channels):
+        #         index_channels = self.channels.index(ch)
+        #         segment_data[:, index_channels] = rec_data[ch_i][start_seg:stop_seg]
+        #     batch_data.append(segment_data)
+        #     segmenting_time += time.process_time() - time_start
+        # batch_data = np.array(batch_data)
+        # if self.config.model in ['DeepConvNet', 'EEGnet']:
+        #     batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
+        # print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
+        #       f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
+        # self.loaded_rec_data = OrderedDict()  # Clear cache after each batch to save memory
+        # return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):
         included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
@@ -356,9 +415,9 @@ class SegmentedGenerator(keras.utils.Sequence):
         self.channels = None
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
-        self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
-        self.cache_limit = self.get_cache_limit()  # Maximum number of cached recordings
-        self.current_cache_size = 0
+        # self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
+        # self.cache_limit = self.get_cache_limit()  # Maximum number of cached recordings
+        # self.current_cache_size = 0
         self.on_epoch_end()
 
     def __len__(self):
@@ -368,10 +427,10 @@ class SegmentedGenerator(keras.utils.Sequence):
         keys = self.key_array[index * self.batch_size:(index + 1) * self.batch_size]
         return self.__data_generation__(keys)
 
-    def get_cache_limit(self):
-        """Calculate cache limit as 1/3 of available memory."""
-        free_memory = psutil.virtual_memory().available  # Get available memory in bytes
-        return free_memory // 3  # Set limit to 1/3 of free memory
+    # def get_cache_limit(self):
+    #     """Calculate cache limit as 1/3 of available memory."""
+    #     free_memory = psutil.virtual_memory().available  # Get available memory in bytes
+    #     return free_memory // 3  # Set limit to 1/3 of free memory
 
     def on_epoch_end(self):
         if self.shuffle:
@@ -386,58 +445,117 @@ class SegmentedGenerator(keras.utils.Sequence):
         segmenting_time = 0
         for s in batch_segments:
             time_start = time.process_time()
-            rec_key = "_".join(self.recs[int(s[0])])
-            if rec_key in self.loaded_rec_data:
-                rec_data = self.loaded_rec_data[rec_key]
-            else:
-                rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
-                                         included_channels=self.config.included_channels)
+            path_preprocessed_data = get_path_preprocessed_data(self.config.data_path, self.recs[int(s[0])])
+
+            # If the preprocessed data does not exist, load and preprocess the entire recording
+            if not os.path.exists(path_preprocessed_data):
+                rec_data_segment = Data.loadData(self.config.data_path, self.recs[int(s[0])],
+                                                 included_channels=self.config.included_channels)
                 loading_time += time.process_time() - time_start
                 time_start = time.process_time()
-                rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
+                rec_data_segment.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
                 preprocessing_time += time.process_time() - time_start
                 time_start = time.process_time()
-
-                if self.channels is None:
-                    self.channels = rec_data.channels
-                if set(rec_data.channels) != set(self.channels):
-                    rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
-                if rec_data.channels != self.channels:
-                    rec_data.reorder_channels(self.channels)
-
-                if rec_data.channels != self.channels and len(self.channels) != 0:
-                    print("Rec channels:", rec_data.channels)
-                    print("self.channels:", self.channels)
-                assert rec_data.channels == self.channels
-                channel_time += time.process_time() - time_start
+                start_seg = int(s[1] * self.config.fs)
+                stop_seg = int(s[2] * self.config.fs)
+                # segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
+                # rec_data_segment.data = rec_data_segment.data[:, start_seg:stop_seg]
+                for ch_i, ch in enumerate(rec_data_segment.channels):
+                    index_channels = rec_data_segment.channels.index(ch)
+                    rec_data_segment.data[index_channels] = rec_data_segment[ch_i][start_seg:stop_seg]
+                rec_data_segment.__segment = (s[1], s[2])  # Store segment start and stop times
+                segmenting_time += time.process_time() - time_start
+                time_start = time.process_time()
+            # If the preprocessed data exists, load only the segment
+            else:
+                rec_data_segment = Data.loadSegment(self.config.data_path, self.recs[int(s[0])],
+                                                    start_time=s[1], stop_time=s[2], fs=self.config.fs,
+                                                    included_channels=self.config.included_channels)
+                loading_time += time.process_time() - time_start
                 time_start = time.process_time()
 
-                # Calculate memory usage of the new entry
-                rec_data_size = sys.getsizeof(rec_data)
-                self.current_cache_size += rec_data_size
+            if self.channels is None:
+                self.channels = rec_data_segment.channels
+            if set(rec_data_segment.channels) != set(self.channels):
+                rec_data_segment.channels = switch_channels(self.channels, rec_data_segment.channels,
+                                                            Nodes.switchable_nodes)
+            if rec_data_segment.channels != self.channels:
+                rec_data_segment.reorder_channels(self.channels)
 
-                # Check cache size and remove oldest entry if necessary
-                if self.current_cache_size > self.cache_limit:
-                    self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
-                    self.current_cache_size -= rec_data_size
-                self.loaded_rec_data[rec_key] = rec_data  # Add new entry
+            if rec_data_segment.channels != self.channels and len(self.channels) != 0:
+                print("Rec channels:", rec_data_segment.channels)
+                print("self.channels:", self.channels)
+            assert rec_data_segment.channels == self.channels
+            channel_time += time.process_time() - time_start
+            time_start = time.process_time()
 
-            start_seg = int(s[1] * self.config.fs)
-            stop_seg = int(s[2] * self.config.fs)
+            channel_indices = [self.channels.index(ch) for ch in rec_data_segment.channels]
             segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
-            for ch_i, ch in enumerate(rec_data.channels):
-                index_channels = self.channels.index(ch)
-                segment_data[:, index_channels] = rec_data[ch_i][start_seg:stop_seg]
+            segment_data[:, channel_indices] = np.array(rec_data_segment.data).T
+
             batch_data.append(segment_data)
             segmenting_time += time.process_time() - time_start
         batch_data = np.array(batch_data)
         if self.config.model in ['DeepConvNet', 'EEGnet']:
             batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
-
         print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
               f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
-        self.loaded_rec_data = OrderedDict()  # Clear cache after each batch to save memory
         return batch_data, self.labels[keys]
+        #     time_start = time.process_time()
+        #     rec_key = "_".join(self.recs[int(s[0])])
+        #     if False:
+        #         pass
+        #     # if rec_key in self.loaded_rec_data:
+        #     #     rec_data = self.loaded_rec_data[rec_key]
+        #     else:
+        #         rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
+        #                                  included_channels=self.config.included_channels)
+        #         loading_time += time.process_time() - time_start
+        #         time_start = time.process_time()
+        #         rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
+        #         preprocessing_time += time.process_time() - time_start
+        #         time_start = time.process_time()
+        #
+        #         if self.channels is None:
+        #             self.channels = rec_data.channels
+        #         if set(rec_data.channels) != set(self.channels):
+        #             rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
+        #         if rec_data.channels != self.channels:
+        #             rec_data.reorder_channels(self.channels)
+        #
+        #         if rec_data.channels != self.channels and len(self.channels) != 0:
+        #             print("Rec channels:", rec_data.channels)
+        #             print("self.channels:", self.channels)
+        #         assert rec_data.channels == self.channels
+        #         channel_time += time.process_time() - time_start
+        #         time_start = time.process_time()
+        #
+        #         # # Calculate memory usage of the new entry
+        #         # rec_data_size = sys.getsizeof(rec_data)
+        #         # self.current_cache_size += rec_data_size
+        #         #
+        #         # # Check cache size and remove oldest entry if necessary
+        #         # if self.current_cache_size > self.cache_limit:
+        #         #     self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
+        #         #     self.current_cache_size -= rec_data_size
+        #         # self.loaded_rec_data[rec_key] = rec_data  # Add new entry
+        #
+        #     start_seg = int(s[1] * self.config.fs)
+        #     stop_seg = int(s[2] * self.config.fs)
+        #     segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
+        #     for ch_i, ch in enumerate(rec_data.channels):
+        #         index_channels = self.channels.index(ch)
+        #         segment_data[:, index_channels] = rec_data[ch_i][start_seg:stop_seg]
+        #     batch_data.append(segment_data)
+        #     segmenting_time += time.process_time() - time_start
+        # batch_data = np.array(batch_data)
+        # if self.config.model in ['DeepConvNet', 'EEGnet']:
+        #     batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
+        #
+        # print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
+        #       f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
+        # # self.loaded_rec_data = OrderedDict()  # Clear cache after each batch to save memory
+        # return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):
         included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)

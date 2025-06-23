@@ -86,14 +86,14 @@ def train(config, results, load_generators, save_generators):
             if load_generators:
                 print('Loading generators...')
                 # name = config.dataset + '_frame-' + str(config.frame) + '_sampletype-' + config.sample_type
-                path_generator_train = get_paths_generators_train(config, fold_i)
+                path_generator_train = get_paths_generators_train(config, config.get_name(), fold_i)
                 if os.path.exists(path_generator_train):
                     with open(path_generator_train, 'rb') as inp:
                         gen_train = pickle.load(inp)
 
-                path_generator_val = get_paths_generators_val(config, fold_i)
+                path_generator_val = get_paths_generators_val(config, config.get_name(), fold_i)
                 if os.path.exists(path_generator_val):
-                    with open(get_paths_generators_val(config, fold_i), 'rb') as inp:
+                    with open(get_paths_generators_val(config, config.get_name(), fold_i), 'rb') as inp:
                         gen_val = pickle.load(inp)
 
             if gen_train is None:
@@ -106,7 +106,7 @@ def train(config, results, load_generators, save_generators):
                 gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
 
                 if save_generators:
-                    path_generator_train = get_paths_generators_train(config, fold_i)
+                    path_generator_train = get_paths_generators_train(config, config.get_name(), fold_i)
                     if not os.path.exists(os.path.dirname(path_generator_train)):
                         os.makedirs(os.path.dirname(path_generator_train))
 
@@ -123,7 +123,7 @@ def train(config, results, load_generators, save_generators):
                 gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
 
                 if save_generators:
-                    path_generator_val = get_paths_generators_val(config, fold_i)
+                    path_generator_val = get_paths_generators_val(config, config.get_name(), fold_i)
                     if not os.path.exists(os.path.dirname(path_generator_val)):
                         os.makedirs(os.path.dirname(path_generator_val))
 

@@ -27,6 +27,7 @@ class Data:
         self.channels = channels
         self.fs = fs
         self.__preprocessed = False
+        self.__segment = None
 
     @classmethod
     def loadData(
@@ -40,7 +41,7 @@ class Data:
         Args:
             data_path (str): path to EDF file.
             recording (List[str]): list of recording names, where the first element is the subject ID, the second is the recording ID and the third is the segment ID.
-            included_channels (List[str]): list of modalities to include in the data object. Options are 'eeg', 'ecg', 'emg' and 'mov'.
+            included_channels (List[str]): list of channels to include in the data object. If a channel is not present in the EDF file, it will be switched to a similar channel if possible.
             
         Returns:
             Data: returns a Data instance containing the data of the EDF file.
@@ -51,6 +52,7 @@ class Data:
         samplingFrequencies = list()
         h5_file = get_path_preprocessed_data(data_path, recording)
         if os.path.exists(h5_file):
+            # pass
             return Data.load_h5(h5_file)
 
         edfFile = get_path_recording(data_path, recording)
@@ -77,12 +79,59 @@ class Data:
                 assert len(data) == len(channels), 'Data and channels do not have the same length'
         else:
             warnings.warn('Recording ' + recording[0] + ' ' + recording[1] + ' does not contain exist')
-                
-        return cls(
-            data,
-            channels,
-            samplingFrequencies,
-        )
+
+        data_object = cls(data, channels, samplingFrequencies)
+        data_object.__preprocessed = False
+        data_object.__segment = None
+        return data_object
+
+    @classmethod
+    def loadSegment(cls, data_path, recording, start_time, stop_time, fs: int, included_channels=None):
+        """Load a segment of the data object.
+
+        Args:
+            data_path (str): path to EDF file.
+            recording (List[str]): list of recording names, where the first element is the subject ID, the second is the recording ID and the third is the segment ID.
+            start_time (float): start time of the segment in seconds.
+            stop_time (float): stop time of the segment in seconds.
+            fs (int): sampling frequency of the segment.
+            included_channels (List[str]): list of channels to include in the data object. If a channel is not present in the EDF file, it will be switched to a similar channel if possible.
+
+        Returns:
+            Data: returns a Data instance containing the segment of the data object.
+        """
+        # data = list()
+        # channels = list()
+        # samplingFrequencies = list()
+
+        h5_file = get_path_preprocessed_data(data_path, recording)
+        if os.path.exists(h5_file):
+            return cls.loadSegment_h5(h5_file, start_time, stop_time, fs)
+        else:
+            raise ValueError("Segments can only be loaded from preprocessed data. Please save the preprocessed data first.")
+
+        # edfFile = get_path_recording(data_path, recording)
+        # if os.path.exists(edfFile):
+        #     with pyedflib.EdfReader(edfFile) as edf:
+        #         samplingFrequencies.extend(edf.getSampleFrequencies())
+        #
+        #         channels_in_file = edf.getSignalLabels()
+        #         channels_in_file = Nodes.match_nodes(channels_in_file, included_channels)
+        #         n = edf.signals_in_file
+        #         start_sample = int(start_time * fs)
+        #         stop_sample = int(stop_time * fs)
+        #
+        #         for i in range(n):
+        #             if channels_in_file[i] in included_channels:
+        #                 segment = edf.readSignal(i)[start_sample:stop_sample]
+        #                 data.append(segment)
+        #                 channels.append(channels_in_file[i])
+        #         edf._close()
+        #     segment = cls(data, channels, samplingFrequencies)
+        #     segment.__segment = (start_time, stop_time)
+        #
+        #     return segment
+
 
     def store_h5(self, file_path: str) -> None:
         """Store the data object in an HDF5 file.
@@ -90,6 +139,8 @@ class Data:
         Args:
             file_path (str): path to the HDF5 file.
         """
+        if self.__segment is not None:
+            raise ValueError("Cannot store a segment of data in an HDF5 file.")
         import h5py
         # If directory does not exist, create it
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -119,9 +170,37 @@ class Data:
                 fs = h5f['fs'][()]
                 data = cls(data, channels, fs)
                 data.__preprocessed = True  # Mark as preprocessed if loaded from HDF5
+                data.__segment = None
                 return data
             except OSError:
                 raise ValueError(f"Could not load data from {file_path}. The file might be corrupted or not in the expected format.")
+
+    @classmethod
+    def loadSegment_h5(cls, file_path: str, start_time: float, stop_time: float, fs: int):
+        """Load a segment of the data object from an HDF5 file.
+
+        Args:
+            file_path (str): path to the HDF5 file.
+            start_time (float): start time of the segment in seconds.
+            stop_time (float): stop time of the segment in seconds.
+            fs (int): sampling frequency of the segment.
+        """
+        import h5py
+        with h5py.File(file_path, 'r') as h5f:
+            start_sample = int(start_time * fs)
+            stop_sample = int(stop_time * fs)
+            data = []
+            channels = []
+            samplingFrequencies = h5f['fs'][()]
+            for channel in h5f.keys():
+                if channel != 'fs':
+                    segment = h5f[channel][start_sample:stop_sample]
+                    data.append(segment)
+                    channels.append(channel)
+            segment = cls(data, channels, samplingFrequencies)
+            segment.__preprocessed = True  # Mark as preprocessed if loaded from HDF5
+            segment.__segment = (start_time, stop_time)
+            return segment
 
     def apply_preprocess(self, config, store_preprocessed=False, recording=None) -> None:
         """
@@ -139,7 +218,7 @@ class Data:
         for i, channel in enumerate(self.channels):
             self.data[i], self.fs[i] = pre_process_ch(self.data[i], self.fs[i], config.fs)
         self.__preprocessed = True
-        if store_preprocessed:
+        if store_preprocessed and self.__segment is None:
             preprocessed_file = get_path_preprocessed_data(config.data_path, recording)
             self.store_h5(preprocessed_file)
 
