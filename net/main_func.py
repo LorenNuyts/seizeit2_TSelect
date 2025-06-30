@@ -158,6 +158,9 @@ def train(config, results, load_generators, save_generators):
                 config.reload_CH(fold=fold_i)
                 results.selection_time[fold_i] = time.process_time() - selection_start
 
+            print('Memory usage segments train: ', gen_train.data_segs.nbytes / (1024 ** 2), 'MB')
+            print('Memory usage segments val: ', gen_val.data_segs.nbytes / (1024 ** 2), 'MB')
+
             print('### Training model....')
             if config.model.lower() == Keys.minirocketLR.lower():
                 model_minirocket = MiniRocketLR()
