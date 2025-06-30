@@ -6,7 +6,7 @@ import shutil
 from net.DL_config import get_base_config, get_channel_selection_config
 from utility.constants import *
 from utility.constants import parse_location
-from utility.paths import get_path_results, get_path_config
+from utility.paths import *
 from utility.stats import Results
 
 random_seed = 1
@@ -94,6 +94,10 @@ if args.reset:
     predictions_path = os.path.join(config.save_dir, 'predictions', config.get_name())
     if os.path.exists(predictions_path):
         shutil.rmtree(predictions_path)
+    print("Deleting generators folder...")
+    generators_path = os.path.join(config.save_dir, 'generators', config.get_name())
+    if os.path.exists(generators_path):
+        shutil.rmtree(generators_path)
 
 if os.path.exists(config_path):
     config.load_config(config_path, config.get_name())

@@ -44,7 +44,7 @@ def channel_names(root_dir, locations):
     print(unknown_nodes)
 
 def subjects_with_seizures(root_dir, locations):
-    seizure_subjects = set()
+    seizure_subjects = {loc: set() for loc in locations}
     for location in os.listdir(root_dir):
         if locations is not None and location not in locations:
             continue
@@ -61,10 +61,32 @@ def subjects_with_seizures(root_dir, locations):
                     df = pd.read_csv(tsv_file, delimiter="\t", skiprows=4)
                     for i, e in df.iterrows():
                         if e['class'] == 'seizure' and e['main type'] == 'focal':
-                            seizure_subjects.add(subject)
+                            seizure_subjects[location].add(subject)
+                            # seizure_subjects.add(subject)
                             break
     print("Subjects with seizures found in the dataset:")
     print(seizure_subjects)
+    print({loc: len(seizure_subjects[loc]) for loc in seizure_subjects})
+
+def seizure_segments_per_location(root_dir, locations):
+    seizure_segments = {loc: 0 for loc in locations}
+    for location in os.listdir(root_dir):
+        if locations is not None and location not in locations:
+            continue
+        print("Processing location:", location)
+        location_path = os.path.join(root_dir, location)
+        for subject in os.listdir(location_path):
+            print("     | Processing subject:", subject)
+            subject_path = os.path.join(location_path, subject)
+            for recording in os.listdir(subject_path):
+                if recording.endswith(".tsv"):
+                    tsv_file = os.path.join(subject_path, recording)
+                    df = pd.read_csv(tsv_file, delimiter="\t", skiprows=4)
+                    for i, e in df.iterrows():
+                        if e['class'] == 'seizure' and e['main type'] == 'focal':
+                            seizure_segments[location] += int(2*(e['stop'] - e['start']))
+    print("Seizure segments per location:")
+    print(seizure_segments)
 
 def channel_differences_between_subjects(root_dir, locations):
     ref_channels = set(Nodes.basic_eeg_nodes)
@@ -159,7 +181,8 @@ def average_memory_size_subject(root_dir, locations, channels=Nodes.basic_eeg_no
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures",
-                                                   "channel_differences", "rank_locations", "average_memory_size"],)
+                                                   "channel_differences", "rank_locations", "average_memory_size",
+                                                   "seizure_segments"],)
     parser.add_argument("--locations", type=str, nargs="?", default="all")
     args = parser.parse_args()
 
@@ -187,5 +210,7 @@ if __name__ == '__main__':
         rank_locations(data_path, locations=locations_)
     elif args.task == "average_memory_size":
         average_memory_size_subject(data_path, locations=locations_, channels=Nodes.basic_eeg_nodes)
+    elif args.task == "seizure_segments":
+        seizure_segments_per_location(data_path, locations=locations_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")

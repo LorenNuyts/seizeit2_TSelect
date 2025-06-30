@@ -30,7 +30,7 @@ def get_path_predictions_folder(config, name):
     return os.path.join(config.save_dir, 'predictions', name)
 
 def get_paths_generators_train(config, name, fold_i):
-    return os.path.join(config.save_dir, 'generators', 'fold_{}'.format(fold_i), 'gen_train_' + name + '.pkl')
+    return os.path.join(config.save_dir, 'generators', name, 'fold_{}'.format(fold_i), 'gen_train' + '.pkl')
 
 def get_paths_generators_val(config, name, fold_i):
-    return os.path.join(config.save_dir, 'generators', 'fold_{}'.format(fold_i), 'gen_val_' + name + '.pkl')
+    return os.path.join(config.save_dir, 'generators', name, 'fold_{}'.format(fold_i), 'gen_val' + '.pkl')

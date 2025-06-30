@@ -501,12 +501,12 @@ def get_metrics_scoring(y_pred, y_true, fs, th):
 
     spec_epoch = TN_epoch/(TN_epoch + FP_epoch)
 
-    if total_seiz == 0:
-        roc = float("nan")
-    else:
-        roc = aucc(y_true, y_pred).numpy()
+    # if total_seiz == 0:
+    #     roc = float("nan")
+    # else:
+    #     roc = aucc(y_true, y_pred).numpy()
 
-    return sens_ovlp, prec_ovlp, FA_ovlp, f1_ovlp, sens_epoch, spec_epoch, prec_epoch, FA_epoch, f1_epoch, roc
+    return sens_ovlp, prec_ovlp, FA_ovlp, f1_ovlp, sens_epoch, spec_epoch, prec_epoch, FA_epoch, f1_epoch
 
 
 def get_sens_ovlp(y_true, y_pred, fs=1/2, th=0.5):

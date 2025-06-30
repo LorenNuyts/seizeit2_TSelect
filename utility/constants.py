@@ -14,7 +14,6 @@ subjects_with_seizures = {'SUBJ-1a-159', 'SUBJ-7-376', 'SUBJ-4-259', 'SUBJ-1a-35
                           'SUBJ-4-230', 'SUBJ-4-466', 'SUBJ-6-256', 'SUBJ-7-449', 'SUBJ-6-275', 'SUBJ-4-139',
                           'SUBJ-6-311', 'SUBJ-6-393', 'SUBJ-1a-353', 'SUBJ-4-254', 'SUBJ-7-331', 'SUBJ-7-441'}
 
-# excluded_subjects = {'SUBJ-1a-076', 'SUBJ-1a-306'}
 excluded_subjects = {'SUBJ-1b-315'}
 
 class Nodes:

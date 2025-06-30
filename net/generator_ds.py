@@ -1,10 +1,9 @@
+import math
 import os
-import sys
 import time
-from collections import OrderedDict
 
 import numpy as np
-import psutil
+import tensorflow as tf
 from tensorflow import keras
 from data.data import Data, switch_channels
 
@@ -245,9 +244,6 @@ class SequentialGenerator(keras.utils.Sequence):
         self.channels = None
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
-        # self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
-        # self.cache_limit = self.get_cache_limit()
-        # self.current_cache_size = 0
         self.on_epoch_end()
 
     def __len__(self):
@@ -256,11 +252,6 @@ class SequentialGenerator(keras.utils.Sequence):
     def __getitem__(self, index):
         keys = self.key_array[index * self.batch_size:(index + 1) * self.batch_size]
         return self.__data_generation__(keys)
-
-    # def get_cache_limit(self):
-    #     """Calculate cache limit as 1/3 of available memory."""
-    #     free_memory = psutil.virtual_memory().available  # Get available memory in bytes
-    #     return free_memory // 3  # Set limit to 1/3 of free memory
 
     def on_epoch_end(self):
         if self.shuffle:
@@ -332,57 +323,6 @@ class SequentialGenerator(keras.utils.Sequence):
               f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
         return batch_data, self.labels[keys]
 
-        #     rec_key = "_".join(self.recs[int(s[0])])
-        #     if rec_key in self.loaded_rec_data:
-        #         rec_data = self.loaded_rec_data[rec_key]
-        #     else:
-        #         rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
-        #                                  included_channels=self.config.included_channels)
-        #         loading_time += time.process_time() - time_start
-        #         time_start = time.process_time()
-        #         rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
-        #         preprocessing_time += time.process_time() - time_start
-        #         time_start = time.process_time()
-        #
-        #         if self.channels is None:
-        #             self.channels = rec_data.channels
-        #         if set(rec_data.channels) != set(self.channels):
-        #             rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
-        #         if rec_data.channels != self.channels:
-        #             rec_data.reorder_channels(self.channels)
-        #
-        #         if rec_data.channels != self.channels and len(self.channels) != 0:
-        #             print("Rec channels:", rec_data.channels)
-        #             print("self.channels:", self.channels)
-        #         assert rec_data.channels == self.channels
-        #         channel_time += time.process_time() - time_start
-        #         time_start = time.process_time()
-        #
-        #         # Calculate memory usage of the new entry
-        #         rec_data_size = sys.getsizeof(rec_data)
-        #         self.current_cache_size += rec_data_size
-        #
-        #         # Check cache size and remove oldest entry if necessary
-        #         if self.current_cache_size > self.cache_limit:
-        #             self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
-        #             self.current_cache_size -= rec_data_size
-        #         self.loaded_rec_data[rec_key] = rec_data  # Add new entry
-        #
-        #     start_seg = int(s[1] * self.config.fs)
-        #     stop_seg = int(s[2] * self.config.fs)
-        #     segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
-        #     for ch_i, ch in enumerate(rec_data.channels):
-        #         index_channels = self.channels.index(ch)
-        #         segment_data[:, index_channels] = rec_data[ch_i][start_seg:stop_seg]
-        #     batch_data.append(segment_data)
-        #     segmenting_time += time.process_time() - time_start
-        # batch_data = np.array(batch_data)
-        # if self.config.model in ['DeepConvNet', 'EEGnet']:
-        #     batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
-        # print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
-        #       f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
-        # self.loaded_rec_data = OrderedDict()  # Clear cache after each batch to save memory
-        # return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):
         included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
@@ -415,9 +355,6 @@ class SegmentedGenerator(keras.utils.Sequence):
         self.channels = None
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
-        # self.loaded_rec_data = OrderedDict()  # Use OrderedDict for caching
-        # self.cache_limit = self.get_cache_limit()  # Maximum number of cached recordings
-        # self.current_cache_size = 0
         self.on_epoch_end()
 
     def __len__(self):
@@ -426,11 +363,6 @@ class SegmentedGenerator(keras.utils.Sequence):
     def __getitem__(self, index):
         keys = self.key_array[index * self.batch_size:(index + 1) * self.batch_size]
         return self.__data_generation__(keys)
-
-    # def get_cache_limit(self):
-    #     """Calculate cache limit as 1/3 of available memory."""
-    #     free_memory = psutil.virtual_memory().available  # Get available memory in bytes
-    #     return free_memory // 3  # Set limit to 1/3 of free memory
 
     def on_epoch_end(self):
         if self.shuffle:
@@ -501,61 +433,6 @@ class SegmentedGenerator(keras.utils.Sequence):
         print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
               f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
         return batch_data, self.labels[keys]
-        #     time_start = time.process_time()
-        #     rec_key = "_".join(self.recs[int(s[0])])
-        #     if False:
-        #         pass
-        #     # if rec_key in self.loaded_rec_data:
-        #     #     rec_data = self.loaded_rec_data[rec_key]
-        #     else:
-        #         rec_data = Data.loadData(self.config.data_path, self.recs[int(s[0])],
-        #                                  included_channels=self.config.included_channels)
-        #         loading_time += time.process_time() - time_start
-        #         time_start = time.process_time()
-        #         rec_data.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
-        #         preprocessing_time += time.process_time() - time_start
-        #         time_start = time.process_time()
-        #
-        #         if self.channels is None:
-        #             self.channels = rec_data.channels
-        #         if set(rec_data.channels) != set(self.channels):
-        #             rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
-        #         if rec_data.channels != self.channels:
-        #             rec_data.reorder_channels(self.channels)
-        #
-        #         if rec_data.channels != self.channels and len(self.channels) != 0:
-        #             print("Rec channels:", rec_data.channels)
-        #             print("self.channels:", self.channels)
-        #         assert rec_data.channels == self.channels
-        #         channel_time += time.process_time() - time_start
-        #         time_start = time.process_time()
-        #
-        #         # # Calculate memory usage of the new entry
-        #         # rec_data_size = sys.getsizeof(rec_data)
-        #         # self.current_cache_size += rec_data_size
-        #         #
-        #         # # Check cache size and remove oldest entry if necessary
-        #         # if self.current_cache_size > self.cache_limit:
-        #         #     self.loaded_rec_data.popitem(last=False)  # Remove the oldest entry
-        #         #     self.current_cache_size -= rec_data_size
-        #         # self.loaded_rec_data[rec_key] = rec_data  # Add new entry
-        #
-        #     start_seg = int(s[1] * self.config.fs)
-        #     stop_seg = int(s[2] * self.config.fs)
-        #     segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
-        #     for ch_i, ch in enumerate(rec_data.channels):
-        #         index_channels = self.channels.index(ch)
-        #         segment_data[:, index_channels] = rec_data[ch_i][start_seg:stop_seg]
-        #     batch_data.append(segment_data)
-        #     segmenting_time += time.process_time() - time_start
-        # batch_data = np.array(batch_data)
-        # if self.config.model in ['DeepConvNet', 'EEGnet']:
-        #     batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
-        #
-        # print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
-        #       f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
-        # # self.loaded_rec_data = OrderedDict()  # Clear cache after each batch to save memory
-        # return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):
         included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
@@ -563,6 +440,128 @@ class SegmentedGenerator(keras.utils.Sequence):
         # self.data_segs = self.data_segs[:, :, [i for i, ch in enumerate(self.channels) if ch in included_channels]]
         self.channels = [ch for ch in self.channels if ch in included_channels]
 
+def segment_generator(config, recs, segments, labels, shuffle=True):
+    channels = None
+    key_array = np.arange(len(labels))
+    while True:  # repeat forever (or use .repeat() in tf.data)
+        if shuffle:
+            key_array = np.random.permutation(key_array)
+        for idx in key_array:
+            s = segments[idx]
+            y = labels[idx]
+
+            path_preprocessed_data = get_path_preprocessed_data(config.data_path, recs[int(s[0])])
+
+            if not os.path.exists(path_preprocessed_data):
+                rec_data_segment = Data.loadData(config.data_path, recs[int(s[0])],
+                                                 included_channels=config.included_channels)
+                rec_data_segment.apply_preprocess(config, store_preprocessed=True, recording=recs[int(s[0])])
+                start_seg = int(s[1] * config.fs)
+                stop_seg = int(s[2] * config.fs)
+                for ch_i, ch in enumerate(rec_data_segment.channels):
+                    index_channels = rec_data_segment.channels.index(ch)
+                    rec_data_segment.data[index_channels] = rec_data_segment[ch_i][start_seg:stop_seg]
+                rec_data_segment.__segment = (s[1], s[2])
+            else:
+                rec_data_segment = Data.loadSegment(config.data_path, recs[int(s[0])],
+                                                    start_time=s[1], stop_time=s[2], fs=config.fs,
+                                                    included_channels=config.included_channels)
+
+            # Reorder channels
+            if channels is None:
+                channels = rec_data_segment.channels
+            if set(rec_data_segment.channels) != set(channels):
+                rec_data_segment.channels = switch_channels(channels, rec_data_segment.channels,
+                                                            Nodes.switchable_nodes)
+            if rec_data_segment.channels != channels:
+                rec_data_segment.reorder_channels(channels)
+
+            # Extract data
+            channel_indices = [channels.index(ch) for ch in rec_data_segment.channels]
+            segment_data = np.zeros((config.frame * config.fs, len(channels)), dtype=np.float32)
+            segment_data[:, channel_indices] = np.array(rec_data_segment.data).T
+
+            segment_data = segment_data[:, :, np.newaxis]
+            if config.model in ['DeepConvNet', 'EEGnet']:
+                segment_data = segment_data.transpose(1, 0, 2)
+
+            yield segment_data, y
+
+def build_segment_dataset(config, recs, segments, batch_size=32, shuffle=True):
+    labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
+
+    output_signature = (
+        tf.TensorSpec(shape=(config.frame * config.fs, config.CH, 1), dtype=tf.float32),
+        tf.TensorSpec(shape=(2,), dtype=tf.float32)
+    )
+
+    dataset = tf.data.Dataset.from_generator(
+        lambda: segment_generator(config, recs, segments, labels, shuffle),
+        output_signature=output_signature
+    )
+
+    dataset = dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    steps_per_epoch = math.ceil(len(segments) / batch_size)
+    return dataset, steps_per_epoch
+
+#
+# class SegmentedDataset(tf.data.Dataset):
+#     def __new__(cls, config, recs, segments, batch_size=32, shuffle=True, verbose=True):
+#         def generator():
+#             key_array = np.arange(len(segments))
+#             if shuffle:
+#                 key_array = np.random.permutation(key_array)
+#
+#             for index in range(0, len(key_array), batch_size):
+#                 keys = key_array[index:index + batch_size]
+#                 batch_segments = [segments[k] for k in keys]
+#                 batch_data = []
+#                 labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in batch_segments], dtype=np.float32)
+#
+#                 for s in batch_segments:
+#                     path_preprocessed_data = get_path_preprocessed_data(config.data_path, recs[int(s[0])])
+#
+#                     # Load and preprocess data
+#                     if not os.path.exists(path_preprocessed_data):
+#                         rec_data_segment = Data.loadData(config.data_path, recs[int(s[0])],
+#                                                          included_channels=config.included_channels)
+#                         rec_data_segment.apply_preprocess(config, store_preprocessed=True, recording=recs[int(s[0])])
+#                         start_seg = int(s[1] * config.fs)
+#                         stop_seg = int(s[2] * config.fs)
+#                         for ch_i, ch in enumerate(rec_data_segment.channels):
+#                             index_channels = rec_data_segment.channels.index(ch)
+#                             rec_data_segment.data[index_channels] = rec_data_segment[ch_i][start_seg:stop_seg]
+#                     else:
+#                         rec_data_segment = Data.loadSegment(config.data_path, recs[int(s[0])],
+#                                                             start_time=s[1], stop_time=s[2], fs=config.fs,
+#                                                             included_channels=config.included_channels)
+#
+#                     if cls.channels is None:
+#                         cls.channels = rec_data_segment.channels
+#                     if set(rec_data_segment.channels) != set(cls.channels):
+#                         rec_data_segment.channels = switch_channels(cls.channels, rec_data_segment.channels,
+#                                                                     Nodes.switchable_nodes)
+#                     if rec_data_segment.channels != cls.channels:
+#                         rec_data_segment.reorder_channels(cls.channels)
+#
+#                     channel_indices = [cls.channels.index(ch) for ch in rec_data_segment.channels]
+#                     segment_data = np.zeros((config.frame * config.fs, len(cls.channels)), dtype=np.float32)
+#                     segment_data[:, channel_indices] = np.array(rec_data_segment.data).T
+#
+#                     batch_data.append(segment_data)
+#
+#                 batch_data = np.array(batch_data)
+#                 if config.model in ['DeepConvNet', 'EEGnet']:
+#                     batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
+#
+#                 yield batch_data, labels
+#
+#         output_signature = (
+#             tf.TensorSpec(shape=(None, config.frame * config.fs, len(config.included_channels), 1), dtype=tf.float32),
+#             tf.TensorSpec(shape=(None, 2), dtype=tf.float32)
+#         )
+#
+#         return tf.data.Dataset.from_generator(generator, output_signature=output_signature)
 
     
     

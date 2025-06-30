@@ -1,3 +1,4 @@
+import math
 import os
 import gc
 
@@ -15,7 +16,7 @@ import tensorflow as tf
 
 from data.cross_validation import leave_one_person_out
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
-from net.generator_ds import SegmentedGenerator, SequentialGenerator
+from net.generator_ds import SegmentedGenerator, SequentialGenerator, build_segment_dataset
 from net.routines import train_net, predict_net
 from net.utils import get_metrics_scoring
 
@@ -103,7 +104,8 @@ def train(config, results, load_generators, save_generators):
                     raise ValueError('Unknown sample type: {}'.format(config.sample_type))
 
                 print('Generating training segments...')
-                gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
+                # gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
+                gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
 
                 if save_generators:
                     path_generator_train = get_paths_generators_train(config, config.get_name(), fold_i)
@@ -120,7 +122,8 @@ def train(config, results, load_generators, save_generators):
                 val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
 
                 print('Generating validation segments...')
-                gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+                # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+                gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
 
                 if save_generators:
                     path_generator_val = get_paths_generators_val(config, config.get_name(), fold_i)
@@ -166,7 +169,6 @@ def train(config, results, load_generators, save_generators):
                 end_train = time.time() - start_train
 
             else:
-
                 model: keras.Model = net(config)
 
                 start_train = time.time()
@@ -292,7 +294,7 @@ def evaluate(config, results):
     prec_epoch = []
     fah_epoch = []
     f1_epoch = []
-    rocauc = []
+    # rocauc = []
 
     score = []
 
@@ -314,7 +316,7 @@ def evaluate(config, results):
         prec_epoch_th = []
         fah_epoch_th = []
         f1_epoch_th = []
-        rocauc_th = []
+        # rocauc_th = []
 
         score_th = []
 
@@ -348,7 +350,7 @@ def evaluate(config, results):
         y_pred = np.where(np.array(rmsa) == 0, 0, y_pred)
 
         for th in thresholds:
-            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec, rocauc_rec = get_metrics_scoring(y_pred, y_true, pred_fs, th)
+            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec = get_metrics_scoring(y_pred, y_true, pred_fs, th)
 
             sens_ovlp_th.append(sens_ovlp_rec)
             prec_ovlp_th.append(prec_ovlp_rec)
@@ -359,7 +361,7 @@ def evaluate(config, results):
             prec_epoch_th.append(prec_epoch_rec)
             fah_epoch_th.append(FA_epoch_rec)
             f1_epoch_th.append(f1_epoch_rec)
-            rocauc_th.append(rocauc_rec)
+            # rocauc_th.append(rocauc_rec)
             score_th.append(sens_ovlp_rec*100-0.4*FA_epoch_rec)
 
         sens_ovlp.append(sens_ovlp_th)
@@ -372,7 +374,7 @@ def evaluate(config, results):
         prec_epoch.append(prec_epoch_th)
         fah_epoch.append(fah_epoch_th)
         f1_epoch.append(f1_epoch_th)
-        rocauc.append(rocauc_th)
+        # rocauc.append(rocauc_th)
 
         score.append(score_th)
 
@@ -403,7 +405,7 @@ def evaluate(config, results):
         f.create_dataset('prec_epoch', data=prec_epoch)
         f.create_dataset('fah_epoch', data=fah_epoch)
         f.create_dataset('f1_epoch', data=f1_epoch)
-        f.create_dataset('rocauc', data=rocauc)
+        # f.create_dataset('rocauc', data=rocauc)
         f.create_dataset('score', data=score)
 
     results.sens_ovlp = sens_ovlp
@@ -411,7 +413,7 @@ def evaluate(config, results):
     results.fah_ovlp = fah_ovlp
     results.fah_epoch = fah_epoch
     results.f1_ovlp = f1_ovlp
-    results.rocauc = rocauc
+    # results.rocauc = rocauc
     results.score = score
     results.thresholds = thresholds
     results.save_results(get_path_results(config, name))

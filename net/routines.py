@@ -29,7 +29,8 @@ def get_num_workers(fraction=0.5, min_workers=1, max_workers=None):
     return workers
 
 
-def train_net(config, model: keras.Model, gen_train: keras.utils.Sequence, gen_val: keras.utils.Sequence, model_save_path):
+def train_net(config, model: keras.Model, gen_train: keras.utils.Sequence, gen_val: keras.utils.Sequence, model_save_path,
+              steps_per_epoch=None):
     ''' Routine to train the model with the desired configurations.
 
         Args:
@@ -96,14 +97,14 @@ def train_net(config, model: keras.Model, gen_train: keras.utils.Sequence, gen_v
     else:
         callbacks_list = [mc, csv_logger, lr_sched]
 
-    hist = model.fit(gen_train, validation_data=gen_val,
+    hist = model.fit(gen_train[0], validation_data=gen_val[0],
                      epochs=config.nb_epochs,
                      callbacks=callbacks_list,
                      shuffle=False,
                      verbose=1,
-                     class_weight=config.class_weights,)
-                     # use_multiprocessing=True,
-                     # workers=get_num_workers(),)
+                     class_weight=config.class_weights,
+                     steps_per_epoch=gen_train[1],
+                     validation_steps=gen_val[1],)
 
     # serialize weights to HDF5
     best_model = model
