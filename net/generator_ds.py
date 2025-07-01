@@ -540,7 +540,7 @@ def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True):
     dataset = dataset.batch(batch_size)
     dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
-    steps_per_epoch = math.ceil(len(segments) / batch_size)
+    steps_per_epoch = math.ceil(len(tfrecord_files) / batch_size)
     return dataset, steps_per_epoch
 
 #
