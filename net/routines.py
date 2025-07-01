@@ -102,9 +102,9 @@ def train_net(config, model: keras.Model, gen_train: keras.utils.Sequence, gen_v
                      callbacks=callbacks_list,
                      shuffle=False,
                      verbose=1,
-                     class_weight=config.class_weights,)
-                     # steps_per_epoch=gen_train[1],
-                     # validation_steps=gen_val[1],)
+                     class_weight=config.class_weights,
+                     steps_per_epoch=gen_train[1],
+                     validation_steps=gen_val[1],)
 
     # serialize weights to HDF5
     best_model = model
