@@ -8,7 +8,8 @@ from tensorflow import keras
 from data.data import Data, switch_channels
 
 from utility.constants import Nodes
-from utility.paths import get_path_preprocessed_data
+from utility.dataset_management import create_single_tfrecord
+from utility.paths import get_path_preprocessed_data, get_path_tfrecord
 
 
 # class SequentialGenerator(keras.utils.Sequence):
@@ -501,6 +502,44 @@ def build_segment_dataset(config, recs, segments, batch_size=32, shuffle=True):
     )
 
     dataset = dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    steps_per_epoch = math.ceil(len(segments) / batch_size)
+    return dataset, steps_per_epoch
+
+def parse_example(example_proto, config):
+    features = {
+        "segment": tf.io.FixedLenFeature([], tf.string),
+        "label": tf.io.FixedLenFeature([2], tf.float32),
+    }
+    parsed = tf.io.parse_single_example(example_proto, features)
+    segment_shape = (config.frame * config.fs, config.CH, 1)
+    segment_data = tf.io.decode_raw(parsed["segment"], tf.float32)
+    segment_data = tf.reshape(segment_data, segment_shape)
+
+    if config.model in ['DeepConvNet', 'EEGnet']:
+        segment_data = tf.transpose(segment_data, perm=[1, 0, 2])
+
+    return segment_data, parsed["label"]
+
+def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True):
+    # Generate TFRecord paths for each segment
+    tfrecord_files = []
+    for s in segments:
+        rec_idx, start, stop, _ = s
+        path = get_path_tfrecord(config.data_path, recs[int(rec_idx)], start, stop)
+        tfrecord_files.append(path)
+        if not os.path.exists(path):
+            create_single_tfrecord(config, recs, s)
+
+    dataset = tf.data.TFRecordDataset(tfrecord_files, num_parallel_reads=tf.data.AUTOTUNE)
+    if shuffle:
+        dataset = dataset.shuffle(buffer_size=2048)
+
+    dataset = dataset.map(lambda x: parse_example(x, config),
+                          num_parallel_calls=tf.data.AUTOTUNE)
+
+    dataset = dataset.batch(batch_size)
+    dataset = dataset.prefetch(tf.data.AUTOTUNE)
+
     steps_per_epoch = math.ceil(len(segments) / batch_size)
     return dataset, steps_per_epoch
 

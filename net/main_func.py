@@ -15,7 +15,7 @@ import tensorflow as tf
 from pympler import asizeof
 from data.cross_validation import leave_one_person_out
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
-from net.generator_ds import SegmentedGenerator, SequentialGenerator, build_segment_dataset
+from net.generator_ds import SegmentedGenerator, SequentialGenerator, build_segment_dataset, build_tfrecord_dataset
 from net.routines import train_net, predict_net
 from net.utils import get_metrics_scoring
 
@@ -109,7 +109,9 @@ def train(config, results, load_segments, save_segments):
 
                 print('Generating training dataset...')
                 # gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
-                gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
+                # gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
+                #                                   shuffle=True)
+                gen_train = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                                   shuffle=True)
 
                 val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
@@ -128,7 +130,8 @@ def train(config, results, load_segments, save_segments):
 
                 print('Generating validation dataset...')
                 # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-                gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+                # gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+                gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
 
 
             else:

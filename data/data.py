@@ -29,6 +29,17 @@ class Data:
         self.__preprocessed = False
         self.__segment = None
 
+    def get_duration(self) -> float:
+        """Get the duration of the data object in seconds.
+
+        Returns:
+            float: duration of the data object in seconds.
+        """
+        if self.__segment is not None:
+            return self.__segment[1] - self.__segment[0]
+        else:
+            return len(self.data[0]) / self.fs[0] if self.fs else 0.0
+
     @classmethod
     def loadData(
         cls,

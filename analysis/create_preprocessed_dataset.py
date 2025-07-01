@@ -1,14 +1,15 @@
 import argparse
 import os
 
-import h5py
-import pyedflib
+from tqdm import tqdm
 from data.data import Data
-from net.DL_config import Config, get_base_config
+from net.DL_config import get_base_config
+from net.key_generator import generate_data_keys_sequential
 from utility import get_recs_list
 
 from utility.constants import parse_location, Locations
-from utility.paths import get_path_recording, get_path_preprocessed_data
+from utility.dataset_management import create_single_tfrecord
+from utility.paths import get_path_preprocessed_data
 
 base_ = os.path.dirname(os.path.realpath(__file__))
 
@@ -47,6 +48,40 @@ def create_preprocessed_dataset(root_dir, config):
                 rec_data.store_h5(preprocessed_file)
                 print(f"         | Saved preprocessed data to {preprocessed_file}")
 
+
+def create_tfrecord_dataset(root_dir, config):
+    """
+    Creates preprocessed TFRecord dataset and saves segments in TFRecord format.
+
+    Args:
+        root_dir (str): Directory containing the raw data recordings.
+        config (cls): Configuration object with preprocessing + segmentation settings.
+    """
+    if Locations.leuven_adult in config.locations:
+        included_subjects = ['SUBJ-1a-159', 'SUBJ-1a-358', 'SUBJ-1a-153']  # Leuven Adult subjects
+    else:
+        included_subjects = ['SUBJ-7-379', 'SUBJ-7-376']  # Coimbra subjects
+    for location in config.locations:
+        print("Processing location:", location)
+        location_path = os.path.join(root_dir, location)
+        if not os.path.isdir(location_path):
+            continue
+
+        for subject in os.listdir(location_path):
+            if subject not in included_subjects:
+                continue
+            print("     | Processing subject:", subject)
+            subject_path = os.path.join(location_path, subject)
+            if not os.path.isdir(subject_path):
+                continue
+
+            recs = get_recs_list(root_dir, [location], [subject])
+            segments = generate_data_keys_sequential(config, recs)
+
+
+            for s in tqdm(segments, desc="Writing TFRecord"):
+                create_single_tfrecord(config, recs, s)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -62,4 +97,5 @@ if __name__ == '__main__':
     unique_locations = list(dict.fromkeys(args.locations))
     # Import your configuration class
     config_ = get_base_config(base_, locations=unique_locations,)
-    create_preprocessed_dataset(config_.data_path, config_)
+    # create_preprocessed_dataset(config_.data_path, config_)
+    create_tfrecord_dataset(config_.data_path, config_)

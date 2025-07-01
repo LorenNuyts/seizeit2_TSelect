@@ -177,12 +177,31 @@ def average_memory_size_subject(root_dir, locations, channels=Nodes.basic_eeg_no
     average_memory = total_memory / total_subjects if total_subjects > 0 else 0
     print(f"Average memory size per subject: {average_memory / (1024 * 1024):.2f} MB")
 
+def hours_of_data_per_location(root_dir, locations):
+    total_hours = {loc: 0 for loc in locations}
+    for location in locations:
+        print("Processing location:", location)
+        location_path = os.path.join(root_dir, location)
+        for subject in os.listdir(location_path):
+            print("     | Processing subject:", subject)
+            subject_path = os.path.join(location_path, subject)
+            for recording in os.listdir(subject_path):
+                if recording.endswith(".edf"):
+                    edf_file = os.path.join(subject_path, recording)
+                    with pyedflib.EdfReader(edf_file) as edf:
+                        n_samples = edf.getNSamples()[0]
+                        sampling_frequency = edf.getSampleFrequency(0)  # Assuming all channels have the same frequency
+                        duration_seconds = n_samples / sampling_frequency
+                        total_hours[location] += duration_seconds / 3600  # Convert seconds to hours
+    print("Total hours of data per location:")
+    print(total_hours)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures",
                                                    "channel_differences", "rank_locations", "average_memory_size",
-                                                   "seizure_segments"],)
+                                                   "seizure_segments", "hours_of_data"],)
     parser.add_argument("--locations", type=str, nargs="?", default="all")
     args = parser.parse_args()
 
@@ -212,5 +231,7 @@ if __name__ == '__main__':
         average_memory_size_subject(data_path, locations=locations_, channels=Nodes.basic_eeg_nodes)
     elif args.task == "seizure_segments":
         seizure_segments_per_location(data_path, locations=locations_)
+    elif args.task == "hours_of_data":
+        hours_of_data_per_location(data_path, locations=locations_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")
