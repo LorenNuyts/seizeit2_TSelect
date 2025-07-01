@@ -1,9 +1,7 @@
-import math
 import os
 import gc
 
 import time
-import warnings
 
 import h5py
 import pickle
@@ -14,6 +12,7 @@ from tqdm import tqdm
 
 import tensorflow as tf
 
+from pympler import asizeof
 from data.cross_validation import leave_one_person_out
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
 from net.generator_ds import SegmentedGenerator, SequentialGenerator, build_segment_dataset
@@ -25,19 +24,19 @@ from net.MiniRocket_LR import MiniRocketLR
 from utility import get_recs_list
 from utility.constants import SEED, Paths, Keys
 from utility.paths import get_path_predictions, get_path_config, get_path_model_weights, get_path_model, \
-    get_path_predictions_folder, get_path_results, get_paths_generators_val, get_paths_generators_train
+    get_path_predictions_folder, get_path_results, get_paths_segments_val, get_paths_segments_train
 
 from TSelect.tselect.tselect.utils import init_metadata
 from TSelect.tselect.tselect.channel_selectors.tselect import TSelect
 
-def train(config, results, load_generators, save_generators):
+def train(config, results, load_segments, save_segments):
     """ Routine to run the model's training routine.
 
         Args:
             config (cls): a config object with the data input type and model parameters
             results (cls): a Results object to store the results
-            load_generators (bool): boolean to load the training and validation generators from a file
-            save_generators (bool): boolean to save the training and validation generators
+            load_segments (bool): boolean to load the training and validation generators from a file
+            save_segments (bool): boolean to save the training and validation generators
     """
 
     name = config.get_name()
@@ -80,59 +79,60 @@ def train(config, results, load_generators, save_generators):
             if not os.path.exists(model_save_path):
                 os.makedirs(model_save_path)
 
-            train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
+            if config.sample_type == 'subsample':
+                train_segments = None
+                val_segments = None
+                if load_segments:
+                    print('Loading segments...')
+                    path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
+                    if os.path.exists(path_segments_train):
+                        with open(path_segments_train, 'rb') as inp:
+                            train_segments = pickle.load(inp)
 
-            gen_train = None
-            gen_val = None
-            if load_generators:
-                print('Loading generators...')
-                # name = config.dataset + '_frame-' + str(config.frame) + '_sampletype-' + config.sample_type
-                path_generator_train = get_paths_generators_train(config, config.get_name(), fold_i)
-                if os.path.exists(path_generator_train):
-                    with open(path_generator_train, 'rb') as inp:
-                        gen_train = pickle.load(inp)
+                    path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
+                    if os.path.exists(path_segments_val):
+                        with open(get_paths_segments_val(config, config.get_name(), fold_i), 'rb') as inp:
+                            val_segments = pickle.load(inp)
 
-                path_generator_val = get_paths_generators_val(config, config.get_name(), fold_i)
-                if os.path.exists(path_generator_val):
-                    with open(get_paths_generators_val(config, config.get_name(), fold_i), 'rb') as inp:
-                        gen_val = pickle.load(inp)
+                train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
 
-            if gen_train is None:
-                if config.sample_type == 'subsample':
+                if train_segments is None:
                     train_segments = generate_data_keys_subsample(config, train_recs_list)
-                else:
-                    raise ValueError('Unknown sample type: {}'.format(config.sample_type))
+                    if save_segments:
+                        path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
+                        if not os.path.exists(os.path.dirname(path_segments_train)):
+                            os.makedirs(os.path.dirname(path_segments_train))
 
-                print('Generating training segments...')
+                        with open(path_segments_train, 'wb') as outp:
+                            # noinspection PyTypeChecker
+                            pickle.dump(train_segments, outp, pickle.HIGHEST_PROTOCOL)
+
+                print('Generating training dataset...')
                 # gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
-                gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
+                gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
+                                                  shuffle=True)
 
-                if save_generators:
-                    path_generator_train = get_paths_generators_train(config, config.get_name(), fold_i)
-                    if not os.path.exists(os.path.dirname(path_generator_train)):
-                        os.makedirs(os.path.dirname(path_generator_train))
-
-                    with open(path_generator_train, 'wb') as outp:
-                        # noinspection PyTypeChecker
-                        pickle.dump(gen_train, outp, pickle.HIGHEST_PROTOCOL)
-
-            if gen_val is None:
                 val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
 
-                val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5*60)
+                if val_segments is None:
+                    val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5 * 60)
 
-                print('Generating validation segments...')
+                    if save_segments:
+                        path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
+                        if not os.path.exists(os.path.dirname(path_segments_val)):
+                            os.makedirs(os.path.dirname(path_segments_val))
+
+                        with open(path_segments_val, 'wb') as outp:
+                            # noinspection PyTypeChecker
+                            pickle.dump(val_segments, outp, pickle.HIGHEST_PROTOCOL)
+
+                print('Generating validation dataset...')
                 # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
                 gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
 
-                if save_generators:
-                    path_generator_val = get_paths_generators_val(config, config.get_name(), fold_i)
-                    if not os.path.exists(os.path.dirname(path_generator_val)):
-                        os.makedirs(os.path.dirname(path_generator_val))
 
-                    with open(path_generator_val, 'wb') as outp:
-                        # noinspection PyTypeChecker
-                        pickle.dump(gen_val, outp, pickle.HIGHEST_PROTOCOL)
+            else:
+                raise ValueError('Unknown sample type: {}'.format(config.sample_type))
 
             if config.channel_selection:
                 selection_start = time.process_time()
@@ -158,8 +158,8 @@ def train(config, results, load_generators, save_generators):
                 config.reload_CH(fold=fold_i)
                 results.selection_time[fold_i] = time.process_time() - selection_start
 
-            print('Memory usage segments train: ', gen_train.data_segs.nbytes / (1024 ** 2), 'MB')
-            print('Memory usage segments val: ', gen_val.data_segs.nbytes / (1024 ** 2), 'MB')
+            print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
+            print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
 
             print('### Training model....')
             if config.model.lower() == Keys.minirocketLR.lower():

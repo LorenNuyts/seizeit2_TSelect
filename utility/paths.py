@@ -29,8 +29,8 @@ def get_path_model(config, name, fold_i):
 def get_path_predictions_folder(config, name):
     return os.path.join(config.save_dir, 'predictions', name)
 
-def get_paths_generators_train(config, name, fold_i):
-    return os.path.join(config.save_dir, 'generators', name, 'fold_{}'.format(fold_i), 'gen_train' + '.pkl')
+def get_paths_segments_train(config, name, fold_i):
+    return os.path.join(config.save_dir, 'segments', name, 'fold_{}'.format(fold_i), 'gen_train' + '.pkl')
 
-def get_paths_generators_val(config, name, fold_i):
-    return os.path.join(config.save_dir, 'generators', name, 'fold_{}'.format(fold_i), 'gen_val' + '.pkl')
+def get_paths_segments_val(config, name, fold_i):
+    return os.path.join(config.save_dir, 'segments', name, 'fold_{}'.format(fold_i), 'gen_val' + '.pkl')
