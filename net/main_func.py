@@ -11,6 +11,7 @@ import numpy as np
 from tqdm import tqdm
 
 import tensorflow as tf
+from tensorflow.keras import backend as K
 
 from pympler import asizeof
 from data.cross_validation import leave_one_person_out
@@ -68,6 +69,8 @@ def train(config, results, load_segments, save_segments):
     if config.cross_validation == 'leave_one_person_out':
         for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(leave_one_person_out(config.data_path, included_locations=config.locations,
                                                                  validation_set=config.validation_percentage)):
+            K.clear_session()
+            gc.collect()
             model_save_path = get_path_model(config, name, fold_i)
             if os.path.exists(model_save_path) and os.path.exists(get_path_model(config, name, fold_i+1)):
                 print('    | Model of fold {} already exists'.format(fold_i))
@@ -197,7 +200,6 @@ def train(config, results, load_segments, save_segments):
 
 
 def predict(config):
-
     name = config.get_name()
     config_path = get_path_config(config, name)
     config.load_config(config_path=config_path, config_name=name)
@@ -209,6 +211,8 @@ def predict(config):
 
     if config.cross_validation == 'leave_one_person_out':
         for fold_i in config.folds.keys():
+            K.clear_session()
+            gc.collect()
             config.reload_CH(fold=fold_i)
             model_save_path = get_path_model(config, name, fold_i)
             test_subject = config.folds[fold_i]['test']
@@ -308,6 +312,9 @@ def evaluate(config, results):
     pred_files.sort()
 
     for file in tqdm(pred_files):
+        K.clear_session()
+        gc.collect()
+        
         with h5py.File(os.path.join(pred_path, file), 'r') as f:
             y_pred = list(f['y_pred'])
             y_true = list(f['y_true'])

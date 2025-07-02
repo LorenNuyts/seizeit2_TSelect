@@ -15,9 +15,6 @@ random.seed(random_seed)
 import numpy as np
 np.random.seed(random_seed)
 
-import tensorflow as tf
-tf.random.set_seed(random_seed)
-
 from net import key_generator
 key_generator.random.seed(random_seed)
 
@@ -46,11 +43,19 @@ parser.add_argument("--corr", type=float, nargs="?", default=0.5)
 parser.add_argument("--batch_size", type=int, nargs="?", default=128)
 parser.add_argument("--suffix", type=str, nargs="?", default="")
 parser.add_argument('--reset', action='store_true')
+parser.add_argument("--gpu", type=int, nargs="?", default=0)
 
 args = parser.parse_args()
 
 suffix_ = args.suffix
 unique_locations = list(dict.fromkeys(args.locations))
+
+############################################
+##### Set the GPU and import tensorflow ####
+############################################
+os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
+import tensorflow as tf
+tf.random.set_seed(random_seed)
 
 ############################################
 ##### Print the settings for this run ######
