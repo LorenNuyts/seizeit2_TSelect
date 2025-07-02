@@ -220,8 +220,6 @@ def predict(config):
 
             model_weights_path = get_path_model_weights(model_save_path, name)
 
-            # config.load_config(config_path=config_path, config_name=name+'.cfg')
-
             if config.model == 'DeepConvNet':
                 from net.DeepConv_Net import net
             elif config.model == 'ChronoNet':
@@ -231,6 +229,11 @@ def predict(config):
             elif config.model.lower() != Keys.minirocketLR.lower():
                 raise ValueError('Model not recognized')
 
+            if config.model.lower() == Keys.minirocketLR.lower():
+                model = MiniRocketLR(model_save_path)
+            else:
+                model = net(config)
+
             for rec in tqdm(test_recs_list):
                 if os.path.isfile(get_path_predictions(config, name, rec)):
                     print(rec[0] + ' ' + rec[1] + ' ' + rec[2] + ' exists. Skipping...')
@@ -239,7 +242,8 @@ def predict(config):
                     with tf.device('/cpu:0'):
                         segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
-                        gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
+                        # gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
+                        gen_test = build_tfrecord_dataset(config, [rec], segments, batch_size=len(segments), shuffle=False)
 
                         if config.channel_selection:
                             gen_test.change_included_channels(config.selected_channels[fold_i])
@@ -247,13 +251,8 @@ def predict(config):
                         config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 
                         if config.model.lower() == Keys.minirocketLR.lower():
-                            model = MiniRocketLR(model_save_path)
                             y_pred, y_true = model.predict(gen_test)
-
-
                         else:
-                            model = net(config)
-
                             y_pred, y_true = predict_net(gen_test, model_weights_path, model)
 
                     with h5py.File(get_path_predictions(config, name, rec), 'w') as f:
@@ -314,7 +313,7 @@ def evaluate(config, results):
     for file in tqdm(pred_files):
         K.clear_session()
         gc.collect()
-        
+
         with h5py.File(os.path.join(pred_path, file), 'r') as f:
             y_pred = list(f['y_pred'])
             y_true = list(f['y_true'])

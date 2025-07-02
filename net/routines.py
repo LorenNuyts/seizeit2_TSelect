@@ -29,8 +29,7 @@ def get_num_workers(fraction=0.5, min_workers=1, max_workers=None):
     return workers
 
 
-def train_net(config, model: keras.Model, gen_train: keras.utils.Sequence, gen_val: keras.utils.Sequence, model_save_path,
-              steps_per_epoch=None):
+def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path):
     ''' Routine to train the model with the desired configurations.
 
         Args:
@@ -114,7 +113,7 @@ def train_net(config, model: keras.Model, gen_train: keras.utils.Sequence, gen_v
     print("Saved model to disk")
 
 
-def predict_net(generator, model_weights_path, model):
+def predict_net(generator, model_weights_path, model: keras.Model):
     ''' Routine to obtain predictions from the trained model with the desired configurations.
 
     Args:
