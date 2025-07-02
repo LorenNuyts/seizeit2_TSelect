@@ -216,8 +216,8 @@ def dataset_stats(data_path: str, save_dir: str, locations: List[str] = None):
 
     for location in missing_locations:
         file_name = os.path.join(save_dir, "dataset_stats_" + location + ".csv")
-        info_per_subject = {'Subject': [],
-                            'Location': [],
+        info_per_subject = {'subject': [],
+                            'hospital': [],
                             'n_seizures': [],
                             'hours_of_data': []}
         print(f"Processing location: {location}")
@@ -243,8 +243,8 @@ def dataset_stats(data_path: str, save_dir: str, locations: List[str] = None):
                 tsv_path = os.path.join(subject_path, tsv_file)
                 df = pd.read_csv(tsv_path, delimiter="\t", skiprows=4)
                 n_seizures += df[df['class'] == 'seizure'].shape[0]
-            info_per_subject['Subject'].append(subject)
-            info_per_subject['Location'].append(location)
+            info_per_subject['subject'].append(subject)
+            info_per_subject['hospital'].append(location)
             info_per_subject['n_seizures'].append(n_seizures)
             info_per_subject['hours_of_data'].append(hours_of_data)
 
