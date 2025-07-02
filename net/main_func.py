@@ -72,7 +72,8 @@ def train(config, results, load_segments, save_segments):
             K.clear_session()
             gc.collect()
             model_save_path = get_path_model(config, name, fold_i)
-            if os.path.exists(model_save_path) and os.path.exists(get_path_model(config, name, fold_i+1)):
+            path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
+            if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
                 print('    | Model of fold {} already exists'.format(fold_i))
                 continue
             print('Fold {}'.format(fold_i))
