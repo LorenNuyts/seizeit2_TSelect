@@ -71,11 +71,16 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
 
     group_names = df[group_column].unique()
     groups = {name: df[df[group_column] == name] for name in group_names}
-    totals_per_group = pd.DataFrame({name: group[[c for c in group.columns if c != id_column]].sum(axis=0) for name, group in groups.items()})
-    split_targets = {'train': {name: train_size * totals for name, totals in totals_per_group.items()},
-                     'val': {name: val_size * totals for name, totals in totals_per_group.items()},
-                     'test': {name: test_size * totals for name, totals in totals_per_group.items()}}
+    metrics = [c for c in df.columns if c not in [id_column, group_column]]
+    totals_per_group = pd.DataFrame({name: group[[c for c in metrics]].sum(axis=0) for name, group in groups.items()}).transpose()
+    totals_per_group['n_ids'] = df.groupby(group_column)[id_column].nunique()
+    split_targets = {'train': train_size * totals_per_group,
+                     'val': val_size * totals_per_group,
+                     'test': test_size * totals_per_group}
+    totals = totals_per_group.sum(axis=0)
+    totals['n_ids'] = df.shape[0]
 
+    extended_metrics = metrics + ['n_ids']  # Add a column to track the number of IDs in each group
     for split in range(n_splits):
         # Shuffle the DataFrame
         df = df.sample(frac=1, random_state=seed + split).reset_index(drop=True)
@@ -83,39 +88,39 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
         # Initialize tracking structures
         assignments = defaultdict(list)
         current_sums = {
-            'train': defaultdict(float),
-            'val': defaultdict(float),
-            'test': defaultdict(float)
+            'train':  pd.DataFrame(0, index=group_names, columns=extended_metrics),
+            'val':  pd.DataFrame(0, index=group_names, columns=extended_metrics),
+            'test': pd.DataFrame(0, index=group_names, columns=extended_metrics)
         }
 
         for _, row in df.iterrows():
             pid = row[id_column]
+            current_group = row[group_column]
+            current_metrics = row[metrics].to_dict()
+            current_metrics['n_ids'] = 1
 
-        # # Initialize counters for each split
-        # split_counts = {key: {col: 0 for col in df.columns if col != id_column} for key in split_targets.keys()}
-        #
-        # train_indices, val_indices, test_indices = [], [], []
-        #
-        # for idx, row in df.iterrows():
-        #     group_id = row[id_column]
-        #     group_data = row.drop(id_column)
-        #
-        #     # Determine which split this group should go into
-        #     for split_name, target in split_targets.items():
-        #         if all(split_counts[split_name][col] + group_data[col] <= target[col] for col in group_data.index):
-        #             if split_name == 'train':
-        #                 train_indices.append(group_id)
-        #             elif split_name == 'val':
-        #                 val_indices.append(group_id)
-        #             elif split_name == 'test':
-        #                 test_indices.append(group_id)
-        #
-        #             # Update the counts
-        #             for col in group_data.index:
-        #                 split_counts[split_name][col] += group_data[col]
-        #             break
-        #
-        # yield train_indices, val_indices, test_indices
+            # Evaluate which set would result in smallest imbalance increase
+            best_fold = None
+            best_score = float('inf')
+
+            for fold in ['train', 'val', 'test']:
+                score = 0
+                for k in extended_metrics:
+                    target = split_targets[fold].loc[current_group][k]
+                    current = current_sums[fold].loc[current_group][k]
+                    projected = current + current_metrics[k]
+                    score += abs(projected - target) / target
+
+                if score < best_score: # If equal, prefer the train set
+                    best_fold = fold
+                    best_score = score
+
+            assignments[best_fold].append(pid)
+            for k in extended_metrics:
+                current_sums[best_fold][k] += current_metrics[k]
+
+
+        yield assignments['train'], assignments['val'], assignments['test']
 
 # def leave_one_seizure_out(X: pl.DataFrame, y: pl.Series):
 #     end_previous_seizure = None

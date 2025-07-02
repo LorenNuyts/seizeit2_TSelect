@@ -156,7 +156,9 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
     config.stride_s = 0.5  # stride between segments (of seizure EEG) in seconds
     config.boundary = 0.5  # proportion of seizure data in a window to consider the segment in the positive class
     config.factor = 5  # balancing factor between nr of segments in each class
-    config.validation_percentage = 0.2  # proportion of the training set to use for validation
+    config.train_percentage = 0.8  # proportion of the dataset to use for training
+    config.validation_percentage = 0.1  # proportion of the dataset to use for the validation set
+    config.n_folds = 10  # number of folds for cross-validation
     config.folds = {}  # dictionary to store the folds
 
     ## Network hyper-parameters

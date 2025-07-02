@@ -14,6 +14,8 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 
 from pympler import asizeof
+
+from analysis.dataset import dataset_stats
 from data.cross_validation import leave_one_person_out, multi_objective_grouped_stratified_cross_validation
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
 from net.generator_ds import build_tfrecord_dataset
@@ -70,7 +72,13 @@ def train(config, results, load_segments, save_segments):
         CV_generator = leave_one_person_out(config.data_path, included_locations=config.locations,
                                             validation_set=config.validation_percentage)
     elif config.cross_validation == Keys.stratified:
-        CV_generator = multi_objective_grouped_stratified_cross_validation()
+        info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"), config.locations)
+        CV_generator = multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
+                                                                           id_column='subject',
+                                                                           n_splits=config.n_folds,
+                                                                           train_size=config.train_percentage,
+                                                                           val_size=config.validation_percentage,
+                                                                           seed=SEED)
     else:
         raise NotImplementedError('Cross-validation method not implemented yet')
 
