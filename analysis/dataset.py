@@ -1,5 +1,6 @@
 import argparse
 import os
+from typing import List
 
 import pandas as pd
 import pyedflib
@@ -88,7 +89,7 @@ def seizure_segments_per_location(root_dir, locations):
     print("Seizure segments per location:")
     print(seizure_segments)
 
-def channel_differences_between_subjects(root_dir, locations):
+def channel_differences_between_subjects(root_dir, locations: List[str]):
     ref_channels = set(Nodes.basic_eeg_nodes)
     channel_differences = dict()
     for location in os.listdir(root_dir):
@@ -117,7 +118,7 @@ def channel_differences_between_subjects(root_dir, locations):
     print(channel_differences)
 
 
-def rank_locations(root_dir, locations):
+def rank_locations(root_dir, locations: List[str]):
     location_counts = {loc: [0,0] for loc in locations}
     location_average_time_steps = {}
     for location in os.listdir(root_dir):
@@ -196,12 +197,69 @@ def hours_of_data_per_location(root_dir, locations):
     print("Total hours of data per location:")
     print(total_hours)
 
+def dataset_stats(data_path: str, save_dir: str, locations: List[str] = None):
+    if locations is None:
+        locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,
+                     Locations.leuven_adult, Locations.leuven_pediatric]
+
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    data = []
+    missing_locations = []
+    for location in locations:
+        file_name = os.path.join(save_dir, "dataset_stats_" + location + ".csv")
+        if os.path.exists(file_name):
+            data.append(pd.read_csv(file_name))
+        else:
+            missing_locations.append(location)
+
+    for location in missing_locations:
+        file_name = os.path.join(save_dir, "dataset_stats_" + location + ".csv")
+        info_per_subject = {'Subject': [],
+                            'Location': [],
+                            'n_seizures': [],
+                            'hours_of_data': []}
+        print(f"Processing location: {location}")
+        location_path = os.path.join(data_path, location)
+        if not os.path.isdir(location_path):
+            print(f"Location {location} does not exist in the dataset.")
+            continue
+        subjects = os.listdir(location_path)
+        for subject in subjects:
+            n_seizures = 0
+            hours_of_data = 0
+            subject_path = os.path.join(location_path, subject)
+            recordings = [f for f in os.listdir(subject_path) if f.endswith('.edf')]
+            for recording in recordings:
+                edf_file = os.path.join(subject_path, recording)
+                with pyedflib.EdfReader(edf_file) as edf:
+                    n_samples = edf.getNSamples()[0]
+                    sampling_frequency = edf.getSampleFrequency(0)
+                    duration_seconds = n_samples / sampling_frequency
+                    hours_of_data += duration_seconds / 3600  # Convert seconds to hours
+            tsv_files = [f for f in os.listdir(subject_path) if f.endswith('.tsv')]
+            for tsv_file in tsv_files:
+                tsv_path = os.path.join(subject_path, tsv_file)
+                df = pd.read_csv(tsv_path, delimiter="\t", skiprows=4)
+                n_seizures += df[df['class'] == 'seizure'].shape[0]
+            info_per_subject['Subject'].append(subject)
+            info_per_subject['Location'].append(location)
+            info_per_subject['n_seizures'].append(n_seizures)
+            info_per_subject['hours_of_data'].append(hours_of_data)
+
+        df = pd.DataFrame(info_per_subject)
+        df.to_csv(file_name, index=False)
+        data.append(df)
+
+    return pd.concat(data)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures",
                                                    "channel_differences", "rank_locations", "average_memory_size",
-                                                   "seizure_segments", "hours_of_data"],)
+                                                   "seizure_segments", "hours_of_data", "compute_dataset_stats"],)
     parser.add_argument("--locations", type=str, nargs="?", default="all")
     args = parser.parse_args()
 
@@ -215,23 +273,27 @@ if __name__ == '__main__':
             raise ValueError(f"Unknown location: {args.locations}")
 
     if 'dtai' in base_dir:
-        data_path = Paths.remote_data_path
+        data_path_ = Paths.remote_data_path
+        save_dir_ = Paths.remote_save_dir
     else:
-        data_path = Paths.local_data_path
+        data_path_ = Paths.local_data_path
+        save_dir_ = Paths.local_save_dir
 
     if args.task == "subjects_with_seizures":
-        subjects_with_seizures(data_path, locations=locations_)
+        subjects_with_seizures(data_path_, locations=locations_)
     elif args.task == "channel_names":
-        channel_names(data_path, locations=locations_)
+        channel_names(data_path_, locations=locations_)
     elif args.task == "channel_differences":
-        channel_differences_between_subjects(data_path, locations=locations_)
+        channel_differences_between_subjects(data_path_, locations=locations_)
     elif args.task == "rank_locations":
-        rank_locations(data_path, locations=locations_)
+        rank_locations(data_path_, locations=locations_)
     elif args.task == "average_memory_size":
-        average_memory_size_subject(data_path, locations=locations_, channels=Nodes.basic_eeg_nodes)
+        average_memory_size_subject(data_path_, locations=locations_, channels=Nodes.basic_eeg_nodes)
     elif args.task == "seizure_segments":
-        seizure_segments_per_location(data_path, locations=locations_)
+        seizure_segments_per_location(data_path_, locations=locations_)
     elif args.task == "hours_of_data":
-        hours_of_data_per_location(data_path, locations=locations_)
+        hours_of_data_per_location(data_path_, locations=locations_)
+    elif args.task == "compute_dataset_stats":
+        dataset_stats(data_path_, os.path.join(base_dir, "..", save_dir_, "dataset_stats"), locations=locations_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")

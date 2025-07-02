@@ -202,6 +202,8 @@ def parse_location(value):
 
 class Keys:
     minirocketLR = "MiniRocketLR"
+    leave_one_person_out = "leave_one_person_out"
+    stratified = "stratified"
 
 class Paths:
     remote_data_path = "/cw/dtaidata/ml/2025-Epilepsy"

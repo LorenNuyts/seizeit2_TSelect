@@ -1,8 +1,10 @@
 import math
 import os
+from collections import defaultdict
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 
 from utility.constants import SEED, subjects_with_seizures, excluded_subjects, Locations
 
@@ -57,6 +59,63 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
         else:
             yield train, [subject]
 
+def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataFrame, group_column: str,
+                                                        id_column: str, n_splits: int,
+                                                        train_size: float, val_size: float, seed=SEED):
+    np.random.seed(seed)
+    df = info_per_group.copy()
+    assert train_size + val_size < 1, ("Train and validation sizes must sum to less than 1. The rest will be used for "
+                                       "the test set.")
+    assert n_splits > 1, "n_splits must be greater than 1 for cross-validation."
+    test_size = 1 - train_size - val_size
+
+    group_names = df[group_column].unique()
+    groups = {name: df[df[group_column] == name] for name in group_names}
+    totals_per_group = pd.DataFrame({name: group[[c for c in group.columns if c != id_column]].sum(axis=0) for name, group in groups.items()})
+    split_targets = {'train': {name: train_size * totals for name, totals in totals_per_group.items()},
+                     'val': {name: val_size * totals for name, totals in totals_per_group.items()},
+                     'test': {name: test_size * totals for name, totals in totals_per_group.items()}}
+
+    for split in range(n_splits):
+        # Shuffle the DataFrame
+        df = df.sample(frac=1, random_state=seed + split).reset_index(drop=True)
+
+        # Initialize tracking structures
+        assignments = defaultdict(list)
+        current_sums = {
+            'train': defaultdict(float),
+            'val': defaultdict(float),
+            'test': defaultdict(float)
+        }
+
+        for _, row in df.iterrows():
+            pid = row[id_column]
+
+        # # Initialize counters for each split
+        # split_counts = {key: {col: 0 for col in df.columns if col != id_column} for key in split_targets.keys()}
+        #
+        # train_indices, val_indices, test_indices = [], [], []
+        #
+        # for idx, row in df.iterrows():
+        #     group_id = row[id_column]
+        #     group_data = row.drop(id_column)
+        #
+        #     # Determine which split this group should go into
+        #     for split_name, target in split_targets.items():
+        #         if all(split_counts[split_name][col] + group_data[col] <= target[col] for col in group_data.index):
+        #             if split_name == 'train':
+        #                 train_indices.append(group_id)
+        #             elif split_name == 'val':
+        #                 val_indices.append(group_id)
+        #             elif split_name == 'test':
+        #                 test_indices.append(group_id)
+        #
+        #             # Update the counts
+        #             for col in group_data.index:
+        #                 split_counts[split_name][col] += group_data[col]
+        #             break
+        #
+        # yield train_indices, val_indices, test_indices
 
 # def leave_one_seizure_out(X: pl.DataFrame, y: pl.Series):
 #     end_previous_seizure = None

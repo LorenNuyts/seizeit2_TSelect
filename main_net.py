@@ -28,7 +28,8 @@ base_ = os.path.dirname(os.path.realpath(__file__))
 parser = argparse.ArgumentParser()
 parser.add_argument('--channel_selection', action='store_true')
 parser.add_argument("--model", type=str, nargs="?", default="ChronoNet")
-parser.add_argument("--evaluation_metric", type=str, nargs="?", default="roc_auc")
+parser.add_argument("--evaluation_metric", type=str, nargs="?", default="score",
+                    choices=list(evaluation_metrics.keys()))
 parser.add_argument(
     '--locations',
     nargs='+',  # accept multiple inputs
@@ -44,6 +45,9 @@ parser.add_argument("--batch_size", type=int, nargs="?", default=128)
 parser.add_argument("--suffix", type=str, nargs="?", default="")
 parser.add_argument('--reset', action='store_true')
 parser.add_argument("--gpu", type=int, nargs="?", default=0)
+parser.add_argument("--CV", type=str, nargs="?", default="leave_one_person_out",
+                    choices=["leave_one_person_out", "stratified"],
+                    help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
 
 args = parser.parse_args()
 
@@ -73,11 +77,11 @@ print("Model:", args.model)
 if args.channel_selection:
     config = get_channel_selection_config(base_, unique_locations, model=args.model,
                                           evaluation_metric=evaluation_metrics[args.evaluation_metric],
-                                          auc_percentage=args.auc, corr_threshold=args.corr,
+                                          auc_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
                                           suffix=suffix_, included_channels=args.nodes, batch_size=args.batch_size)
 else:
     config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
-                             batch_size=args.batch_size)
+                             batch_size=args.batch_size, CV= args.CV,)
 
 ###########################################
 ###########################################

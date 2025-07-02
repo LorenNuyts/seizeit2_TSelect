@@ -14,9 +14,9 @@ import tensorflow as tf
 from tensorflow.keras import backend as K
 
 from pympler import asizeof
-from data.cross_validation import leave_one_person_out
+from data.cross_validation import leave_one_person_out, multi_objective_grouped_stratified_cross_validation
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
-from net.generator_ds import SegmentedGenerator, SequentialGenerator, build_segment_dataset, build_tfrecord_dataset
+from net.generator_ds import build_tfrecord_dataset
 from net.routines import train_net, predict_net
 from net.utils import get_metrics_scoring
 
@@ -66,136 +66,140 @@ def train(config, results, load_segments, save_segments):
     config.save_config(save_path=config_path)
     results.save_results(save_path=results_path)
 
-    if config.cross_validation == 'leave_one_person_out':
-        for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(leave_one_person_out(config.data_path, included_locations=config.locations,
-                                                                 validation_set=config.validation_percentage)):
-            K.clear_session()
-            gc.collect()
-            model_save_path = get_path_model(config, name, fold_i)
-            path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
-            if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
-                print('    | Model of fold {} already exists'.format(fold_i))
-                continue
-            print('Fold {}'.format(fold_i))
-            print('     | Test: {}'.format(test_subject))
-            print('     | Validation: {}'.format(validation_subjects))
-            config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': test_subject}
-            if not os.path.exists(model_save_path):
-                os.makedirs(model_save_path)
-
-            if config.sample_type == 'subsample':
-                train_segments = None
-                val_segments = None
-                if load_segments:
-                    print('Loading segments...')
-                    path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
-                    if os.path.exists(path_segments_train):
-                        with open(path_segments_train, 'rb') as inp:
-                            train_segments = pickle.load(inp)
-
-                    path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
-                    if os.path.exists(path_segments_val):
-                        with open(get_paths_segments_val(config, config.get_name(), fold_i), 'rb') as inp:
-                            val_segments = pickle.load(inp)
-
-                train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
-
-                if train_segments is None:
-                    train_segments = generate_data_keys_subsample(config, train_recs_list)
-                    if save_segments:
-                        path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
-                        if not os.path.exists(os.path.dirname(path_segments_train)):
-                            os.makedirs(os.path.dirname(path_segments_train))
-
-                        with open(path_segments_train, 'wb') as outp:
-                            # noinspection PyTypeChecker
-                            pickle.dump(train_segments, outp, pickle.HIGHEST_PROTOCOL)
-
-                print('Generating training dataset...')
-                # gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
-                # gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
-                #                                   shuffle=True)
-                gen_train = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
-                                                  shuffle=True)
-
-                val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
-
-                if val_segments is None:
-                    val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5 * 60)
-
-                    if save_segments:
-                        path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
-                        if not os.path.exists(os.path.dirname(path_segments_val)):
-                            os.makedirs(os.path.dirname(path_segments_val))
-
-                        with open(path_segments_val, 'wb') as outp:
-                            # noinspection PyTypeChecker
-                            pickle.dump(val_segments, outp, pickle.HIGHEST_PROTOCOL)
-
-                print('Generating validation dataset...')
-                # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-                # gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-                gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-
-
-            else:
-                raise ValueError('Unknown sample type: {}'.format(config.sample_type))
-
-            if config.channel_selection:
-                selection_start = time.process_time()
-                print('### Selecting channels....')
-                channel_selector = TSelect(random_state=SEED, evaluation_metric=config.channel_selection_evaluation_metric,
-                                           irrelevant_selector_percentage=config.auc_percentage,
-                                           filtering_threshold_corr=config.corr_threshold)
-                # channel_selector = TSelect(random_state=SEED)
-                metadata = init_metadata()
-                # df = from_3d_numpy_to_multi_index(gen_train.data_segs.transpose(0, 2, 1), column_names=gen_train.channels)
-                df = gen_train.data_segs
-                # y = pd.Series(gen_train.labels[:, 0])
-                y = gen_train.labels[:, 0]
-                channel_selector.fit(df, y, X_val=gen_val.data_segs, y_val=gen_val.labels[:, 0], metadata=metadata)
-                selected_channels = [gen_train.channels[i] for i in channel_selector.selected_channels]
-                gen_train.change_included_channels(selected_channels)
-                gen_val.change_included_channels(selected_channels)
-                assert gen_train.data_segs.shape[2] == gen_val.data_segs.shape[2]
-                if config.selected_channels is None:
-                    config.selected_channels = {fold_i: selected_channels}
-                else:
-                    config.selected_channels[fold_i] = selected_channels
-                config.reload_CH(fold=fold_i)
-                results.selection_time[fold_i] = time.process_time() - selection_start
-
-            print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
-            print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
-
-            print('### Training model....')
-            if config.model.lower() == Keys.minirocketLR.lower():
-                model_minirocket = MiniRocketLR()
-                start_train = time.time()
-                # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
-                model_minirocket.fit(config, gen_train, gen_val, model_save_path)
-                # train_net(config, model, gen_train, gen_val, model_save_path)
-
-                end_train = time.time() - start_train
-
-            else:
-                model: keras.Model = net(config)
-
-                start_train = time.time()
-
-                train_net(config, model, gen_train, gen_val, model_save_path)
-
-                end_train = time.time() - start_train
-            print('Total train duration = ', end_train / 60)
-            results.train_time[fold_i] = end_train
-
-            config.reload_CH()
-            config.save_config(save_path=config_path)
-            results.config = config
-            results.save_results(save_path=results_path)
-
-    elif config.cross_validation == 'leave_one_seizure_out':
+    if config.cross_validation == Keys.leave_one_person_out:
+        CV_generator = leave_one_person_out(config.data_path, included_locations=config.locations,
+                                            validation_set=config.validation_percentage)
+    elif config.cross_validation == Keys.stratified:
+        CV_generator = multi_objective_grouped_stratified_cross_validation()
+    else:
         raise NotImplementedError('Cross-validation method not implemented yet')
+
+    for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(CV_generator):
+        K.clear_session()
+        gc.collect()
+        model_save_path = get_path_model(config, name, fold_i)
+        path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
+        if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
+            print('    | Model of fold {} already exists'.format(fold_i))
+            continue
+        print('Fold {}'.format(fold_i))
+        print('     | Test: {}'.format(test_subject))
+        print('     | Validation: {}'.format(validation_subjects))
+        config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': test_subject}
+        if not os.path.exists(model_save_path):
+            os.makedirs(model_save_path)
+
+        if config.sample_type == 'subsample':
+            train_segments = None
+            val_segments = None
+            if load_segments:
+                print('Loading segments...')
+                path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
+                if os.path.exists(path_segments_train):
+                    with open(path_segments_train, 'rb') as inp:
+                        train_segments = pickle.load(inp)
+
+                path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
+                if os.path.exists(path_segments_val):
+                    with open(get_paths_segments_val(config, config.get_name(), fold_i), 'rb') as inp:
+                        val_segments = pickle.load(inp)
+
+            train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
+
+            if train_segments is None:
+                train_segments = generate_data_keys_subsample(config, train_recs_list)
+                if save_segments:
+                    path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
+                    if not os.path.exists(os.path.dirname(path_segments_train)):
+                        os.makedirs(os.path.dirname(path_segments_train))
+
+                    with open(path_segments_train, 'wb') as outp:
+                        # noinspection PyTypeChecker
+                        pickle.dump(train_segments, outp, pickle.HIGHEST_PROTOCOL)
+
+            print('Generating training dataset...')
+            # gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
+            # gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
+            #                                   shuffle=True)
+            gen_train = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
+                                              shuffle=True)
+
+            val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
+
+            if val_segments is None:
+                val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5 * 60)
+
+                if save_segments:
+                    path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
+                    if not os.path.exists(os.path.dirname(path_segments_val)):
+                        os.makedirs(os.path.dirname(path_segments_val))
+
+                    with open(path_segments_val, 'wb') as outp:
+                        # noinspection PyTypeChecker
+                        pickle.dump(val_segments, outp, pickle.HIGHEST_PROTOCOL)
+
+            print('Generating validation dataset...')
+            # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+            # gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+            gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+
+
+        else:
+            raise ValueError('Unknown sample type: {}'.format(config.sample_type))
+
+        if config.channel_selection:
+            selection_start = time.process_time()
+            print('### Selecting channels....')
+            channel_selector = TSelect(random_state=SEED, evaluation_metric=config.channel_selection_evaluation_metric,
+                                       irrelevant_selector_percentage=config.auc_percentage,
+                                       filtering_threshold_corr=config.corr_threshold)
+            # channel_selector = TSelect(random_state=SEED)
+            metadata = init_metadata()
+            # df = from_3d_numpy_to_multi_index(gen_train.data_segs.transpose(0, 2, 1), column_names=gen_train.channels)
+            df = gen_train.data_segs
+            # y = pd.Series(gen_train.labels[:, 0])
+            y = gen_train.labels[:, 0]
+            channel_selector.fit(df, y, X_val=gen_val.data_segs, y_val=gen_val.labels[:, 0], metadata=metadata)
+            selected_channels = [gen_train.channels[i] for i in channel_selector.selected_channels]
+            gen_train.change_included_channels(selected_channels)
+            gen_val.change_included_channels(selected_channels)
+            assert gen_train.data_segs.shape[2] == gen_val.data_segs.shape[2]
+            if config.selected_channels is None:
+                config.selected_channels = {fold_i: selected_channels}
+            else:
+                config.selected_channels[fold_i] = selected_channels
+            config.reload_CH(fold=fold_i)
+            results.selection_time[fold_i] = time.process_time() - selection_start
+
+        print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
+        print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
+
+        print('### Training model....')
+        if config.model.lower() == Keys.minirocketLR.lower():
+            model_minirocket = MiniRocketLR()
+            start_train = time.time()
+            # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
+            model_minirocket.fit(config, gen_train, gen_val, model_save_path)
+            # train_net(config, model, gen_train, gen_val, model_save_path)
+
+            end_train = time.time() - start_train
+
+        else:
+            model: keras.Model = net(config)
+
+            start_train = time.time()
+
+            train_net(config, model, gen_train, gen_val, model_save_path)
+
+            end_train = time.time() - start_train
+        print('Total train duration = ', end_train / 60)
+        results.train_time[fold_i] = end_train
+
+        config.reload_CH()
+        config.save_config(save_path=config_path)
+        results.config = config
+        results.save_results(save_path=results_path)
+
 #######################################################################################################################
 #######################################################################################################################
 

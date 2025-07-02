@@ -3,7 +3,7 @@ import pickle
 import os
 
 from TSelect.tselect.tselect.utils.metrics import auroc_score
-from utility.constants import Locations, Nodes, Paths
+from utility.constants import Locations, Nodes, Paths, Keys
 
 
 class Config():
@@ -99,7 +99,7 @@ class Config():
 
 
 def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
-                    included_channels=None, pretty_name=None, suffix=""):
+                    included_channels=None, CV=Keys.stratified, pretty_name=None, suffix=""):
     """
     Function to get the base configuration for the model. The function sets the parameters for the model, including
     the data path, save directory, sampling frequency, number of channels, batch size, window size, stride, balancing
@@ -111,6 +111,7 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         model (str): model architecture (Options: Chrononet, EEGnet, DeepConvNet, MiniRocketLR)
         batch_size (int): batch size for training the model.
         included_channels (list): list of channels to include in the model. If None, all channels are included.
+        CV (str): cross-validation method to use. Options are 'leave_one_person_out' or 'stratified'.
         pretty_name (str): pretty name for the experiment.
         suffix (str): suffix to add to the end of the experiment's config name.
 
@@ -148,7 +149,7 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         config.CH -= 1  # Only two of the three wearable channels can be used at the same time,
                         # so we reduce the number of channels by 1
 
-    config.cross_validation = 'leave_one_person_out'  # validation type
+    config.cross_validation = CV  # validation type
     config.batch_size = batch_size  # batch size
     config.frame = 2  # window size of input segments in seconds
     config.stride = 1  # stride between segments (of background EEG) in seconds
@@ -187,9 +188,9 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
 
 def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_size=128,
                                  included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
-                                 corr_threshold=0.5, pretty_name=None, suffix=""):
+                                 corr_threshold=0.5, CV=Keys.stratified, pretty_name=None, suffix=""):
     config = get_base_config(base_dir, locations, model=model, included_channels=included_channels,
-                             pretty_name=pretty_name, batch_size=batch_size,
+                             pretty_name=pretty_name, batch_size=batch_size, CV=CV,
                              suffix=suffix)
     config.channel_selection = True
     config.selected_channels = None

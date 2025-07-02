@@ -132,9 +132,11 @@ def predict_net(generator, model_weights_path, model: keras.Model):
     model.load_weights(model_weights_path)
 
     y_aux = []
-    for j in range(len(generator)):
-        _, y = generator[j]
+    for _, y in generator.repeat(2):
         y_aux.append(y)
+    # for j in range(len(generator)):
+    #     _, y = generator[j]
+    #     y_aux.append(y)
     true_labels = np.vstack(y_aux)
 
     prediction = model.predict(generator, verbose=0)
