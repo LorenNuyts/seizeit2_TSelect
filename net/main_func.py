@@ -256,7 +256,7 @@ def predict(config):
                         segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
                         # gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
-                        gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=len(segments), shuffle=False)
+                        gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.batch_size, shuffle=False)
 
                         if config.channel_selection:
                             gen_test.change_included_channels(config.selected_channels[fold_i])
