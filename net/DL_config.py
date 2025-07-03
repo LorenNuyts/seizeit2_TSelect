@@ -150,7 +150,8 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
                         # so we reduce the number of channels by 1
 
     config.cross_validation = CV  # validation type
-    config.batch_size = batch_size  # batch size
+    config.batch_size = batch_size  # batch size for the training set
+    config.test_batch_size = 512  # batch size for the validation and test sets
     config.frame = 2  # window size of input segments in seconds
     config.stride = 1  # stride between segments (of background EEG) in seconds
     config.stride_s = 0.5  # stride between segments (of seizure EEG) in seconds

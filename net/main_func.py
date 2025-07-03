@@ -149,7 +149,7 @@ def train(config, results, load_segments, save_segments):
             print('Generating validation dataset...')
             # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
             # gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-            gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
+            gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.test_batch_size, shuffle=False)
 
 
         else:
@@ -256,7 +256,7 @@ def predict(config):
                         segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
                         # gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
-                        gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.batch_size, shuffle=False)
+                        gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size, shuffle=False)
 
                         if config.channel_selection:
                             gen_test.change_included_channels(config.selected_channels[fold_i])
