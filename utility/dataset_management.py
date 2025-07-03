@@ -20,6 +20,11 @@ def serialize_example(segment_data, label):
 def create_single_tfrecord(config, recs, segment):
     rec_index, start_time, stop_time, label_val = segment
     recording = recs[int(rec_index)]
+    tfrecord_path = get_path_tfrecord(config.data_path, recording, start_time, stop_time)
+
+    if os.path.exists(tfrecord_path):
+        return
+
     # Load the preprocessed segment
     s = Data.loadSegment(config.data_path, recording,
                                start_time=start_time,
@@ -37,7 +42,7 @@ def create_single_tfrecord(config, recs, segment):
     label = [1.0, 0.0] if label_val == 0 else [0.0, 1.0]
     # Write example
     example = serialize_example(segment_data, label)
-    tfrecord_path = get_path_tfrecord(config.data_path, recording, start_time, stop_time)
+
     os.makedirs(os.path.dirname(tfrecord_path), exist_ok=True)
     with tf.io.TFRecordWriter(tfrecord_path) as writer:
         writer.write(example)
