@@ -217,6 +217,9 @@ def predict(config):
     config_path = get_path_config(config, name)
     config.load_config(config_path=config_path, config_name=name)
 
+    if not hasattr(config, 'test_batch_size'):
+        config.test_batch_size = 512
+
     if not os.path.exists(os.path.join(config.save_dir, 'predictions')):
         os.makedirs(os.path.join(config.save_dir, 'predictions'))
     if not os.path.exists(os.path.join(config.save_dir, 'predictions', name)):
