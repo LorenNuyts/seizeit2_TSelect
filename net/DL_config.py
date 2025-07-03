@@ -90,7 +90,7 @@ class Config():
         
     def get_name(self):
         locations_str = "-".join([Locations.to_acronym(loc) for loc in self.locations])
-        base_name = '_'.join([self.model, self.sample_type, 'factor' + str(self.factor)])
+        base_name = '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), self.cross_validation + "CV"])
         if locations_str != "":
             base_name += '_' + locations_str
         if hasattr(self, 'add_to_name') and self.add_to_name != "":

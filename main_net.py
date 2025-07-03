@@ -45,7 +45,7 @@ parser.add_argument("--batch_size", type=int, nargs="?", default=128)
 parser.add_argument("--suffix", type=str, nargs="?", default="")
 parser.add_argument('--reset', action='store_true')
 parser.add_argument("--gpu", type=int, nargs="?", default=0)
-parser.add_argument("--CV", type=str, nargs="?", default="leave_one_person_out",
+parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
                     choices=["leave_one_person_out", "stratified"],
                     help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
 

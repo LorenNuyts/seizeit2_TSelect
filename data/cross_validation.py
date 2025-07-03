@@ -1,5 +1,6 @@
 import math
 import os
+import warnings
 from collections import defaultdict
 from typing import Optional
 
@@ -61,7 +62,8 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
 
 def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataFrame, group_column: str,
                                                         id_column: str, n_splits: int,
-                                                        train_size: float, val_size: float, seed=SEED):
+                                                        train_size: float, val_size: float,
+                                                        weights_columns: dict=None, seed=SEED):
     np.random.seed(seed)
     df = info_per_group.copy()
     assert train_size + val_size < 1, ("Train and validation sizes must sum to less than 1. The rest will be used for "
@@ -81,67 +83,66 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
     totals['n_ids'] = df.shape[0]
 
     extended_metrics = metrics + ['n_ids']  # Add a column to track the number of IDs in each group
+    if weights_columns is None:
+        weights = {k: 1/(len(extended_metrics)) for k in extended_metrics}
+    else:
+        total_weight = sum(weights_columns.values())
+        missing_weights = set(extended_metrics) - set(weights_columns.keys())
+        weights = {k: weights_columns[k] if k in weights_columns.keys() else (1-total_weight)/len(missing_weights) for k in extended_metrics}
+
+    folds = ['train', 'val', 'test']
     for split in range(n_splits):
         # Shuffle the DataFrame
         df = df.sample(frac=1, random_state=seed + split).reset_index(drop=True)
 
         # Initialize tracking structures
         assignments = defaultdict(list)
-        current_sums = {
-            'train':  pd.DataFrame(0, index=group_names, columns=extended_metrics),
-            'val':  pd.DataFrame(0, index=group_names, columns=extended_metrics),
-            'test': pd.DataFrame(0, index=group_names, columns=extended_metrics)
-        }
+        current_sums = {fold:  pd.DataFrame(0, index=group_names, columns=extended_metrics) for fold in folds}
+        # prev_scores = [sum([t * w for t, w in zip(totals.values, weights.values())]) for _ in folds]
+        # total_imbalance = 0
+        # for fold in folds:
+        #     for k in extended_metrics:
+        #         for group in group_names:
+        #             target = split_targets[fold].loc[group][k]
+        #             total_imbalance += target / totals_per_group[group] * weights[k]
 
+        imbalance_per_fold = [(len(group_names)) for _ in folds]  # Initialize with the number of groups for each fold. Each group can have at most an imbalance of 1.
         for _, row in df.iterrows():
             pid = row[id_column]
             current_group = row[group_column]
             current_metrics = row[metrics].to_dict()
             current_metrics['n_ids'] = 1
 
-            # Evaluate which set would result in smallest imbalance increase
-            best_fold = None
-            best_score = float('inf')
-
-            for fold in ['train', 'val', 'test']:
-                score = 0
+            candidate_total_imbalances = []
+            new_imbalance_per_fold = []
+            for i, fold in enumerate(folds):
+                new_imbalance_per_fold.append(0)
                 for k in extended_metrics:
                     target = split_targets[fold].loc[current_group][k]
                     current = current_sums[fold].loc[current_group][k]
-                    projected = current + current_metrics[k]
-                    score += abs(projected - target) / target
+                    new_current = current + current_metrics[k]
+                    new_imbalance_per_fold[i] += abs(target - new_current) / target * weights[k]
 
-                if score < best_score: # If equal, prefer the train set
-                    best_fold = fold
-                    best_score = score
+                    # Add metric for the other groups
+                    for group in group_names:
+                        if group != current_group:
+                            target_other = split_targets[fold].loc[group][k]
+                            current_other = current_sums[fold].loc[group][k]
+                            new_imbalance_per_fold[i] += abs(target_other - current_other) / target_other * weights[k]
+
+                # The candidate total imbalance is the new imbalance for this fold plus the previous imbalances of the other folds
+                candidate_total_imbalances.append(new_imbalance_per_fold[i] + sum([imb for j, imb in enumerate(imbalance_per_fold) if i != j]))
+
+            min_idx = candidate_total_imbalances.index(min(candidate_total_imbalances))
+            best_fold = folds[min_idx]
+
+            imbalance_per_fold[min_idx] = new_imbalance_per_fold[min_idx]  # Update the previous imbalance for the best fold
 
             assignments[best_fold].append(pid)
             for k in extended_metrics:
-                current_sums[best_fold][k] += current_metrics[k]
+                # Ignore warnings for setting values on a copy of a slice from a DataFrame
+                warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
+                current_sums[best_fold][k][current_group] += current_metrics[k]
 
 
         yield assignments['train'], assignments['val'], assignments['test']
-
-# def leave_one_seizure_out(X: pl.DataFrame, y: pl.Series):
-#     end_previous_seizure = None
-#     previous_fold_split = 0
-#     in_seizure = False
-#     for i in range(len(y)):
-#         if not in_seizure and y[i] == 1:
-#             in_seizure = True
-#             if end_previous_seizure is None:
-#                 continue
-#             start_next_seizure = i
-#             new_fold_split = (end_previous_seizure + start_next_seizure) // 2
-#             X_train = pl.concat([X.slice(0, previous_fold_split), X.slice(new_fold_split, len(X) - new_fold_split)])
-#             y_train = pl.concat([y.slice(0, previous_fold_split), y.slice(new_fold_split, len(y) - new_fold_split)])
-#             X_test = X.slice(previous_fold_split, new_fold_split - previous_fold_split)
-#             y_test = y.slice(previous_fold_split, new_fold_split - previous_fold_split)
-#             previous_fold_split = new_fold_split
-#
-#             yield X_train, y_train, X_test, y_test
-#
-#         elif in_seizure and y[i] == 0:
-#             in_seizure = False
-#             end_previous_seizure = i
-

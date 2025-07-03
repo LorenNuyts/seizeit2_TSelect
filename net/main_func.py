@@ -78,6 +78,8 @@ def train(config, results, load_segments, save_segments):
                                                                            n_splits=config.n_folds,
                                                                            train_size=config.train_percentage,
                                                                            val_size=config.validation_percentage,
+                                                                           weights_columns = {'n_seizures': 0.4,
+                                                                                              'hours_of_data': 0.4},
                                                                            seed=SEED)
     else:
         raise NotImplementedError('Cross-validation method not implemented yet')
