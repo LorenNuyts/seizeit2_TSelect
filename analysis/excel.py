@@ -2,7 +2,6 @@ import argparse
 import os
 from typing import List
 
-import numpy as np
 import pandas as pd
 
 from utility.constants import evaluation_metrics
@@ -31,21 +30,21 @@ def print_table(configs: list, metrics: List[str], output_path: str):
             if value is None:
                 formatted = "N/A"
             else:
-                # Derive variance metric name
+                # Derive std metric name
                 if "median" in metric:
-                    variance_metric = metric.replace("median", "variance")
+                    std_metric = metric.replace("median", "std")
                 elif "average" in metric:
-                    variance_metric = metric.replace("average", "variance")
+                    std_metric = metric.replace("average", "std")
                 else:
-                    variance_metric = None
+                    std_metric = None
 
-                if variance_metric:
-                    variance = getattr(results, variance_metric, None)
+                if std_metric:
+                    std = getattr(results, std_metric, None)
                 else:
-                    variance = None
+                    std = None
 
-                if variance is not None:
-                    formatted = f"{value:.3f} ± {np.sqrt(variance):.2f}"
+                if std is not None:
+                    formatted = f"{value:.3f} ± {std:.2f}"
                 else:
                     formatted = f"{value:.3f}"
 
