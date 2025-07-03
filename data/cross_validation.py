@@ -140,9 +140,6 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
 
             assignments[best_fold].append(pid)
             for k in extended_metrics:
-                # Ignore warnings for setting values on a copy of a slice from a DataFrame
-                warnings.filterwarnings("ignore", category=pd.errors.SettingWithCopyWarning)
-                current_sums[best_fold][k][current_group] += current_metrics[k]
-
+                current_sums[best_fold].loc[current_group, k] += current_metrics[k]
 
         yield assignments['train'], assignments['val'], assignments['test']
