@@ -52,7 +52,7 @@ parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
 args = parser.parse_args()
 
 suffix_ = args.suffix
-unique_locations = list(dict.fromkeys(args.locations))
+unique_locations = sorted(list(dict.fromkeys(args.locations)))
 
 ############################################
 ##### Set the GPU and import tensorflow ####
