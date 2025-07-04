@@ -132,7 +132,7 @@ def train(config, results, load_segments, save_segments):
             # gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
             #                                   shuffle=True)
             gen_train = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
-                                              shuffle=True)
+                                               shuffle=True)
 
             val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
 
@@ -219,6 +219,11 @@ def predict(config):
     config_path = get_path_config(config, name)
     config.load_config(config_path=config_path, config_name=name)
 
+    # Loading the results from barabas on my personal computer
+    if 'dtai' in config.save_dir and 'dtai' not in os.path.dirname(os.path.realpath(__file__)):
+        config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
+        config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
+
     if not hasattr(config, 'test_batch_size'):
         config.test_batch_size = 512
 
@@ -227,57 +232,59 @@ def predict(config):
     if not os.path.exists(os.path.join(config.save_dir, 'predictions', name)):
         os.makedirs(os.path.join(config.save_dir, 'predictions', name))
 
-    if config.cross_validation == 'leave_one_person_out':
-        for fold_i in config.folds.keys():
-            K.clear_session()
-            gc.collect()
-            config.reload_CH(fold=fold_i)
-            model_save_path = get_path_model(config, name, fold_i)
-            test_subject = config.folds[fold_i]['test']
-            test_recs_list = get_recs_list(config.data_path, config.locations, test_subject)
 
-            model_weights_path = get_path_model_weights(model_save_path, name)
+    for fold_i in config.folds.keys():
+        print('Fold {}'.format(fold_i))
+        test_subjects = config.folds[fold_i]['test']
+        K.clear_session()
+        gc.collect()
+        config.reload_CH(fold=fold_i)
+        test_recs_list = get_recs_list(config.data_path, config.locations, test_subjects)
 
-            if config.model == 'DeepConvNet':
-                from net.DeepConv_Net import net
-            elif config.model == 'ChronoNet':
-                from net.ChronoNet import net
-            elif config.model == 'EEGnet':
-                from net.EEGnet import net
-            elif config.model.lower() != Keys.minirocketLR.lower():
-                raise ValueError('Model not recognized')
+        model_save_path = get_path_model(config, name, fold_i)
+        model_weights_path = get_path_model_weights(model_save_path, name)
 
-            if config.model.lower() == Keys.minirocketLR.lower():
-                model = MiniRocketLR(model_save_path)
+        if config.model == 'DeepConvNet':
+            from net.DeepConv_Net import net
+        elif config.model == 'ChronoNet':
+            from net.ChronoNet import net
+        elif config.model == 'EEGnet':
+            from net.EEGnet import net
+        elif config.model.lower() != Keys.minirocketLR.lower():
+            raise ValueError('Model not recognized')
+
+        if config.model.lower() == Keys.minirocketLR.lower():
+            model = MiniRocketLR(model_save_path)
+        else:
+            model = net(config)
+
+        for rec in tqdm(test_recs_list):
+            if os.path.isfile(get_path_predictions(config, name, rec, fold_i)):
+                print(rec[0] + ' ' + rec[1] + ' ' + rec[2] + ' exists. Skipping...')
             else:
-                model = net(config)
+                print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
+                with tf.device('/cpu:0'):
+                    segments = generate_data_keys_sequential(config, [rec], verbose=False)
+                    print('Number of segments: ', len(segments))
 
-            for rec in tqdm(test_recs_list):
-                if os.path.isfile(get_path_predictions(config, name, rec)):
-                    print(rec[0] + ' ' + rec[1] + ' ' + rec[2] + ' exists. Skipping...')
-                else:
+                    gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size, shuffle=False)
+                    print(f"Size test dataset: {asizeof.asizeof(gen_test) / (1024 ** 2):.2f} MB")
 
-                    with tf.device('/cpu:0'):
-                        segments = generate_data_keys_sequential(config, [rec], verbose=False)
+                    if config.channel_selection:
+                        gen_test.change_included_channels(config.selected_channels[fold_i])
 
-                        # gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments), shuffle=False, verbose=False)
-                        gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size, shuffle=False)
+                    config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 
-                        if config.channel_selection:
-                            gen_test.change_included_channels(config.selected_channels[fold_i])
+                    if config.model.lower() == Keys.minirocketLR.lower():
+                        y_pred, y_true = model.predict(gen_test)
+                    else:
+                        y_pred, y_true = predict_net(gen_test, model_weights_path, model)
 
-                        config.reload_CH(fold_i)  # DO NOT REMOVE THIS
-
-                        if config.model.lower() == Keys.minirocketLR.lower():
-                            y_pred, y_true = model.predict(gen_test)
-                        else:
-                            y_pred, y_true = predict_net(gen_test, model_weights_path, model)
-
-                    with h5py.File(get_path_predictions(config, name, rec), 'w') as f:
-                        f.create_dataset('y_pred', data=y_pred)
-                        f.create_dataset('y_true', data=y_true)
-                    config.reload_CH()
-                    gc.collect()
+                with h5py.File(get_path_predictions(config, name, rec, fold_i), 'w') as f:
+                    f.create_dataset('y_pred', data=y_pred)
+                    f.create_dataset('y_true', data=y_true)
+                config.reload_CH()
+                gc.collect()
 
 
 #######################################################################################################################
@@ -296,8 +303,6 @@ def evaluate(config, results):
         config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
         results.config.save_dir = results.config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
         results.config.data_path = results.config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
-
-    pred_path = get_path_predictions_folder(config, name)
     pred_fs = 1
 
     thresholds = list(np.around(np.linspace(0,1,51),2))
@@ -325,98 +330,57 @@ def evaluate(config, results):
 
     score = []
 
-    pred_files = [x for x in os.listdir(pred_path)]
-    pred_files.sort()
-
-    for file in tqdm(pred_files):
+    for fold_i in config.folds.keys():
         K.clear_session()
         gc.collect()
+        pred_path = get_path_predictions_folder(config, name, fold_i)
 
-        with h5py.File(os.path.join(pred_path, file), 'r') as f:
-            y_pred = list(f['y_pred'])
-            y_true = list(f['y_true'])
+        pred_files = [x for x in os.listdir(pred_path)]
+        pred_files.sort()
 
-        sens_ovlp_th = []
-        prec_ovlp_th = []
-        fah_ovlp_th = []
-        f1_ovlp_th = []
+        sens_ovlp_fold = []
+        prec_ovlp_fold = []
+        fah_ovlp_fold = []
+        f1_ovlp_fold = []
+        sens_epoch_fold = []
+        spec_epoch_fold = []
+        prec_epoch_fold = []
+        fah_epoch_fold = []
+        f1_epoch_fold = []
 
-        sens_epoch_th = []
-        spec_epoch_th = []
-        prec_epoch_th = []
-        fah_epoch_th = []
-        f1_epoch_th = []
-        # rocauc_th = []
+        score_fold = []
 
-        score_th = []
+        for file in tqdm(pred_files):
+            file_path = os.path.join(pred_path, file)
 
-        rec = file.split('__')[:4]
-        fold_nb = None
-        for fold_i in config.folds.keys():
-            if rec[1] in config.folds[fold_i]['test']:
-                fold_nb = fold_i
-                break
+            f1_epoch_th, f1_ovlp_th, fah_epoch_th, fah_ovlp_th, prec_epoch_th, prec_ovlp_th, score_th, sens_epoch_th, sens_ovlp_th, spec_epoch_th = get_results_rec_file(
+                config, file, file_path, fold_i, pred_fs, thresholds)
 
-        if fold_nb is None:
-            raise ValueError('Recording not found in test set')
+            sens_ovlp_fold.append(sens_ovlp_th)
+            prec_ovlp_fold.append(prec_ovlp_th)
+            fah_ovlp_fold.append(fah_ovlp_th)
+            f1_ovlp_fold.append(f1_ovlp_th)
 
-        channels = config.selected_channels[fold_nb] if config.channel_selection else config.included_channels
-        rec_data = Data.loadData(config.data_path, rec, included_channels=channels)
-        rec_data.apply_preprocess(config)
+            sens_epoch_fold.append(sens_epoch_th)
+            spec_epoch_fold.append(spec_epoch_th)
+            prec_epoch_fold.append(prec_epoch_th)
+            fah_epoch_fold.append(fah_epoch_th)
+            f1_epoch_fold.append(f1_epoch_th)
 
-        rmsa = None
+            score_fold.append(score_th)
 
-        for ch in range(len(rec_data.channels)):
-            ch_data = rec_data.data[ch]
-            rmsa_ch = [np.sqrt(np.mean(ch_data[start:start+2*config.fs]**2)) for start in range(0, len(ch_data) - 2*config.fs + 1, 1*config.fs)]
-            rmsa_ch = [1 if 13 < rms < 150 else 0 for rms in rmsa_ch]
-            if rmsa is None:
-                rmsa = rmsa_ch
-            else:
-                rmsa = rmsa and rmsa_ch
-        
-        if len(y_pred) != len(rmsa):
-            rmsa = rmsa[:len(y_pred)]
-        y_pred = np.where(np.array(rmsa) == 0, 0, y_pred)
+        # Compute the average across all recordings for the fold
+        # TODO: continue  here
 
-        for th in thresholds:
-            sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec = get_metrics_scoring(y_pred, y_true, pred_fs, th)
+            to_cut = np.argmax(fah_ovlp_th)
+            fah_ovlp_plot_rec = fah_ovlp_th[to_cut:]
+            sens_ovlp_plot_rec = sens_ovlp_th[to_cut:]
+            prec_ovlp_plot_rec = prec_ovlp_th[to_cut:]
 
-            sens_ovlp_th.append(sens_ovlp_rec)
-            prec_ovlp_th.append(prec_ovlp_rec)
-            fah_ovlp_th.append(FA_ovlp_rec)
-            f1_ovlp_th.append(f1_ovlp_rec)
-            sens_epoch_th.append(sens_epoch_rec)
-            spec_epoch_th.append(spec_epoch_rec)
-            prec_epoch_th.append(prec_epoch_rec)
-            fah_epoch_th.append(FA_epoch_rec)
-            f1_epoch_th.append(f1_epoch_rec)
-            # rocauc_th.append(rocauc_rec)
-            score_th.append(sens_ovlp_rec*100-0.4*FA_epoch_rec)
-
-        sens_ovlp.append(sens_ovlp_th)
-        prec_ovlp.append(prec_ovlp_th)
-        fah_ovlp.append(fah_ovlp_th)
-        f1_ovlp.append(f1_ovlp_th)
-
-        sens_epoch.append(sens_epoch_th)
-        spec_epoch.append(spec_epoch_th)
-        prec_epoch.append(prec_epoch_th)
-        fah_epoch.append(fah_epoch_th)
-        f1_epoch.append(f1_epoch_th)
-        # rocauc.append(rocauc_th)
-
-        score.append(score_th)
-
-        to_cut = np.argmax(fah_ovlp_th)
-        fah_ovlp_plot_rec = fah_ovlp_th[to_cut:]
-        sens_ovlp_plot_rec = sens_ovlp_th[to_cut:]
-        prec_ovlp_plot_rec = prec_ovlp_th[to_cut:]
-
-        y_plot = np.interp(x_plot, fah_ovlp_plot_rec[::-1], sens_ovlp_plot_rec[::-1])
-        sens_ovlp_plot.append(y_plot)
-        y_plot = np.interp(x_plot, sens_ovlp_plot_rec[::-1], prec_ovlp_plot_rec[::-1])
-        prec_ovlp_plot.append(y_plot)
+            y_plot = np.interp(x_plot, fah_ovlp_plot_rec[::-1], sens_ovlp_plot_rec[::-1])
+            sens_ovlp_plot.append(y_plot)
+            y_plot = np.interp(x_plot, sens_ovlp_plot_rec[::-1], prec_ovlp_plot_rec[::-1])
+            prec_ovlp_plot.append(y_plot)
 
     score_05 = [x[25] for x in score]
 
@@ -468,3 +432,61 @@ def evaluate(config, results):
     results_save_path = get_path_results(config, name)
     results.config = config
     results.save_results(results_save_path)
+
+
+def get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds):
+    with h5py.File(file_path, 'r') as f:
+        y_pred = list(f['y_pred'])
+        y_true = list(f['y_true'])
+    sens_ovlp_th = []
+    prec_ovlp_th = []
+    fah_ovlp_th = []
+    f1_ovlp_th = []
+    sens_epoch_th = []
+    spec_epoch_th = []
+    prec_epoch_th = []
+    fah_epoch_th = []
+    f1_epoch_th = []
+    # rocauc_th = []
+    score_th = []
+    rec = file.split('__')[:4]
+    # fold_nb = None
+    # for fold_i in config.folds.keys():
+    #     if rec[1] in config.folds[fold_i]['test']:
+    #         fold_nb = fold_i
+    #         break
+    #
+    # if fold_nb is None:
+    #     raise ValueError('Recording not found in test set')
+    channels = config.selected_channels[fold_i] if config.channel_selection else config.included_channels
+    rec_data = Data.loadData(config.data_path, rec, included_channels=channels)
+    rec_data.apply_preprocess(config)
+    rmsa = None
+    for ch in range(len(rec_data.channels)):
+        ch_data = rec_data.data[ch]
+        rmsa_ch = [np.sqrt(np.mean(ch_data[start:start + 2 * config.fs] ** 2)) for start in
+                   range(0, len(ch_data) - 2 * config.fs + 1, 1 * config.fs)]
+        rmsa_ch = [1 if 13 < rms < 150 else 0 for rms in rmsa_ch]
+        if rmsa is None:
+            rmsa = rmsa_ch
+        else:
+            rmsa = rmsa and rmsa_ch
+    if len(y_pred) != len(rmsa):
+        rmsa = rmsa[:len(y_pred)]
+    y_pred = np.where(np.array(rmsa) == 0, 0, y_pred)
+    for th in thresholds:
+        sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec = get_metrics_scoring(
+            y_pred, y_true, pred_fs, th)
+
+        sens_ovlp_th.append(sens_ovlp_rec)
+        prec_ovlp_th.append(prec_ovlp_rec)
+        fah_ovlp_th.append(FA_ovlp_rec)
+        f1_ovlp_th.append(f1_ovlp_rec)
+        sens_epoch_th.append(sens_epoch_rec)
+        spec_epoch_th.append(spec_epoch_rec)
+        prec_epoch_th.append(prec_epoch_rec)
+        fah_epoch_th.append(FA_epoch_rec)
+        f1_epoch_th.append(f1_epoch_rec)
+        # rocauc_th.append(rocauc_rec)
+        score_th.append(sens_ovlp_rec * 100 - 0.4 * FA_epoch_rec)
+    return f1_epoch_th, f1_ovlp_th, fah_epoch_th, fah_ovlp_th, prec_epoch_th, prec_ovlp_th, score_th, sens_epoch_th, sens_ovlp_th, spec_epoch_th

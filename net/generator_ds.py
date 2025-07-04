@@ -5,6 +5,8 @@ import time
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+from tqdm import tqdm
+
 from data.data import Data, switch_channels
 
 from utility.constants import Nodes
@@ -523,7 +525,7 @@ def parse_example(example_proto, config):
 def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True):
     # Generate TFRecord paths for each segment
     tfrecord_files = []
-    for s in segments:
+    for s in tqdm(segments):
         rec_idx, start, stop, _ = s
         path = get_path_tfrecord(config.data_path, recs[int(rec_idx)], start, stop)
         tfrecord_files.append(path)
