@@ -280,6 +280,7 @@ def predict(config):
                     else:
                         y_pred, y_true = predict_net(gen_test, model_weights_path, model)
 
+                os.makedirs(get_path_predictions(config, name, rec, fold_i), exist_ok=True)
                 with h5py.File(get_path_predictions(config, name, rec, fold_i), 'w') as f:
                     f.create_dataset('y_pred', data=y_pred)
                     f.create_dataset('y_true', data=y_true)
