@@ -107,6 +107,7 @@ def generate_data_keys_sequential_window(config, recs_list, t_add):
     segments = []
 
     for idx, f in tqdm(enumerate(recs_list)):
+        print("Processing file:", f)
         annotations = Annotation.loadAnnotation(config.data_path, f)
 
         if annotations.rec_duration < 600:
@@ -161,7 +162,7 @@ def generate_data_keys_sequential_window(config, recs_list, t_add):
                 n_segs = int(np.floor(np.floor(ev[1] + to_add_plus - ev[1])/config.stride))
                 seg_start = np.arange(0, n_segs)*config.stride + ev[1]
                 seg_stop = seg_start + config.frame
-                print("idx: ", idx, "n_segs:", n_segs, "start:", seg_start, "stop:", seg_stop)
+                print("idx: ", idx, "n_segs:", n_segs)
                 segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.zeros(n_segs))))
                 segs_nr += n_segs
                 if segs_nr != 600:
