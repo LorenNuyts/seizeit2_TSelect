@@ -265,10 +265,9 @@ def predict(config):
                 print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
                 with tf.device('/cpu:0'):
                     segments = generate_data_keys_sequential(config, [rec], verbose=False)
-                    print('Number of segments: ', len(segments))
 
-                    gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size, shuffle=False)
-                    print(f"Size test dataset: {asizeof.asizeof(gen_test) / (1024 ** 2):.2f} MB")
+                    gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
+                                                         shuffle=False, progress_bar=False)
 
                     if config.channel_selection:
                         gen_test.change_included_channels(config.selected_channels[fold_i])

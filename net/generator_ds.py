@@ -522,10 +522,10 @@ def parse_example(example_proto, config):
 
     return segment_data, parsed["label"]
 
-def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True):
+def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, progress_bar=True):
     # Generate TFRecord paths for each segment
     tfrecord_files = []
-    for s in tqdm(segments):
+    for s in tqdm(segments, disable=not progress_bar, desc="Preparing TFRecord files"):
         rec_idx, start, stop, _ = s
         path = get_path_tfrecord(config.data_path, recs[int(rec_idx)], start, stop)
         tfrecord_files.append(path)
