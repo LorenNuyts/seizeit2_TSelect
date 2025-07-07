@@ -66,6 +66,10 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
                                                         weights_columns: dict=None, seed=SEED):
     np.random.seed(seed)
     df = info_per_group.copy()
+
+    # Remove the excluded subjects
+    df = df[~df[id_column].isin(excluded_subjects)]
+    
     assert train_size + val_size < 1, ("Train and validation sizes must sum to less than 1. The rest will be used for "
                                        "the test set.")
     assert n_splits > 1, "n_splits must be greater than 1 for cross-validation."
