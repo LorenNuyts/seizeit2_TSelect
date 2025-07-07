@@ -49,7 +49,7 @@ def ts_reshape_error():
     print("Look at this segment:", fourth_segment, "of recording", train_recs_list[int(fourth_segment[0])])
     # train_segments = generate_data_keys_subsample(config, train_recs_list)
     gen_train, _ = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
-                                       shuffle=True)
+                                       shuffle=False)
     for i, segment in enumerate(gen_train):
         if segment[0].shape[-2] != 21:
             print("Segment", train_segments[i], "of recording", train_recs_list[int(train_segments[i][0])],
