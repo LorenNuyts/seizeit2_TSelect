@@ -54,12 +54,12 @@ def ts_reshape_error():
     gen_train, _ = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                        shuffle=True)
     for i, segment in enumerate(gen_train):
-        if segment[0].shape[-1] != 21:
+        if segment[0].shape[-2] != 21:
             print("Segment", train_segments[i], "of recording", train_recs_list[int(train_segments[i][0])],
                   "has shape", segment[0].shape, "instead of (?, 21)")
             continue
-        # rec_index = int(train_segments[i][0])
-        # print("Segment", train_segments[i], "of recording", train_recs_list[rec_index], ": loading ok")
+        rec_index = int(train_segments[i][0])
+        print("Segment", train_segments[i], "of recording", train_recs_list[rec_index], ": loading ok")
 
     val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
     # val_segments = generate_data_keys_sequential_window(config, val_recs_list, config.val_batch_size)
@@ -67,7 +67,7 @@ def ts_reshape_error():
                                      shuffle=False)
 
     for i, segment in enumerate(gen_val):
-        if segment[0].shape[-1] != 21:
+        if segment[0].shape[-2] != 21:
             print("Segment", val_segments[i], "of recording", val_recs_list[int(val_segments[i][0])],
                   "has shape", segment[0].shape, "instead of (?, 21)")
             continue
