@@ -520,9 +520,9 @@ def parse_example(example_proto, config):
     try:
         segment_data = tf.reshape(segment_data, segment_shape)
         print("Successful")
-    except tf.errors.InvalidArgumentError as e:
+    except:
         print("Failed")
-        raise e
+        raise ValueError("Segment data shape does not match the expected shape.")
 
     if config.model in ['DeepConvNet', 'EEGnet']:
         segment_data = tf.transpose(segment_data, perm=[1, 0, 2])

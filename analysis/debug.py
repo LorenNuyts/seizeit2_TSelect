@@ -45,12 +45,13 @@ def ts_reshape_error():
             train_segments = pickle.load(inp)
             print("There are ", len(train_segments), "segments in the training set")
 
-    fourth_segment = train_segments[3]
-    print("Look at this segment:", fourth_segment, "of recording", train_recs_list[int(fourth_segment[0])])
+    faulty_segment = train_segments[1]
+    print("Look at this segment:", faulty_segment, "of recording", train_recs_list[int(faulty_segment[0])])
     # train_segments = generate_data_keys_subsample(config, train_recs_list)
     gen_train, _ = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                        shuffle=False)
     for i, segment in enumerate(gen_train):
+        print(i)
         if segment[0].shape[-2] != 21:
             print("Segment", train_segments[i], "of recording", train_recs_list[int(train_segments[i][0])],
                   "has shape", segment[0].shape, "instead of (?, 21)")
