@@ -97,12 +97,12 @@ def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path):
     else:
         callbacks_list = [mc, csv_logger, lr_sched]
 
-    # Debug code to check the shape of the first batch
-    x_batch, y_batch = gen_train[0][0]  # get the first batch
-    print("x shape:", x_batch.shape)
-    print("y shape:", y_batch.shape)
-    print("x size:", tf.size(x_batch).numpy())
-    print("expected reshape size:", 10500)
+    # # Debug code to check the shape of the first batch
+    # x_batch, y_batch = next(gen_train[0])  # get the first batch
+    # print("x shape:", x_batch.shape)
+    # print("y shape:", y_batch.shape)
+    # print("x size:", tf.size(x_batch).numpy())
+    # print("expected reshape size:", 10500)
 
     hist = model.fit(gen_train[0], validation_data=gen_val[0],
                      epochs=config.nb_epochs,
