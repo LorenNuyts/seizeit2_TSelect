@@ -35,6 +35,8 @@ def create_single_tfrecord(config, recs, segment):
     segment_data = np.stack(s.data, axis=1)  # shape (T, CH)
     segment_data = segment_data.astype(np.float32)
     segment_data = segment_data[:, :, np.newaxis]  # shape (T, CH, 1)
+    assert segment_data.shape[1] == 21, \
+        f"Segment data shape mismatch: {segment_data.shape[1]} channels found, expected 21"
     # Transpose if model requires it
     if config.model in ['DeepConvNet', 'EEGnet']:
         segment_data = segment_data.transpose(1, 0, 2)  # (CH, T, 1)
