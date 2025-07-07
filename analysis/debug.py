@@ -74,7 +74,7 @@ def ts_reshape_error():
         return tf.io.parse_single_example(example_proto, features)
     dataset = dataset.map(parse_test)
 
-    gen_train = dataset.batch(config.batch_size)
+    gen_train = dataset.batch(1)
     ####################################################
     # gen_train, _ = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
     #                                    shuffle=False)
@@ -84,8 +84,8 @@ def ts_reshape_error():
         print("Segment", segments[i], "of recording", recs[int(segments[i][0])])
         segment_data = tf.io.decode_raw(raw_segment["segment"], tf.float32)
         print("Segment data shape before reshape:", segment_data.shape)
-        print("Desired segment shape:", segment_shape)
-        segment_data = tf.reshape(segment_data, segment_shape)
+        # print("Desired segment shape:", segment_shape)
+        # segment_data = tf.reshape(segment_data, segment_shape)
         # if segment[0].shape[-2] != 21:
         #     print("Segment", segments[i], "of recording", recs[int(segments[i][0])],
         #           "has shape", segment[0].shape, "instead of (?, 21)")
