@@ -515,9 +515,12 @@ def parse_example(example_proto, config):
     parsed = tf.io.parse_single_example(example_proto, features)
     segment_shape = (config.frame * config.fs, config.CH, 1)
     segment_data = tf.io.decode_raw(parsed["segment"], tf.float32)
-    print("Segment data shape before reshape:", segment_data.shape)
-    print("Desired segment shape:", segment_shape)
-    segment_data = tf.reshape(segment_data, segment_shape)
+    try:
+        segment_data = tf.reshape(segment_data, segment_shape)
+    except tf.errors.InvalidArgumentError as e:
+        print("Segment data shape before reshape:", segment_data.shape)
+        print("Desired segment shape:", segment_shape)
+        raise e
 
     if config.model in ['DeepConvNet', 'EEGnet']:
         segment_data = tf.transpose(segment_data, perm=[1, 0, 2])
