@@ -80,10 +80,11 @@ def ts_reshape_error():
     #                                    shuffle=False)
     segment_shape = (config.frame * config.fs, config.CH, 1)
     for i, raw_segment in enumerate(gen_train):
-        print(i)
-        print("Segment", segments[i], "of recording", recs[int(segments[i][0])])
         segment_data = tf.io.decode_raw(raw_segment["segment"], tf.float32)
-        print("Segment data shape before reshape:", segment_data.shape)
+        if segment_data.shape[1] != 10500:
+            print(i)
+            print("Segment", segments[i], "of recording", recs[int(segments[i][0])])
+            print("Segment data shape before reshape:", segment_data.shape)
         # print("Desired segment shape:", segment_shape)
         # segment_data = tf.reshape(segment_data, segment_shape)
         # if segment[0].shape[-2] != 21:
