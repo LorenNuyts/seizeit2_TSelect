@@ -45,11 +45,8 @@ def ts_reshape_error():
             train_segments = pickle.load(inp)
             print("There are ", len(train_segments), "segments in the training set")
 
-    path_segments_val = get_paths_segments_val(config, config.get_name(), 0)
-    if os.path.exists(path_segments_val):
-        with open(get_paths_segments_val(config, config.get_name(), 0), 'rb') as inp:
-            val_segments = pickle.load(inp)
-            print("There are ", len(val_segments), "segments in the validation set")
+    fourth_segment = train_segments[3]
+    print("Look at this segment:", fourth_segment, "of recording", train_recs_list[int(fourth_segment[0])])
     # train_segments = generate_data_keys_subsample(config, train_recs_list)
     gen_train, _ = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                        shuffle=True)
@@ -62,6 +59,12 @@ def ts_reshape_error():
         print("Segment", train_segments[i], "of recording", train_recs_list[rec_index], ": loading ok")
 
     val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
+
+    path_segments_val = get_paths_segments_val(config, config.get_name(), 0)
+    if os.path.exists(path_segments_val):
+        with open(get_paths_segments_val(config, config.get_name(), 0), 'rb') as inp:
+            val_segments = pickle.load(inp)
+            print("There are ", len(val_segments), "segments in the validation set")
     # val_segments = generate_data_keys_sequential_window(config, val_recs_list, config.val_batch_size)
     gen_val, _ = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size,
                                      shuffle=False)
