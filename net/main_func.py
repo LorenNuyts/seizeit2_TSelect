@@ -137,7 +137,7 @@ def train(config, results, load_segments, save_segments):
             val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
 
             if val_segments is None:
-                val_segments = generate_data_keys_sequential_window(config, val_recs_list, 5 * 60)
+                val_segments = generate_data_keys_sequential_window(config, val_recs_list, config.val_batch_size)
 
                 if save_segments:
                     path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
@@ -151,7 +151,7 @@ def train(config, results, load_segments, save_segments):
             print('Generating validation dataset...')
             # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
             # gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-            gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.test_batch_size, shuffle=False)
+            gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size, shuffle=False)
 
 
         else:
@@ -225,7 +225,7 @@ def predict(config):
         config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
 
     if not hasattr(config, 'test_batch_size'):
-        config.test_batch_size = 512
+        config.test_batch_size = 1024
 
     if not os.path.exists(os.path.join(config.save_dir, 'predictions')):
         os.makedirs(os.path.join(config.save_dir, 'predictions'))

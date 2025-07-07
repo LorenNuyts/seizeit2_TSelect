@@ -97,14 +97,7 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
 
         # Initialize tracking structures
         assignments = defaultdict(list)
-        current_sums = {fold:  pd.DataFrame(0, index=group_names, columns=extended_metrics) for fold in folds}
-        # prev_scores = [sum([t * w for t, w in zip(totals.values, weights.values())]) for _ in folds]
-        # total_imbalance = 0
-        # for fold in folds:
-        #     for k in extended_metrics:
-        #         for group in group_names:
-        #             target = split_targets[fold].loc[group][k]
-        #             total_imbalance += target / totals_per_group[group] * weights[k]
+        current_sums = {fold:  pd.DataFrame(0, index=group_names, columns=extended_metrics, dtype=np.float64) for fold in folds}
 
         imbalance_per_fold = [(len(group_names)) for _ in folds]  # Initialize with the number of groups for each fold. Each group can have at most an imbalance of 1.
         for _, row in df.iterrows():
