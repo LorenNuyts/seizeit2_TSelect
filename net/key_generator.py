@@ -46,6 +46,7 @@ def generate_data_keys_sequential(config, recs_list, verbose=True):
                 segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.zeros(n_segs))))
             else:
                 for e, ev in enumerate(annotations.events):
+                    # If it is the first event
                     if e == 0:
                         n_segs = int(np.floor((ev[0])/config.stride)-1)
                         if n_segs < 0:
@@ -62,29 +63,49 @@ def generate_data_keys_sequential(config, recs_list, verbose=True):
                         seg_stop = seg_start + config.frame
                         segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.ones(n_segs))))
 
+                    # If it is not the last event and not the first event
                     elif e != len(annotations.events)-1:
                         prev_event = annotations.events[e-1]
-                        n_segs = int(np.floor((ev[0] - prev_event[1])/config.stride)-1)
-                        seg_start = np.arange(0, n_segs)*config.stride + prev_event[1]
-                        seg_stop = seg_start + config.frame
-                        segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.zeros(n_segs))))
+                        if ev[0] < segments[-1][2]:
+                            # If the start of the event is before the end of the previous segment, start from the end
+                            # of the previous segment
+                            start_event_corrected = segments[-1][2]
+                            n_segs = int(np.floor((ev[1] - start_event_corrected) / config.stride) + 1)
+                            seg_start = np.arange(0, n_segs) * config.stride + start_event_corrected - config.stride
+                            seg_stop = seg_start + config.frame
+                            segments.extend(np.column_stack(([idx] * n_segs, seg_start, seg_stop, np.ones(n_segs))))
+                        else:
+                            n_segs = int(np.floor((ev[0] - prev_event[1])/config.stride)-1)
+                            seg_start = np.arange(0, n_segs)*config.stride + prev_event[1]
+                            seg_stop = seg_start + config.frame
+                            segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.zeros(n_segs))))
 
-                        n_segs = int(np.floor((ev[1] - ev[0])/config.stride)+1)
-                        seg_start = np.arange(0, n_segs)*config.stride + ev[0] - config.stride
-                        seg_stop = seg_start + config.frame
-                        segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.ones(n_segs))))
+                            n_segs = int(np.floor((ev[1] - ev[0])/config.stride)+1)
+                            seg_start = np.arange(0, n_segs)*config.stride + ev[0] - config.stride
+                            seg_stop = seg_start + config.frame
+                            segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.ones(n_segs))))
 
+                    # If it is the last event
                     elif e == len(annotations.events)-1:
                         prev_event = annotations.events[e-1]
-                        n_segs = int(np.floor((ev[0] - prev_event[1])/config.stride)-1)
-                        seg_start = np.arange(0, n_segs)*config.stride + prev_event[1]
-                        seg_stop = seg_start + config.frame
-                        segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.zeros(n_segs))))
+                        if ev[0] < segments[-1][2]:
+                            # If the start of the event is before the end of the previous segment, start from the end
+                            # of the previous segment
+                            start_event_corrected = segments[-1][2]
+                            n_segs = int(np.floor((ev[1] - start_event_corrected) / config.stride) + 1)
+                            seg_start = np.arange(0, n_segs) * config.stride + start_event_corrected - config.stride
+                            seg_stop = seg_start + config.frame
+                            segments.extend(np.column_stack(([idx] * n_segs, seg_start, seg_stop, np.ones(n_segs))))
+                        else:
+                            n_segs = int(np.floor((ev[0] - prev_event[1])/config.stride)-1)
+                            seg_start = np.arange(0, n_segs)*config.stride + prev_event[1]
+                            seg_stop = seg_start + config.frame
+                            segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.zeros(n_segs))))
 
-                        n_segs = int(np.floor((ev[1] - ev[0])/config.stride)+1)
-                        seg_start = np.arange(0, n_segs)*config.stride + ev[0] - config.stride
-                        seg_stop = seg_start + config.frame
-                        segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.ones(n_segs))))
+                            n_segs = int(np.floor((ev[1] - ev[0])/config.stride)+1)
+                            seg_start = np.arange(0, n_segs)*config.stride + ev[0] - config.stride
+                            seg_stop = seg_start + config.frame
+                            segments.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.ones(n_segs))))
 
                         n_segs = int(np.floor((annotations.rec_duration - ev[1])/config.stride)-1)
                         if n_segs > 0:
