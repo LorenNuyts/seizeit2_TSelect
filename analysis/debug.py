@@ -1,5 +1,6 @@
 import argparse
 import os
+import pickle
 
 from analysis.dataset import dataset_stats
 from data.cross_validation import multi_objective_grouped_stratified_cross_validation
@@ -9,6 +10,7 @@ from net.key_generator import generate_data_keys_sequential_window, generate_dat
     generate_data_keys_subsample
 from utility import get_recs_list
 from utility.constants import Locations, SEED
+from utility.paths import get_paths_segments_train, get_paths_segments_val
 
 base_ = os.path.dirname(os.path.realpath(__file__))
 
@@ -37,14 +39,23 @@ def ts_reshape_error():
                                                                            seed=SEED)
     train_subjects, validation_subjects, test_subjects = next(CV_generator)
     train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
-    train_segments = generate_data_keys_subsample(config, train_recs_list)
+    path_segments_train = get_paths_segments_train(config, config.get_name(), 0)
+    if os.path.exists(path_segments_train):
+        with open(path_segments_train, 'rb') as inp:
+            train_segments = pickle.load(inp)
+
+    path_segments_val = get_paths_segments_val(config, config.get_name(), 0)
+    if os.path.exists(path_segments_val):
+        with open(get_paths_segments_val(config, config.get_name(), 0), 'rb') as inp:
+            val_segments = pickle.load(inp)
+    # train_segments = generate_data_keys_subsample(config, train_recs_list)
     gen_train = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                        shuffle=True)
     for i, segment in enumerate(gen_train):
         print("Segment", train_segments[i], "loading ok")
 
     val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
-    val_segments = generate_data_keys_sequential_window(config, val_recs_list, config.val_batch_size)
+    # val_segments = generate_data_keys_sequential_window(config, val_recs_list, config.val_batch_size)
     gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size,
                                      shuffle=False)
 
