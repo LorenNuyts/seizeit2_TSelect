@@ -66,20 +66,32 @@ def ts_reshape_error():
 
     dataset = tf.data.TFRecordDataset(tfrecord_files)
 
-    dataset = dataset.map(lambda x: parse_example(x, config))
+    def parse_test(example_proto):
+        features = {
+            "segment": tf.io.FixedLenFeature([], tf.string),
+            "label": tf.io.FixedLenFeature([2], tf.float32),
+        }
+        return tf.io.parse_single_example(example_proto, features)
+    dataset = dataset.map(parse_test)
 
     gen_train = dataset.batch(config.batch_size)
     ####################################################
     # gen_train, _ = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
     #                                    shuffle=False)
-    for i, segment in enumerate(gen_train):
+    segment_shape = (config.frame * config.fs, config.CH, 1)
+    for i, raw_segment in enumerate(gen_train):
         print(i)
-        if segment[0].shape[-2] != 21:
-            print("Segment", segments[i], "of recording", recs[int(segments[i][0])],
-                  "has shape", segment[0].shape, "instead of (?, 21)")
-            continue
-        rec_index = int(segments[i][0])
-        print("Segment", segments[i], "of recording", recs[rec_index], ": loading ok")
+        print("Segment", segments[i], "of recording", recs[int(segments[i][0])])
+        segment_data = tf.io.decode_raw(raw_segment["segment"], tf.float32)
+        print("Segment data shape before reshape:", segment_data.shape)
+        print("Desired segment shape:", segment_shape)
+        segment_data = tf.reshape(segment_data, segment_shape)
+        # if segment[0].shape[-2] != 21:
+        #     print("Segment", segments[i], "of recording", recs[int(segments[i][0])],
+        #           "has shape", segment[0].shape, "instead of (?, 21)")
+        #     continue
+        # rec_index = int(segments[i][0])
+        # print("Segment", segments[i], "of recording", recs[rec_index], ": loading ok")
     #
     # val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
     #
