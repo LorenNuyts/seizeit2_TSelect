@@ -54,7 +54,7 @@ def ts_reshape_error():
     gen_train = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                        shuffle=True)
     for i, segment in enumerate(gen_train):
-        rec_index = train_segments[i][0]
+        rec_index = int(train_segments[i][0])
         print("Segment", train_segments[i], "of recording", train_recs_list[rec_index], ": loading ok")
 
     val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
@@ -63,7 +63,7 @@ def ts_reshape_error():
                                      shuffle=False)
 
     for i, segment in enumerate(gen_val):
-        rec_index = val_segments[i][0]
+        rec_index = int(val_segments[i][0])
         print("Segment", val_segments[i], "of recording", val_recs_list[rec_index], ": loading ok")
 
 if __name__ == '__main__':
