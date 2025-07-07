@@ -1,6 +1,7 @@
 import os
 
 import keras
+import tensorflow as tf
 import numpy as np
 from net.utils import weighted_focal_loss, sens, spec, sens_ovlp, fah_ovlp, fah_epoch, faRate_epoch, score, decay_schedule
 from tensorflow.keras import backend as K
@@ -95,6 +96,13 @@ def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path):
         callbacks_list = [mc, es, csv_logger, lr_sched]
     else:
         callbacks_list = [mc, csv_logger, lr_sched]
+
+    # Debug code to check the shape of the first batch
+    x_batch, y_batch = gen_train[0][0]  # get the first batch
+    print("x shape:", x_batch.shape)
+    print("y shape:", y_batch.shape)
+    print("x size:", tf.size(x_batch).numpy())
+    print("expected reshape size:", 10500)
 
     hist = model.fit(gen_train[0], validation_data=gen_val[0],
                      epochs=config.nb_epochs,
