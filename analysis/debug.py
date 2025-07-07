@@ -51,7 +51,7 @@ def ts_reshape_error():
             val_segments = pickle.load(inp)
             print("There are ", len(val_segments), "segments in the validation set")
     # train_segments = generate_data_keys_subsample(config, train_recs_list)
-    gen_train = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
+    gen_train, _ = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                        shuffle=True)
     for i, segment in enumerate(gen_train):
         if segment[0].shape[-1] != 21:
@@ -63,7 +63,7 @@ def ts_reshape_error():
 
     val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
     # val_segments = generate_data_keys_sequential_window(config, val_recs_list, config.val_batch_size)
-    gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size,
+    gen_val, _ = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size,
                                      shuffle=False)
 
     for i, segment in enumerate(gen_val):
