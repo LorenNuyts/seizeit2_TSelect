@@ -103,10 +103,14 @@ if args.reset:
     predictions_path = os.path.join(config.save_dir, 'predictions', config.get_name())
     if os.path.exists(predictions_path):
         shutil.rmtree(predictions_path)
-    print("Deleting generators folder...")
-    generators_path = os.path.join(config.save_dir, 'generators', config.get_name())
-    if os.path.exists(generators_path):
-        shutil.rmtree(generators_path)
+    # print("Deleting generators folder...")
+    # generators_path = os.path.join(config.save_dir, 'generators', config.get_name())
+    # if os.path.exists(generators_path):
+    #     shutil.rmtree(generators_path)
+    print("Deleting precomputed segments folder...")
+    segments_path = os.path.join(config.save_dir, 'segments', config.get_name())
+    if os.path.exists(segments_path):
+        shutil.rmtree(segments_path)
 
 if os.path.exists(config_path):
     config.load_config(config_path, config.get_name())
