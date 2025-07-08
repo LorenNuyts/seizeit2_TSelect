@@ -84,18 +84,23 @@ class Nodes:
 
     other_nodes = ['Ment+', 'MKR+', 'B1', 'B2', 'Light Stimuli']
 
+    # To obtain the key node, you can use all nodes in the corresponding value. E.g.: BTEleft: [BTEright] means that a
+    # BTEright node can be switched for a BTEleft node. This is not symmetrical such that there is a unique set of included
+    # nodes. All BTEright nodes should be switched for a BTEleft or CROSStop node. Similar for the T3-T6 nodes.
     switchable_nodes = {
-        BTEright: [BTEleft, CROSStop],
+        # BTEright: [BTEleft, CROSStop],
         # BTEleft: [BTEright, CROSStop],
+        BTEleft: [BTEright],
         # CROSStop: [BTEright, BTEleft],
-        'T3': ['T7'],
-        'T4': ['T8'],
-        'T5': ['P7'],
-        'T6': ['P8'],
-        # 'T7': ['T3'],
-        # 'T8': ['T4'],
-        # 'P7': ['T5'],
-        # 'P8': ['T6'],
+        CROSStop: [BTEright],
+        # 'T3': ['T7'],
+        # 'T4': ['T8'],
+        # 'T5': ['P7'],
+        # 'T6': ['P8'],
+        'T7': ['T3'],
+        'T8': ['T4'],
+        'P7': ['T5'],
+        'P8': ['T6'],
     }
 
     @classmethod

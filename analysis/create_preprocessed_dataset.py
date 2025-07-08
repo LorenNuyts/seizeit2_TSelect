@@ -2,13 +2,12 @@ import argparse
 import os
 
 from tqdm import tqdm
-from data.data import Data
+from data.data import Data, create_single_tfrecord
 from net.DL_config import get_base_config
 from net.key_generator import generate_data_keys_sequential
 from utility import get_recs_list
 
 from utility.constants import parse_location, Locations
-from utility.dataset_management import create_single_tfrecord
 from utility.paths import get_path_preprocessed_data
 
 base_ = os.path.dirname(os.path.realpath(__file__))
@@ -45,7 +44,7 @@ def create_preprocessed_dataset(root_dir, config):
 
                 rec_data = Data.loadData(root_dir, recording,
                                          included_channels=config.included_channels)
-                rec_data.apply_preprocess(config)
+                rec_data.apply_preprocess(data_path=config.data_path, fs=config.fs)
 
                 rec_data.store_h5(preprocessed_file)
                 print(f"         | Saved preprocessed data to {preprocessed_file}")

@@ -12,7 +12,7 @@ from net.key_generator import generate_data_keys_sequential_window, generate_dat
     generate_data_keys_subsample
 from utility import get_recs_list
 from utility.constants import Locations, SEED
-from utility.dataset_management import create_single_tfrecord
+from data.data import create_single_tfrecord
 from utility.paths import get_paths_segments_train, get_paths_segments_val, get_path_tfrecord
 
 base_ = os.path.dirname(os.path.realpath(__file__))

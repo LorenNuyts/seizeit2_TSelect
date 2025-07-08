@@ -460,7 +460,7 @@ def get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds):
     #     raise ValueError('Recording not found in test set')
     channels = config.selected_channels[fold_i] if config.channel_selection else config.included_channels
     rec_data = Data.loadData(config.data_path, rec, included_channels=channels)
-    rec_data.apply_preprocess(config)
+    rec_data.apply_preprocess(config.fs, data_path=config.data_path, store_preprocessed=True, recording=rec)
     rmsa = None
     for ch in range(len(rec_data.channels)):
         ch_data = rec_data.data[ch]

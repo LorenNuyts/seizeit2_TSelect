@@ -65,6 +65,21 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
                                                         train_size: float, val_size: float,
                                                         weights_columns: dict=None, seed=SEED):
     np.random.seed(seed)
+    testing = 'dtai' not in os.path.dirname(os.path.realpath(__file__))
+    testing = False
+    print("Testing setting:", testing)
+    if testing:
+        locations = info_per_group['hospital'].unique()
+        if Locations.leuven_adult in locations:
+            included_subjects = ['SUBJ-1a-159', 'SUBJ-1a-358', 'SUBJ-1a-153']  # Leuven Adult subjects
+        else:
+            included_subjects = ['SUBJ-7-331', 'SUBJ-7-379', 'SUBJ-7-376']  # Coimbra subjects
+        # yield permutations of these subjects
+        for i in range(n_splits):
+            np.random.seed(seed + i)
+            perm = np.random.permutation(included_subjects).tolist()
+            yield perm[0], perm[1], perm[2]
+        return
     df = info_per_group.copy()
 
     # Remove the excluded subjects

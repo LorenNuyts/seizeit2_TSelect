@@ -7,10 +7,9 @@ import tensorflow as tf
 from tensorflow import keras
 from tqdm import tqdm
 
-from data.data import Data, switch_channels
+from data.data import Data, switch_channels, create_single_tfrecord
 
 from utility.constants import Nodes
-from utility.dataset_management import create_single_tfrecord
 from utility.paths import get_path_preprocessed_data, get_path_tfrecord
 
 
@@ -277,7 +276,7 @@ class SequentialGenerator(keras.utils.Sequence):
                                                  included_channels=self.config.included_channels)
                 loading_time += time.process_time() - time_start
                 time_start = time.process_time()
-                rec_data_segment.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
+                rec_data_segment.apply_preprocess(self.config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=self.recs[int(s[0])])
                 preprocessing_time += time.process_time() - time_start
                 time_start = time.process_time()
                 start_seg = int(s[1] * self.config.fs)
@@ -388,7 +387,7 @@ class SegmentedGenerator(keras.utils.Sequence):
                                                  included_channels=self.config.included_channels)
                 loading_time += time.process_time() - time_start
                 time_start = time.process_time()
-                rec_data_segment.apply_preprocess(self.config, store_preprocessed=True, recording=self.recs[int(s[0])])
+                rec_data_segment.apply_preprocess(self.config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=self.recs[int(s[0])])
                 preprocessing_time += time.process_time() - time_start
                 time_start = time.process_time()
                 start_seg = int(s[1] * self.config.fs)
@@ -458,7 +457,7 @@ def segment_generator(config, recs, segments, labels, shuffle=True):
             if not os.path.exists(path_preprocessed_data):
                 rec_data_segment = Data.loadData(config.data_path, recs[int(s[0])],
                                                  included_channels=config.included_channels)
-                rec_data_segment.apply_preprocess(config, store_preprocessed=True, recording=recs[int(s[0])])
+                rec_data_segment.apply_preprocess(config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=recs[int(s[0])])
                 start_seg = int(s[1] * config.fs)
                 stop_seg = int(s[2] * config.fs)
                 for ch_i, ch in enumerate(rec_data_segment.channels):
