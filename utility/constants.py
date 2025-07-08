@@ -219,6 +219,35 @@ class Paths:
     remote_save_dir = "/cw/dtailocal/loren/2025-Epilepsy/net/save_dir"
     local_save_dir = "net/save_dir"  # save directory of intermediate and output files
 
+class Metrics:
+    sens_ovlp = "sensitivity_overlap"
+    sens_epoch = "sensitivity_epoch"
+    prec_ovlp = "precision_overlap"
+    prec_epoch = "precision_epoch"
+    fah_ovlp = "false_alarm_rate_overlap"
+    fah_epoch = "false_alarm_rate_epoch"
+    f1_ovlp = "f1_overlap"
+    f1_epoch = "f1_epoch"
+    spec_epoch = "specificity_epoch"
+    score = "score"
+
+    @classmethod
+    def all_keys(cls):
+        """
+        Returns a list of all keys in the Metrics class that do not start with '__' and are not callable.
+        """
+        return [k for k in cls.__dict__ if not k.startswith('__') and not callable(getattr(cls, k))]
+
+    @classmethod
+    def get(cls, key):
+        """
+        Returns the value of the key in the Metrics class if it exists.
+        """
+        if key in cls.all_keys():
+            return getattr(cls, key)
+        else:
+            raise ValueError(f"Invalid metric: '{key}'. Choose from: {', '.join(cls.all_keys())}")
+
 
 evaluation_metrics = {"roc_auc": auroc_score,
                       "score": get_sens_FA_score}

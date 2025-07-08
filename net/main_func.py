@@ -17,6 +17,7 @@ from pympler import asizeof
 
 from analysis.dataset import dataset_stats
 from data.cross_validation import leave_one_person_out, multi_objective_grouped_stratified_cross_validation
+from net.DL_config import Config
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
 from net.generator_ds import build_tfrecord_dataset
 from net.routines import train_net, predict_net
@@ -25,12 +26,14 @@ from net.utils import get_metrics_scoring
 from data.data import Data
 from net.MiniRocket_LR import MiniRocketLR
 from utility import get_recs_list
-from utility.constants import SEED, Paths, Keys
+from utility.constants import SEED, Paths, Keys, Metrics
 from utility.paths import get_path_predictions, get_path_config, get_path_model_weights, get_path_model, \
     get_path_predictions_folder, get_path_results, get_paths_segments_val, get_paths_segments_train
 
 from TSelect.tselect.tselect.utils import init_metadata
 from TSelect.tselect.tselect.channel_selectors.tselect import TSelect
+from utility.stats import Results
+
 
 def train(config, results, load_segments, save_segments):
     """ Routine to run the model's training routine.
@@ -291,7 +294,7 @@ def predict(config):
 #######################################################################################################################
 
 
-def evaluate(config, results):
+def evaluate(config: Config, results: Results):
 
     name = config.get_name()
     # config_path = get_path_config(config, name)
@@ -314,21 +317,9 @@ def evaluate(config, results):
 
     result_file = os.path.join(config.save_dir, 'results', name + '.h5')
 
-    sens_ovlp = []
-    prec_ovlp = []
-    fah_ovlp = []
+    metrics = {Metrics.get(m): [] for m in Metrics.all_keys()}
     sens_ovlp_plot = []
     prec_ovlp_plot = []
-    f1_ovlp = []
-
-    sens_epoch = []
-    spec_epoch = []
-    prec_epoch = []
-    fah_epoch = []
-    f1_epoch = []
-    # rocauc = []
-
-    score = []
 
     for fold_i in config.folds.keys():
         K.clear_session()
@@ -338,126 +329,104 @@ def evaluate(config, results):
         pred_files = [x for x in os.listdir(pred_path)]
         pred_files.sort()
 
-        sens_ovlp_fold = []
-        prec_ovlp_fold = []
-        fah_ovlp_fold = []
-        f1_ovlp_fold = []
-        sens_epoch_fold = []
-        spec_epoch_fold = []
-        prec_epoch_fold = []
-        fah_epoch_fold = []
-        f1_epoch_fold = []
-
-        score_fold = []
+        metrics_fold = {m: [] for m in metrics.keys()}
 
         for file in tqdm(pred_files):
             file_path = os.path.join(pred_path, file)
 
-            f1_epoch_th, f1_ovlp_th, fah_epoch_th, fah_ovlp_th, prec_epoch_th, prec_ovlp_th, score_th, sens_epoch_th, sens_ovlp_th, spec_epoch_th = get_results_rec_file(
-                config, file, file_path, fold_i, pred_fs, thresholds)
+            metrics_th = get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds)
 
-            sens_ovlp_fold.append(sens_ovlp_th)
-            prec_ovlp_fold.append(prec_ovlp_th)
-            fah_ovlp_fold.append(fah_ovlp_th)
-            f1_ovlp_fold.append(f1_ovlp_th)
-
-            sens_epoch_fold.append(sens_epoch_th)
-            spec_epoch_fold.append(spec_epoch_th)
-            prec_epoch_fold.append(prec_epoch_th)
-            fah_epoch_fold.append(fah_epoch_th)
-            f1_epoch_fold.append(f1_epoch_th)
-
-            score_fold.append(score_th)
+            for m in metrics.keys():
+                metrics_fold[m].append(metrics_th[m])
 
         # Compute the average across all recordings for the fold
         # TODO: continue  here
+        for m in metrics.keys():
+            metrics[m].append(np.nanmean(metrics_fold[m], axis=0))
 
-            to_cut = np.argmax(fah_ovlp_th)
-            fah_ovlp_plot_rec = fah_ovlp_th[to_cut:]
-            sens_ovlp_plot_rec = sens_ovlp_th[to_cut:]
-            prec_ovlp_plot_rec = prec_ovlp_th[to_cut:]
+        # to_cut = np.argmax(fah_ovlp_th)
+        to_cut = np.argmax(metrics[Metrics.fah_ovlp][-1])
+        fah_ovlp_plot_rec = metrics[Metrics.fah_ovlp][-1][to_cut:]
+        sens_ovlp_plot_rec = metrics[Metrics.sens_ovlp][-1][to_cut:]
+        prec_ovlp_plot_rec = metrics[Metrics.prec_ovlp][-1][to_cut:]
 
-            y_plot = np.interp(x_plot, fah_ovlp_plot_rec[::-1], sens_ovlp_plot_rec[::-1])
-            sens_ovlp_plot.append(y_plot)
-            y_plot = np.interp(x_plot, sens_ovlp_plot_rec[::-1], prec_ovlp_plot_rec[::-1])
-            prec_ovlp_plot.append(y_plot)
+        y_plot = np.interp(x_plot, fah_ovlp_plot_rec[::-1], sens_ovlp_plot_rec[::-1])
+        sens_ovlp_plot.append(y_plot)
+        y_plot = np.interp(x_plot, sens_ovlp_plot_rec[::-1], prec_ovlp_plot_rec[::-1])
+        prec_ovlp_plot.append(y_plot)
 
-    score_05 = [x[25] for x in score]
+    score_05 = [x[25] for x in metrics[Metrics.score]]
 
     print('Score: ' + "%.2f" % np.nanmean(score_05))
 
     with h5py.File(result_file, 'w') as f:
-        f.create_dataset('sens_ovlp', data=sens_ovlp)
-        f.create_dataset('prec_ovlp', data=prec_ovlp)
-        f.create_dataset('fah_ovlp', data=fah_ovlp)
-        f.create_dataset('f1_ovlp', data=f1_ovlp)
+        for m in metrics.keys():
+            f.create_dataset(m, data=metrics[m])
+
+        # f.create_dataset('sens_ovlp', data=metrics[Metrics.sens_ovlp])
+        # f.create_dataset('prec_ovlp', data=metrics[Metrics.prec_ovlp])
+        # f.create_dataset('fah_ovlp', data=metrics[Metrics.fah_ovlp])
+        # f.create_dataset('f1_ovlp', data=f1_ovlp)
         f.create_dataset('sens_ovlp_plot', data=sens_ovlp_plot)
         f.create_dataset('prec_ovlp_plot', data=prec_ovlp_plot)
         f.create_dataset('x_plot', data=x_plot)
-        f.create_dataset('sens_epoch', data=sens_epoch)
-        f.create_dataset('spec_epoch', data=spec_epoch)
-        f.create_dataset('prec_epoch', data=prec_epoch)
-        f.create_dataset('fah_epoch', data=fah_epoch)
-        f.create_dataset('f1_epoch', data=f1_epoch)
-        # f.create_dataset('rocauc', data=rocauc)
-        f.create_dataset('score', data=score)
+        # f.create_dataset('sens_epoch', data=sens_epoch)
+        # f.create_dataset('spec_epoch', data=spec_epoch)
+        # f.create_dataset('prec_epoch', data=prec_epoch)
+        # f.create_dataset('fah_epoch', data=fah_epoch)
+        # f.create_dataset('f1_epoch', data=f1_epoch)
+        # # f.create_dataset('rocauc', data=rocauc)
+        # f.create_dataset('score', data=score)
 
-    results.sens_ovlp = sens_ovlp
-    results.prec_ovlp = prec_ovlp
-    results.fah_ovlp = fah_ovlp
-    results.fah_epoch = fah_epoch
-    results.f1_ovlp = f1_ovlp
-    # results.rocauc = rocauc
-    results.score = score
+    results.sens_ovlp = metrics[Metrics.sens_ovlp]
+    results.prec_ovlp = metrics[Metrics.prec_ovlp]
+    results.fah_ovlp = metrics[Metrics.fah_ovlp]
+    results.f1_ovlp = metrics[Metrics.f1_ovlp]
+    results.sens_epoch = metrics[Metrics.sens_epoch]
+    results.spec_epoch = metrics[Metrics.spec_epoch]
+    results.prec_epoch = metrics[Metrics.prec_epoch]
+    results.fah_epoch = metrics[Metrics.fah_epoch]
+    results.score = metrics[Metrics.score]
     results.thresholds = thresholds
-    results.save_results(get_path_results(config, name))
+
+    # Save the results
+    results_save_path = get_path_results(config, name)
+    results.config = config
+    results.save_results(results_save_path)
+
+    # Print some metrics
     average_nb_channels = np.mean([len(chs) for chs in config.selected_channels.values()]) if config.channel_selection else config.CH
 
-    print(f"Best score: {'%.2f' % results.best_average_score[0]} at threshold {'%.2f' % results.best_average_score[1]}")
-    # print(f"Best F1: {'%.2f' % results.best_[0]} at threshold {'%.2f' % results.best_average_f1_ovlp[1]}")
-    # print(f"Best FAH: {'%.2f' % results.best_average_fah_ovlp[0]} at threshold {'%.2f' % results.best_average_fah_ovlp[1]}")
-    # print(f"Best Sens: {'%.2f' % results.best_average_sens_ovlp[0]} at threshold {'%.2f' % results.best_average_sens_ovlp[1]}")
-    # print(f"Best Prec: {'%.2f' % results.best_average_prec_ovlp[0]} at threshold {'%.2f' % results.best_average_prec_ovlp[1]}")
-    print(f"F1 score at best threshold: {'%.2f' % results.average_f1_ovlp_best_threshold}")
-    print(f"FAH at best threshold: {'%.2f' % results.average_fah_ovlp_best_threshold}")
-    print(f"Sens at best threshold: {'%.2f' % results.average_sens_ovlp_best_threshold}")
-    print(f"Prec at best threshold: {'%.2f' % results.average_prec_ovlp_best_threshold}")
-    print(f"ROCAUC at best threshold: {'%.2f' % results.average_rocauc_best_threshold}")
+    print(f"Average score at threshold 0.5: {'%.2f' % results.average_score_th05}")
+    print(f"Average F1 at threshold 0.5: {'%.2f' % results.average_f1_ovlp_th05}")
+    print(f"Average FAH at threshold 0.5: {'%.2f' % results.average_fah_ovlp_th05}")
+    print(f"Average Sens at threshold 0.5: {'%.2f' % results.average_sens_ovlp_th05}")
+    print(f"Average Prec at threshold 0.5: {'%.2f' % results.average_prec_ovlp_th05}")
+    # print(f"Best score: {'%.2f' % results.best_average_score[0]} at threshold {'%.2f' % results.best_average_score[1]}")
+    # # print(f"Best F1: {'%.2f' % results.best_[0]} at threshold {'%.2f' % results.best_average_f1_ovlp[1]}")
+    # # print(f"Best FAH: {'%.2f' % results.best_average_fah_ovlp[0]} at threshold {'%.2f' % results.best_average_fah_ovlp[1]}")
+    # # print(f"Best Sens: {'%.2f' % results.best_average_sens_ovlp[0]} at threshold {'%.2f' % results.best_average_sens_ovlp[1]}")
+    # # print(f"Best Prec: {'%.2f' % results.best_average_prec_ovlp[0]} at threshold {'%.2f' % results.best_average_prec_ovlp[1]}")
+    # print(f"F1 score at best threshold: {'%.2f' % results.average_f1_ovlp_best_threshold}")
+    # print(f"FAH at best threshold: {'%.2f' % results.average_fah_ovlp_best_threshold}")
+    # print(f"Sens at best threshold: {'%.2f' % results.average_sens_ovlp_best_threshold}")
+    # print(f"Prec at best threshold: {'%.2f' % results.average_prec_ovlp_best_threshold}")
 
     print("####################################################")
     print("Average selection time: " + "%.2f" % results.average_selection_time)
     print("Total time: " + "%.2f" % results.average_total_time)
     print("Average number of channels: " + "%.2f" % average_nb_channels)
 
-    results_save_path = get_path_results(config, name)
-    results.config = config
-    results.save_results(results_save_path)
+
 
 
 def get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds):
     with h5py.File(file_path, 'r') as f:
         y_pred = list(f['y_pred'])
         y_true = list(f['y_true'])
-    sens_ovlp_th = []
-    prec_ovlp_th = []
-    fah_ovlp_th = []
-    f1_ovlp_th = []
-    sens_epoch_th = []
-    spec_epoch_th = []
-    prec_epoch_th = []
-    fah_epoch_th = []
-    f1_epoch_th = []
-    # rocauc_th = []
-    score_th = []
+
+    metrics = {Metrics.get(m): [] for m in Metrics.all_keys()}
     rec = file.split('__')[:4]
-    # fold_nb = None
-    # for fold_i in config.folds.keys():
-    #     if rec[1] in config.folds[fold_i]['test']:
-    #         fold_nb = fold_i
-    #         break
-    #
-    # if fold_nb is None:
-    #     raise ValueError('Recording not found in test set')
     channels = config.selected_channels[fold_i] if config.channel_selection else config.included_channels
     rec_data = Data.loadData(config.data_path, rec, included_channels=channels)
     rec_data.apply_preprocess(config.fs, data_path=config.data_path, store_preprocessed=True, recording=rec)
@@ -478,15 +447,15 @@ def get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds):
         sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec = get_metrics_scoring(
             y_pred, y_true, pred_fs, th)
 
-        sens_ovlp_th.append(sens_ovlp_rec)
-        prec_ovlp_th.append(prec_ovlp_rec)
-        fah_ovlp_th.append(FA_ovlp_rec)
-        f1_ovlp_th.append(f1_ovlp_rec)
-        sens_epoch_th.append(sens_epoch_rec)
-        spec_epoch_th.append(spec_epoch_rec)
-        prec_epoch_th.append(prec_epoch_rec)
-        fah_epoch_th.append(FA_epoch_rec)
-        f1_epoch_th.append(f1_epoch_rec)
-        # rocauc_th.append(rocauc_rec)
-        score_th.append(sens_ovlp_rec * 100 - 0.4 * FA_epoch_rec)
-    return f1_epoch_th, f1_ovlp_th, fah_epoch_th, fah_ovlp_th, prec_epoch_th, prec_ovlp_th, score_th, sens_epoch_th, sens_ovlp_th, spec_epoch_th
+        metrics[Metrics.sens_ovlp].append(sens_ovlp_rec)
+        metrics[Metrics.prec_ovlp].append(prec_ovlp_rec)
+        metrics[Metrics.fah_ovlp].append(FA_ovlp_rec)
+        metrics[Metrics.f1_ovlp].append(f1_ovlp_rec)
+        metrics[Metrics.sens_epoch].append(sens_epoch_rec)
+        metrics[Metrics.spec_epoch].append(spec_epoch_rec)
+        metrics[Metrics.prec_epoch].append(prec_epoch_rec)
+        metrics[Metrics.fah_epoch].append(FA_epoch_rec)
+        metrics[Metrics.f1_epoch].append(f1_epoch_rec)
+        metrics[Metrics.score].append(sens_ovlp_rec * 100 - 0.4 * FA_epoch_rec)
+
+    return metrics

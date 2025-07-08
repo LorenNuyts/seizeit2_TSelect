@@ -57,6 +57,7 @@ class Config():
         self.channel_selection = False
         self.selected_channels = None
         self.pretty_name = None
+        self.folds = {}  # dictionary to store the folds
 
         # models parameters
         self.data_format = tf.keras.backend.image_data_format
