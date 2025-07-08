@@ -69,19 +69,29 @@ class Data:
         edfFile = get_path_recording(data_path, recording)
         if os.path.exists(edfFile):
             with pyedflib.EdfReader(edfFile) as edf :
+                all_samplingFrequencies = edf.getSampleFrequencies()
                 samplingFrequencies.extend(edf.getSampleFrequencies())
                 channels_in_file = edf.getSignalLabels()
-                channels_in_file = Nodes.match_nodes(channels_in_file, included_channels)
-                n = edf.signals_in_file
-                for i in range(n):
-                    included_channels = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
-                    if channels_in_file[i] in included_channels:
-                        data.append(edf.readSignal(i))
-                        channels.append(channels_in_file[i])
+                standardized_channels_in_file = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
+                standardized_included_channels = Nodes.match_nodes(included_channels, Nodes.all_nodes())
+                for ch in sorted(standardized_included_channels):
+                    if ch in standardized_channels_in_file:
+                        ix = standardized_channels_in_file.index(ch)
+                        data.append(edf.readSignal(ix))
+                        channels.append(ch)
+                        samplingFrequencies.append(all_samplingFrequencies[ix])
+                # channels_in_file = Nodes.match_nodes(channels_in_file, Nodes.all_nodes())
+                # for ch in sorted(included_channels):
+                # n = edf.signals_in_file
+                # for i in range(n):
+                #     included_channels = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
+                #     if channels_in_file[i] in included_channels:
+                #         data.append(edf.readSignal(i))
+                #         channels.append(channels_in_file[i])
 
                 edf._close()
 
-                samplingFrequencies = [fs for fs, ch in zip(samplingFrequencies, channels) if ch in included_channels]
+                # samplingFrequencies = [fs for fs, ch in zip(samplingFrequencies, channels) if ch in included_channels]
                 # channels = [ch for ch in channels if ch in included_channels]
                 assert len([ch for ch in channels if ch not in Nodes.basic_eeg_nodes + Nodes.optional_eeg_nodes +
                             Nodes.wearable_nodes + Nodes.eeg_acc + Nodes.eeg_ears +
@@ -111,37 +121,13 @@ class Data:
         Returns:
             Data: returns a Data instance containing the segment of the data object.
         """
-        # data = list()
-        # channels = list()
-        # samplingFrequencies = list()
 
         h5_file = get_path_preprocessed_data(data_path, recording)
         if os.path.exists(h5_file):
-            return cls.loadSegment_h5(h5_file, start_time, stop_time, fs)
+            return cls.loadSegment_h5(h5_file, start_time, stop_time, fs, included_channels)
         else:
+            # TODO: load entire file, preprocess it, save it and then load the segment
             raise ValueError("Segments can only be loaded from preprocessed data. Please save the preprocessed data first.")
-
-        # edfFile = get_path_recording(data_path, recording)
-        # if os.path.exists(edfFile):
-        #     with pyedflib.EdfReader(edfFile) as edf:
-        #         samplingFrequencies.extend(edf.getSampleFrequencies())
-        #
-        #         channels_in_file = edf.getSignalLabels()
-        #         channels_in_file = Nodes.match_nodes(channels_in_file, included_channels)
-        #         n = edf.signals_in_file
-        #         start_sample = int(start_time * fs)
-        #         stop_sample = int(stop_time * fs)
-        #
-        #         for i in range(n):
-        #             if channels_in_file[i] in included_channels:
-        #                 segment = edf.readSignal(i)[start_sample:stop_sample]
-        #                 data.append(segment)
-        #                 channels.append(channels_in_file[i])
-        #         edf._close()
-        #     segment = cls(data, channels, samplingFrequencies)
-        #     segment.__segment = (start_time, stop_time)
-        #
-        #     return segment
 
 
     def store_h5(self, file_path: str) -> None:
@@ -187,7 +173,7 @@ class Data:
                 raise ValueError(f"Could not load data from {file_path}. The file might be corrupted or not in the expected format.")
 
     @classmethod
-    def loadSegment_h5(cls, file_path: str, start_time: float, stop_time: float, fs: int):
+    def loadSegment_h5(cls, file_path: str, start_time: float, stop_time: float, fs: int, included_channels: List[str] = None):
         """Load a segment of the data object from an HDF5 file.
 
         Args:
@@ -195,19 +181,35 @@ class Data:
             start_time (float): start time of the segment in seconds.
             stop_time (float): stop time of the segment in seconds.
             fs (int): sampling frequency of the segment.
+            included_channels (List[str]): list of channels to include in the data object. If a channel is not present
+            in the HDF5 file, it will be switched to a similar channel if possible. If None, all channels listed in the
+            Nodes class will be included.
         """
+        if included_channels is None:
+            included_channels = Nodes.all_nodes()
         import h5py
         with h5py.File(file_path, 'r') as h5f:
             start_sample = int(start_time * fs)
             stop_sample = int(stop_time * fs)
             data = []
             channels = []
-            samplingFrequencies = h5f['fs'][()]
-            for channel in h5f.keys():
-                if channel != 'fs':
-                    segment = h5f[channel][start_sample:stop_sample]
-                    data.append(segment)
-                    channels.append(channel)
+            samplingFrequencies = []
+            all_samplingFrequencies = h5f['fs'][()]
+            channels_in_file = list(h5f.keys())
+            standardized_channels_in_file = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
+            standardized_included_channels = Nodes.match_nodes(included_channels, Nodes.all_nodes())
+            for ch in sorted(standardized_included_channels):
+                if ch in standardized_channels_in_file:
+                    ix = standardized_channels_in_file.index(ch)
+                    data.append(h5f[channels_in_file[ix]][start_sample:stop_sample])
+                    channels.append(ch)
+                    samplingFrequencies.append(all_samplingFrequencies[ix])
+            # for channel in h5f.keys():
+            #     if channel != 'fs':
+            #         segment = h5f[channel][start_sample:stop_sample]
+            #         data.append(segment)
+            #         channels.append(channel)
+
             segment = cls(data, channels, samplingFrequencies)
             segment.__preprocessed = True  # Mark as preprocessed if loaded from HDF5
             segment.__segment = (start_time, stop_time)
@@ -257,23 +259,27 @@ class Data:
 
 def switch_channels(available_channels: list[str], desired_channels: list[str], switchable_channels: dict) -> list[str]:
     """
-    Switch the channels in the desired_channels list if the switchable_channels dictionary contains the channel to
+    Switch the channels in the available_channels list if the switchable_channels dictionary contains the channel to
     switch. A copy of the desired_channels list is returned with the switched channels.
     """
+    # Format both sets of channels to eliminate differences in writing style
+    available_channels = Nodes.match_nodes(available_channels, Nodes.all_nodes())
+    desired_channels = Nodes.match_nodes(desired_channels, Nodes.all_nodes())
+
     missing_channels = [ch for ch in desired_channels if ch not in available_channels]
     options = {ch for ch in available_channels if ch not in desired_channels}
     non_switched_channels = set()
-    result = desired_channels.copy()
+    result = available_channels.copy()
     for ch in missing_channels:
-        if (ch in Nodes.wearable_nodes and len({c for c in Nodes.wearable_nodes if c in available_channels}) >= 2 and
-            len({c for c in Nodes.wearable_nodes if c in desired_channels}) >= 3):
-            continue # Skip if 2 out of 3 wearable nodes are available
+        # if (ch in Nodes.wearable_nodes and len({c for c in Nodes.wearable_nodes if c in available_channels}) >= 2 and
+        #     len({c for c in Nodes.wearable_nodes if c in desired_channels}) >= 3):
+        #     continue # Skip if 2 out of 3 wearable nodes are available
         if ch in switchable_channels:
-            index = desired_channels.index(ch)
             switch_found = False
             for option in options:
                 if option in switchable_channels[ch]:
-                    result[index] = option
+                    index = available_channels.index(option)
+                    result[index] = ch
                     options.remove(option)
                     switch_found = True
                     break

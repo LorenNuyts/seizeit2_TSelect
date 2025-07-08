@@ -122,9 +122,9 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         included_channels = "all"
 
     if included_channels == "all":
-        included_channels = Nodes.basic_eeg_nodes + Nodes.wearable_nodes
+        included_channels = Nodes.basic_eeg_nodes + Nodes.included_wearables
     elif included_channels == "wearables":
-        included_channels = Nodes.wearable_nodes
+        included_channels = Nodes.included_wearables
         suffix = "wearables" + ("__" if len(suffix) != 0 else "") + suffix
     else:
         raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all' or 'wearables'.")

@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from data.data import Data
+from utility.constants import Nodes
 from utility.paths import get_path_tfrecord
 
 
@@ -37,6 +38,12 @@ def create_single_tfrecord(config, recs, segment):
     segment_data = segment_data[:, :, np.newaxis]  # shape (T, CH, 1)
     assert segment_data.shape[1] == 21, \
         f"Segment data shape mismatch: {segment_data.shape[1]} channels found, expected 21"
+    # Check that the channels are ordered alphabetically
+    assert np.all(s.channels == sorted(s.channels)), \
+        "Channels must be ordered alphabetically"
+    # Check that none of T3, T4, T5, T6 or BTEright are present
+    assert not any(channel in s.channels for channel in ['T3', 'T4', 'T5', 'T6', Nodes.BTEright]), \
+        "Channels T3, T4, T5, T6 or BTEright should not be present in the data"
     # Transpose if model requires it
     if config.model in ['DeepConvNet', 'EEGnet']:
         segment_data = segment_data.transpose(1, 0, 2)  # (CH, T, 1)

@@ -14,21 +14,23 @@ subjects_with_seizures = {'SUBJ-1a-159', 'SUBJ-7-376', 'SUBJ-4-259', 'SUBJ-1a-35
                           'SUBJ-4-230', 'SUBJ-4-466', 'SUBJ-6-256', 'SUBJ-7-449', 'SUBJ-6-275', 'SUBJ-4-139',
                           'SUBJ-6-311', 'SUBJ-6-393', 'SUBJ-1a-353', 'SUBJ-4-254', 'SUBJ-7-331', 'SUBJ-7-441'}
 
-excluded_subjects = {'SUBJ-1b-315'}
+# excluded_subjects = {'SUBJ-1b-315'}
+excluded_subjects = {}
 
 class Nodes:
     midline_nodes = ['Fz', 'Cz', 'Pz']
     prefrontal_nodes = ['Fp1', 'Fp2']
     frontal_nodes = ['F3', 'F4', 'F7', 'F8']
-    temporal_nodes = ['T3', 'T4', 'T5', 'T6']
-    parietal_nodes = ['P3', 'P4']
+    temporal_nodes = ['T7', 'T8']
+    parietal_nodes = ['P3', 'P4', 'P7', 'P8']
     occipital_nodes = ['O1', 'O2']
     central_nodes = ['C3', 'C4']
     a_nodes = ['A1', 'A2']  # Ear nodes
 
     basic_eeg_nodes = (midline_nodes + prefrontal_nodes + frontal_nodes + temporal_nodes +
                         parietal_nodes + occipital_nodes + central_nodes)
-    T_nodes = ['T1', 'T2', 'T7', 'T8', 'T9', 'T10']
+    # T_nodes = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T9', 'T10']
+    T_nodes = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T9', 'T10']
     optional_F_nodes = ['F9', 'F10']
     optional_P_nodes = ['P7', 'P8', 'P9', 'P10']
     optional_FC_nodes = ['FC1', 'FC2', 'FC5', 'FC6']
@@ -56,6 +58,7 @@ class Nodes:
     BTEright = 'BTEright SD'
     CROSStop = 'CROSStop SD'
     wearable_nodes = [BTEleft, BTEright, CROSStop]
+    included_wearables = [BTEleft, CROSStop]
 
     eeg_sd_acc_x = 'EEG SD ACC X'
     eeg_sd_acc_y = 'EEG SD ACC Y'
@@ -83,16 +86,16 @@ class Nodes:
 
     switchable_nodes = {
         BTEright: [BTEleft, CROSStop],
-        BTEleft: [BTEright, CROSStop],
-        CROSStop: [BTEright, BTEleft],
+        # BTEleft: [BTEright, CROSStop],
+        # CROSStop: [BTEright, BTEleft],
         'T3': ['T7'],
         'T4': ['T8'],
         'T5': ['P7'],
         'T6': ['P8'],
-        'T7': ['T3'],
-        'T8': ['T4'],
-        'P7': ['T5'],
-        'P8': ['T6'],
+        # 'T7': ['T3'],
+        # 'T8': ['T4'],
+        # 'P7': ['T5'],
+        # 'P8': ['T6'],
     }
 
     @classmethod

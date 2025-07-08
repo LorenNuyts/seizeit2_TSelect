@@ -27,7 +27,9 @@ def create_preprocessed_dataset(root_dir, config):
         if not os.path.isdir(location_path):
             continue
 
-        for subject in os.listdir(location_path):
+        subj = ['SUBJ-1b-315']
+        # for subject in os.listdir(location_path):
+        for subject in subj:
             print("     | Processing subject:", subject)
             subject_path = os.path.join(location_path, subject)
             if not os.path.isdir(subject_path):
@@ -82,7 +84,7 @@ if __name__ == '__main__':
         '--locations',
         nargs='+',  # accept multiple inputs
         type=parse_location,
-        default=[Locations.leuven_adult],
+        default=[Locations.leuven_pediatric],
         help=f"List of locations. Choose from: {', '.join(Locations.all_keys())}. "
              f"Defaults to [{Locations.leuven_adult}]."
     )
@@ -91,5 +93,5 @@ if __name__ == '__main__':
     unique_locations = list(dict.fromkeys(args.locations))
     # Import your configuration class
     config_ = get_base_config(base_, locations=unique_locations,)
-    # create_preprocessed_dataset(config_.data_path, config_)
-    create_tfrecord_dataset(config_.data_path, config_)
+    create_preprocessed_dataset(config_.data_path, config_)
+    # create_tfrecord_dataset(config_.data_path, config_)
