@@ -92,5 +92,5 @@ if __name__ == '__main__':
     unique_locations = list(dict.fromkeys(args.locations))
     # Import your configuration class
     config_ = get_base_config(base_, locations=unique_locations,)
-    create_preprocessed_dataset(config_.data_path, config_)
-    # create_tfrecord_dataset(config_.data_path, config_)
+    # create_preprocessed_dataset(config_.data_path, config_)
+    create_tfrecord_dataset(config_.data_path, config_)
