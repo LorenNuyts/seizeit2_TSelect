@@ -506,22 +506,27 @@ def build_segment_dataset(config, recs, segments, batch_size=32, shuffle=True):
     steps_per_epoch = math.ceil(len(segments) / batch_size)
     return dataset, steps_per_epoch
 
-def parse_example(example_proto, config):
+def parse_example(example_proto, config, channel_indices=None):
     features = {
         "segment": tf.io.FixedLenFeature([], tf.string),
         "label": tf.io.FixedLenFeature([2], tf.float32),
     }
     parsed = tf.io.parse_single_example(example_proto, features)
-    segment_shape = (config.frame * config.fs, config.CH, 1)
+    segment_shape = (config.frame * config.fs, len(config.included_channels), 1)
     segment_data = tf.io.decode_raw(parsed["segment"], tf.float32)
     segment_data = tf.reshape(segment_data, segment_shape)
+
+    # Dynamically select specific channels, if requested
+    if channel_indices is not None:
+        selected_channels = tf.constant(channel_indices, dtype=tf.int32)
+        segment_data = tf.gather(segment_data, selected_channels, axis=1)
 
     if config.model in ['DeepConvNet', 'EEGnet']:
         segment_data = tf.transpose(segment_data, perm=[1, 0, 2])
 
     return segment_data, parsed["label"]
 
-def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, progress_bar=True):
+def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, progress_bar=True, channel_indices=None):
     # Generate TFRecord paths for each segment
     tfrecord_files = []
     for s in tqdm(segments, disable=not progress_bar, desc="Preparing TFRecord files"):
@@ -535,7 +540,7 @@ def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, 
     if shuffle:
         dataset = dataset.shuffle(buffer_size=2048)
 
-    dataset = dataset.map(lambda x: parse_example(x, config),
+    dataset = dataset.map(lambda x: parse_example(x, config, channel_indices),
                           num_parallel_calls=tf.data.AUTOTUNE)
 
     dataset = dataset.batch(batch_size)

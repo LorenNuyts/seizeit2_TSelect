@@ -134,7 +134,7 @@ def train(config, results, load_segments, save_segments):
             # gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
             # gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
             #                                   shuffle=True)
-            gen_train = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
+            gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                                shuffle=True)
 
             val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
@@ -154,7 +154,8 @@ def train(config, results, load_segments, save_segments):
             print('Generating validation dataset...')
             # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
             # gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-            gen_val = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size, shuffle=False)
+            gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size,
+                                             shuffle=False)
 
 
         else:
@@ -162,27 +163,35 @@ def train(config, results, load_segments, save_segments):
 
         if config.channel_selection:
             selection_start = time.process_time()
+
             print('### Selecting channels....')
             channel_selector = TSelect(random_state=SEED, evaluation_metric=config.channel_selection_evaluation_metric,
                                        irrelevant_selector_percentage=config.auc_percentage,
                                        filtering_threshold_corr=config.corr_threshold)
-            # channel_selector = TSelect(random_state=SEED)
             metadata = init_metadata()
-            # df = from_3d_numpy_to_multi_index(gen_train.data_segs.transpose(0, 2, 1), column_names=gen_train.channels)
-            df = gen_train.data_segs
-            # y = pd.Series(gen_train.labels[:, 0])
-            y = gen_train.labels[:, 0]
-            channel_selector.fit(df, y, X_val=gen_val.data_segs, y_val=gen_val.labels[:, 0], metadata=metadata)
-            selected_channels = [gen_train.channels[i] for i in channel_selector.selected_channels]
-            gen_train.change_included_channels(selected_channels)
-            gen_val.change_included_channels(selected_channels)
-            assert gen_train.data_segs.shape[2] == gen_val.data_segs.shape[2]
+            channel_selector.fit_generator(gen_train, gen_val, metadata=metadata)
             if config.selected_channels is None:
-                config.selected_channels = {fold_i: selected_channels}
+                channel_indices = channel_selector.selected_channels
+                config.selected_channels = {fold_i: [sorted(config.included_channels)[i] for i in channel_selector.selected_channels]}
             else:
-                config.selected_channels[fold_i] = selected_channels
+                channel_indices = channel_selector.selected_channels
+                config.selected_channels[fold_i] = [sorted(config.included_channels)[i] for i in channel_selector.selected_channels]
             config.reload_CH(fold=fold_i)
             results.selection_time[fold_i] = time.process_time() - selection_start
+
+            del gen_train
+            del gen_val
+            del channel_selector
+            gc.collect()
+
+            # Reset the generators
+            gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments,
+                                                                batch_size=config.batch_size,
+                                                                shuffle=True, channel_indices=channel_indices)
+            gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments,
+                                                                batch_size=config.val_batch_size,
+                                                                shuffle=False, channel_indices=channel_indices)
+
 
         print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
         print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
@@ -202,7 +211,7 @@ def train(config, results, load_segments, save_segments):
 
             start_train = time.time()
 
-            train_net(config, model, gen_train, gen_val, model_save_path)
+            train_net(config, model, gen_train, gen_val, model_save_path, steps_per_epoch, validation_steps)
 
             end_train = time.time() - start_train
         print('Total train duration = ', end_train / 60)
@@ -244,6 +253,9 @@ def predict(config):
         config.reload_CH(fold=fold_i)
         test_recs_list = get_recs_list(config.data_path, config.locations, test_subjects)
 
+        selected_channels_indices = [sorted(config.included_channels).index(ch) for ch in
+                                     config.selected_channels[fold_i]] if config.channel_selection else None
+
         model_save_path = get_path_model(config, name, fold_i)
         model_weights_path = get_path_model_weights(model_save_path, name)
 
@@ -270,10 +282,7 @@ def predict(config):
                     segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
                     gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
-                                                         shuffle=False, progress_bar=False)
-
-                    if config.channel_selection:
-                        gen_test.change_included_channels(config.selected_channels[fold_i])
+                                                         shuffle=False, progress_bar=False, channel_indices=selected_channels_indices)
 
                     config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 

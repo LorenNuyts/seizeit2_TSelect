@@ -30,8 +30,8 @@ def get_num_workers(fraction=0.5, min_workers=1, max_workers=None):
     return workers
 
 
-def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path):
-    ''' Routine to train the model with the desired configurations.
+def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path, steps_per_epoch=None, validation_steps=None):
+    """ Routine to train the model with the desired configurations.
 
         Args:
             config: configuration object containing all parameters
@@ -39,7 +39,9 @@ def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path):
             gen_train: a keras data generator containing the training data
             gen_val: a keras data generator containing the validation data
             model_save_path: path to the folder to save the models' weights
-    '''
+            steps_per_epoch: number of steps per epoch
+            validation_steps: number of validation steps
+    """
 
     K.set_image_data_format('channels_last') 
 
@@ -104,14 +106,14 @@ def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path):
     # print("x size:", tf.size(x_batch).numpy())
     # print("expected reshape size:", 10500)
 
-    hist = model.fit(gen_train[0], validation_data=gen_val[0],
+    hist = model.fit(gen_train, validation_data=gen_val,
                      epochs=config.nb_epochs,
                      callbacks=callbacks_list,
                      shuffle=False,
                      verbose=1,
                      class_weight=config.class_weights,
-                     steps_per_epoch=gen_train[1],
-                     validation_steps=gen_val[1],)
+                     steps_per_epoch=steps_per_epoch,
+                     validation_steps=validation_steps,)
 
     # serialize weights to HDF5
     best_model = model
