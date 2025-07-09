@@ -332,16 +332,16 @@ def create_single_tfrecord(config, recs, segment):
 
     # Check that the segment data has the expected shape
     assert segment_data.shape[1] == 21, \
-        (f"Segment data shape mismatch: {segment_data.shape[1]} channels found, expected {len(config.included_channels)} "
+        (f"Recording {recording}: Segment data shape mismatch: {segment_data.shape[1]} channels found, expected {len(config.included_channels)} "
          f"channels.")
     # Check that the channels are ordered alphabetically
     assert np.all(s.channels == sorted(config.included_channels)), \
-        "Channels do not match the ordered list of included channels. Expected: {}, Found: {}".format(
-            sorted(config.included_channels), s.channels)
+        (f"Recording {recording}: Channels do not match the ordered list of included channels. "
+         f"Expected: {sorted(config.included_channels)}, Found: {s.channels}")
     # Check that none of T3, T4, T5, T6 or BTEright are present
     assert not any(channel in s.channels for channel in ['T3', 'T4', 'T5', 'T6', Nodes.BTEright]), \
-        "Channels T3, T4, T5, T6 or BTEright should not be present in the data. Found: {}".format(
-            [channel for channel in s.channels if channel in ['T3', 'T4', 'T5', 'T6', Nodes.BTEright]])
+        (f"Recording {recording}: Channels T3, T4, T5, T6 or BTEright should not be present in the data. "
+         f"Found: {[channel for channel in s.channels if channel in ['T3', 'T4', 'T5', 'T6', Nodes.BTEright]]}")
 
     # Transpose if model requires it
     if config.model in ['DeepConvNet', 'EEGnet']:
