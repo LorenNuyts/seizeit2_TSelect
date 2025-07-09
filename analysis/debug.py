@@ -17,6 +17,14 @@ from utility.paths import get_paths_segments_train, get_paths_segments_val, get_
 
 base_ = os.path.dirname(os.path.realpath(__file__))
 
+def inspect_channels():
+    config = get_base_config(os.path.join(base_, ".."), locations=[Locations.karolinska, Locations.freiburg])
+    recs = [['University_Hospital_Leuven_Pediatric', 'SUBJ-1b-315', 'r4'],
+            ]
+    segments = generate_data_keys_sequential(config, recs, 6 * 60)
+    for s in tqdm(segments, desc="Writing TFRecord"):
+        create_single_tfrecord(config, recs, s)
+
 def negative_dimensions():
     config = get_base_config(os.path.join(base_, ".."), locations=[Locations.karolinska, Locations.freiburg])
     val_recs_list = [#['Karolinska_Institute', 'SUBJ-6-430', 'r26'],
@@ -114,5 +122,6 @@ def ts_reshape_error():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
+    inspect_channels()
     # negative_dimensions()
-    ts_reshape_error()
+    # ts_reshape_error()

@@ -73,7 +73,7 @@ class Data:
         if os.path.exists(edfFile):
             with pyedflib.EdfReader(edfFile) as edf :
                 all_samplingFrequencies = edf.getSampleFrequencies()
-                samplingFrequencies.extend(edf.getSampleFrequencies())
+                # samplingFrequencies.extend(edf.getSampleFrequencies())
                 channels_in_file = edf.getSignalLabels()
                 standardized_channels_in_file = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
                 standardized_included_channels = Nodes.match_nodes(included_channels, Nodes.all_nodes())
@@ -131,7 +131,7 @@ class Data:
         else:
             warnings.warn("No preprocessed data found. Loading entire EDF file, preprocessing and storing it... ")
             data_object = cls.loadData(data_path, recording, included_channels)
-            data_object.apply_preprocess(fs, data_path=data_path, store_preprocessed=False, recording=recording)
+            data_object.apply_preprocess(fs, data_path=data_path, store_preprocessed=True, recording=recording)
             return cls.loadSegment_h5(h5_file, start_time, stop_time, fs, included_channels)
             # raise ValueError("Segments can only be loaded from preprocessed data. Please save the preprocessed data first.")
 
