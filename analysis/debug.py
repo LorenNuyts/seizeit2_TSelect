@@ -52,12 +52,14 @@ def ts_reshape_error():
                                                                                               'hours_of_data': 0.4},
                                                                            seed=SEED)
     train_subjects, validation_subjects, test_subjects = next(CV_generator)
-    recs = get_recs_list(config.data_path, config.locations, train_subjects)
-    path_segments_train = get_paths_segments_train(config, config.get_name(), 0)
-    if os.path.exists(path_segments_train):
-        with open(path_segments_train, 'rb') as inp:
+    # recs = get_recs_list(config.data_path, config.locations, train_subjects)
+    recs = get_recs_list(config.data_path, config.locations, validation_subjects)
+    # path_segments = get_paths_segments_train(config, config.get_name(), 0)
+    path_segments = get_paths_segments_val(config, config.get_name(), 0)
+    if os.path.exists(path_segments):
+        with open(path_segments, 'rb') as inp:
             segments = pickle.load(inp)
-            print("There are ", len(segments), "segments in the training set")
+            print("There are ", len(segments), "segments")
 
     faulty_segment = segments[1]
     print("Look at this segment:", faulty_segment, "of recording", recs[int(faulty_segment[0])])
@@ -122,6 +124,6 @@ def ts_reshape_error():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    inspect_channels()
+    # inspect_channels()
     # negative_dimensions()
-    # ts_reshape_error()
+    ts_reshape_error()
