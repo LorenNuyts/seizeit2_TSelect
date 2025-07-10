@@ -159,7 +159,6 @@ def generate_data_keys_sequential_window(config, recs_list: List[List[str]], t_a
     segments = []
 
     for idx, f in tqdm(enumerate(recs_list)):
-        print("Processing file:", f)
         annotations = Annotation.loadAnnotation(config.data_path, f)
 
         if annotations.rec_duration < 2*t_add:

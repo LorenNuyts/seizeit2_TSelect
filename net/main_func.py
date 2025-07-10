@@ -167,7 +167,7 @@ def train(config, results, load_segments, save_segments):
             print('### Selecting channels....')
             channel_selector = TSelect(random_state=SEED, evaluation_metric=config.channel_selection_evaluation_metric,
                                        irrelevant_selector_percentage=config.auc_percentage,
-                                       filtering_threshold_corr=config.corr_threshold)
+                                       filtering_threshold_corr=config.corr_threshold, irrelevant_selector_threshold=-100)
             metadata = init_metadata()
             channel_selector.fit_generator(gen_train, gen_val, metadata=metadata)
             if config.selected_channels is None:
