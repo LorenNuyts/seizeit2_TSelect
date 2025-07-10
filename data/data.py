@@ -330,6 +330,8 @@ def create_single_tfrecord(config, recs, segment):
     segment_data = segment_data.astype(np.float32)
     segment_data = segment_data[:, :, np.newaxis]  # shape (T, CH, 1)
 
+    assert segment_data.shape == (config.frame * config.fs, 21, 1), f"Recording {recording}: Unexpected shape: {segment_data.shape}"
+
     # Check that the segment data has the expected shape
     assert segment_data.shape[1] == 21, \
         (f"Recording {recording}: Segment data shape mismatch: {segment_data.shape[1]} channels found, expected {len(config.included_channels)} "

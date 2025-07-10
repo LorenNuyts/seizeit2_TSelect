@@ -164,6 +164,7 @@ def generate_data_keys_sequential_window(config, recs_list: List[List[str]], t_a
 
         if annotations.rec_duration < 2*t_add:
             print('short file: ' + f[0] + ' ' + f[1])
+            t_add = int(np.floor(annotations.rec_duration/2)) - 1
 
         if annotations.events:
             if len(annotations.events) == 1:
