@@ -227,6 +227,7 @@ def train(config, results, load_segments, save_segments):
 
 
 def predict(config):
+    import concurrent.futures
     name = config.get_name()
     config_path = get_path_config(config, name)
     config.load_config(config_path=config_path, config_name=name)
@@ -357,8 +358,6 @@ def evaluate(config: Config, results: Results):
             for m in metrics.keys():
                 metrics_fold[m].append(metrics_th[m])
 
-        # Compute the average across all recordings for the fold
-        # TODO: continue  here
         for m in metrics.keys():
             metrics[m].append(np.nanmean(metrics_fold[m], axis=0))
 
@@ -381,20 +380,9 @@ def evaluate(config: Config, results: Results):
         for m in metrics.keys():
             f.create_dataset(m, data=metrics[m])
 
-        # f.create_dataset('sens_ovlp', data=metrics[Metrics.sens_ovlp])
-        # f.create_dataset('prec_ovlp', data=metrics[Metrics.prec_ovlp])
-        # f.create_dataset('fah_ovlp', data=metrics[Metrics.fah_ovlp])
-        # f.create_dataset('f1_ovlp', data=f1_ovlp)
         f.create_dataset('sens_ovlp_plot', data=sens_ovlp_plot)
         f.create_dataset('prec_ovlp_plot', data=prec_ovlp_plot)
         f.create_dataset('x_plot', data=x_plot)
-        # f.create_dataset('sens_epoch', data=sens_epoch)
-        # f.create_dataset('spec_epoch', data=spec_epoch)
-        # f.create_dataset('prec_epoch', data=prec_epoch)
-        # f.create_dataset('fah_epoch', data=fah_epoch)
-        # f.create_dataset('f1_epoch', data=f1_epoch)
-        # # f.create_dataset('rocauc', data=rocauc)
-        # f.create_dataset('score', data=score)
 
     results.sens_ovlp = metrics[Metrics.sens_ovlp]
     results.prec_ovlp = metrics[Metrics.prec_ovlp]
