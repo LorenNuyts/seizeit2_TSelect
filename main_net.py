@@ -60,6 +60,12 @@ unique_locations = sorted(list(dict.fromkeys(args.locations)))
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
 import tensorflow as tf
 tf.random.set_seed(random_seed)
+gpus = tf.config.list_physical_devices("GPU")
+if gpus:
+    try:
+        tf.config.experimental.set_memory_growth(gpus[0], True)
+    except RuntimeError as e:
+        print(e)
 
 ############################################
 ##### Print the settings for this run ######
