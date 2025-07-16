@@ -237,66 +237,75 @@ def predict(config):
         config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
 
     if not hasattr(config, 'test_batch_size'):
-        config.test_batch_size = 1024
+        config.test_batch_size = 6*60
 
     if not os.path.exists(os.path.join(config.save_dir, 'predictions')):
         os.makedirs(os.path.join(config.save_dir, 'predictions'))
     if not os.path.exists(os.path.join(config.save_dir, 'predictions', name)):
         os.makedirs(os.path.join(config.save_dir, 'predictions', name))
 
+    # Run predictions in parallel
+    with concurrent.futures.ProcessPoolExecutor(max_workers=config.n_folds) as executor:
+        futures = [executor.submit(predict_per_fold, config, i) for i in range(config.n_folds)]
 
-    for fold_i in config.folds.keys():
-        print('Fold {}'.format(fold_i))
-        test_subjects = config.folds[fold_i]['test']
-        K.clear_session()
-        gc.collect()
-        config.reload_CH(fold=fold_i)
-        test_recs_list = get_recs_list(config.data_path, config.locations, test_subjects)
+        for future in concurrent.futures.as_completed(futures):
+            fold_index = future.result()
+            print(f"Fold {fold_index} completed")
 
-        selected_channels_indices = [sorted(config.included_channels).index(ch) for ch in
-                                     config.selected_channels[fold_i]] if config.channel_selection else None
+    # for fold_i in config.folds.keys():
+    #     predict_per_fold(config, name, fold_i)
 
-        model_save_path = get_path_model(config, name, fold_i)
-        model_weights_path = get_path_model_weights(model_save_path, name)
 
-        if config.model == 'DeepConvNet':
-            from net.DeepConv_Net import net
-        elif config.model == 'ChronoNet':
-            from net.ChronoNet import net
-        elif config.model == 'EEGnet':
-            from net.EEGnet import net
-        elif config.model.lower() != Keys.minirocketLR.lower():
-            raise ValueError('Model not recognized')
-
-        if config.model.lower() == Keys.minirocketLR.lower():
-            model = MiniRocketLR(model_save_path)
+def predict_per_fold(config, fold_i):
+    name = config.get_name()
+    print('Fold {}'.format(fold_i))
+    test_subjects = config.folds[fold_i]['test']
+    K.clear_session()
+    gc.collect()
+    config.reload_CH(fold=fold_i)
+    test_recs_list = get_recs_list(config.data_path, config.locations, test_subjects)
+    selected_channels_indices = [sorted(config.included_channels).index(ch) for ch in
+                                 config.selected_channels[fold_i]] if config.channel_selection else None
+    model_save_path = get_path_model(config, name, fold_i)
+    model_weights_path = get_path_model_weights(model_save_path, name)
+    if config.model == 'DeepConvNet':
+        from net.DeepConv_Net import net
+    elif config.model == 'ChronoNet':
+        from net.ChronoNet import net
+    elif config.model == 'EEGnet':
+        from net.EEGnet import net
+    elif config.model.lower() != Keys.minirocketLR.lower():
+        raise ValueError('Model not recognized')
+    if config.model.lower() == Keys.minirocketLR.lower():
+        model = MiniRocketLR(model_save_path)
+    else:
+        model = net(config)
+    for rec in tqdm(test_recs_list):
+        if os.path.isfile(get_path_predictions(config, name, rec, fold_i)):
+            print(rec[0] + ' ' + rec[1] + ' ' + rec[2] + ' exists. Skipping...')
         else:
-            model = net(config)
+            print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
+            with tf.device('/cpu:0'):
+                segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
-        for rec in tqdm(test_recs_list):
-            if os.path.isfile(get_path_predictions(config, name, rec, fold_i)):
-                print(rec[0] + ' ' + rec[1] + ' ' + rec[2] + ' exists. Skipping...')
-            else:
-                print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
-                with tf.device('/cpu:0'):
-                    segments = generate_data_keys_sequential(config, [rec], verbose=False)
+                gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
+                                                     shuffle=False, progress_bar=False,
+                                                     channel_indices=selected_channels_indices)
 
-                    gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
-                                                         shuffle=False, progress_bar=False, channel_indices=selected_channels_indices)
+                config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 
-                    config.reload_CH(fold_i)  # DO NOT REMOVE THIS
+                if config.model.lower() == Keys.minirocketLR.lower():
+                    y_pred, y_true = model.predict(gen_test)
+                else:
+                    y_pred, y_true = predict_net(gen_test, model_weights_path, model)
 
-                    if config.model.lower() == Keys.minirocketLR.lower():
-                        y_pred, y_true = model.predict(gen_test)
-                    else:
-                        y_pred, y_true = predict_net(gen_test, model_weights_path, model)
-
-                os.makedirs(os.path.dirname(get_path_predictions(config, name, rec, fold_i)), exist_ok=True)
-                with h5py.File(get_path_predictions(config, name, rec, fold_i), 'w') as f:
-                    f.create_dataset('y_pred', data=y_pred)
-                    f.create_dataset('y_true', data=y_true)
-                config.reload_CH()
-                gc.collect()
+            os.makedirs(os.path.dirname(get_path_predictions(config, name, rec, fold_i)), exist_ok=True)
+            with h5py.File(get_path_predictions(config, name, rec, fold_i), 'w') as f:
+                f.create_dataset('y_pred', data=y_pred)
+                f.create_dataset('y_true', data=y_true)
+            config.reload_CH()
+            gc.collect()
+    return fold_i
 
 
 #######################################################################################################################
