@@ -227,7 +227,7 @@ def train(config, results, load_segments, save_segments):
 
 
 def predict(config):
-    import concurrent.futures
+    # import concurrent.futures
     name = config.get_name()
     config_path = get_path_config(config, name)
     config.load_config(config_path=config_path, config_name=name)
@@ -245,16 +245,16 @@ def predict(config):
     if not os.path.exists(os.path.join(config.save_dir, 'predictions', name)):
         os.makedirs(os.path.join(config.save_dir, 'predictions', name))
 
-    # Run predictions in parallel
-    with concurrent.futures.ProcessPoolExecutor(max_workers=config.n_folds) as executor:
-        futures = [executor.submit(predict_per_fold, config, i) for i in range(config.n_folds)]
+    # # Run predictions in parallel
+    # with concurrent.futures.ProcessPoolExecutor(max_workers=config.n_folds) as executor:
+    #     futures = [executor.submit(predict_per_fold, config, i) for i in range(config.n_folds)]
+    #
+    #     for future in concurrent.futures.as_completed(futures):
+    #         fold_index = future.result()
+    #         print(f"Fold {fold_index} completed")
 
-        for future in concurrent.futures.as_completed(futures):
-            fold_index = future.result()
-            print(f"Fold {fold_index} completed")
-
-    # for fold_i in config.folds.keys():
-    #     predict_per_fold(config, name, fold_i)
+    for fold_i in config.folds.keys():
+        predict_per_fold(config, fold_i)
 
 
 def predict_per_fold(config, fold_i):

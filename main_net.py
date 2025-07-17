@@ -147,8 +147,8 @@ main_func.train(config, results, load_segments, save_segments)
 ##### Multiprocessing settings for the #####
 #####         predictions              #####
 ############################################
-import multiprocessing as mp
-mp.set_start_method('spawn')
+# import multiprocessing as mp
+# mp.set_start_method('spawn')
 
 ############################################
 
