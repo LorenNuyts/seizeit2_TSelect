@@ -1,3 +1,5 @@
+import os.path
+
 from TSelect.tselect.tselect.utils.metrics import auroc_score
 from net.utils import get_sens_FA_score
 
@@ -217,7 +219,8 @@ class Paths:
     remote_data_path = "/cw/dtaidata/ml/2025-Epilepsy"
     local_data_path = "/media/loren/Seagate Basic/Epilepsy use case"  # path to dataset
     remote_save_dir = "/cw/dtailocal/loren/2025-Epilepsy/net/save_dir"
-    local_save_dir = "net/save_dir"  # save directory of intermediate and output files
+    local_save_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "net/save_dir")  # save directory of intermediate and output files
+    remote_host = "loren@nyla.cs.kuleuven.be"
 
 class Metrics:
     sens_ovlp = "sensitivity_overlap"

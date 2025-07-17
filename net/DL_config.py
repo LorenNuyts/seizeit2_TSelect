@@ -211,7 +211,7 @@ def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_s
     }
     config.add_to_name = (f'{"_channel_selection" if config.channel_selection else ""}'
                           f'{f"_evaluation_metric_{evaluation_metric.__name__}" if evaluation_metric != auroc_score else ""}'
-                          f'_irr_th_{int(irrelevant_selector_threshold*100) if irrelevant_selector_threshold != 0.5 else ""}'  # threshold for irrelevant channels
+                          f'{f"_irr_th_{int(irrelevant_selector_threshold*100)}" if irrelevant_selector_threshold != 0.5 else ""}'
                           f'{f"_auc_percentage_{int(irrelevant_selector_percentage * 100)}" if irrelevant_selector_percentage != 0.6 else ""}'
                             f'{f"_corr_threshold_{int(corr_threshold*100)}" if corr_threshold != 0.5 else ""}'
                       f'{config.add_to_name}')  # str to add to the end of the experiment's config name
