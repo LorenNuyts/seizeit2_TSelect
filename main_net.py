@@ -1,5 +1,4 @@
 import argparse
-import os
 import random
 import shutil
 
@@ -143,6 +142,15 @@ load_segments = True                                          # Boolean to load 
 save_segments = True                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
 main_func.train(config, results, load_segments, save_segments)
+
+############################################
+##### Multiprocessing settings for the #####
+#####         predictions              #####
+############################################
+import multiprocessing as mp
+mp.set_start_method('spawn')
+
+############################################
 
 print('Getting predictions on the test set...')
 main_func.predict(config)

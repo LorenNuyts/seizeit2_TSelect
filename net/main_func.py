@@ -228,7 +228,6 @@ def train(config, results, load_segments, save_segments):
 
 def predict(config):
     import concurrent.futures
-    import multiprocessing as mp
     name = config.get_name()
     config_path = get_path_config(config, name)
     config.load_config(config_path=config_path, config_name=name)
@@ -247,7 +246,6 @@ def predict(config):
         os.makedirs(os.path.join(config.save_dir, 'predictions', name))
 
     # Run predictions in parallel
-    mp.set_start_method('spawn')
     with concurrent.futures.ProcessPoolExecutor(max_workers=config.n_folds) as executor:
         futures = [executor.submit(predict_per_fold, config, i) for i in range(config.n_folds)]
 
