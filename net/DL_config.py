@@ -3,7 +3,7 @@ import pickle
 import os
 
 from TSelect.tselect.tselect.utils.metrics import auroc_score
-from utility.constants import Locations, Nodes, Paths, Keys
+from utility.constants import Locations, Nodes, Paths, Keys, evaluation_metrics
 
 
 class Config():
@@ -56,8 +56,10 @@ class Config():
         self.included_channels = None
         self.channel_selection = False
         self.selected_channels = None
+        self.channel_selection_settings = None
         self.pretty_name = None
         self.folds = {}  # dictionary to store the folds
+        self.nb_folds = 10  # number of folds for cross-validation
 
         # models parameters
         self.data_format = tf.keras.backend.image_data_format
@@ -192,8 +194,8 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
 
 
 def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_size=128,
-                                 included_channels=None, evaluation_metric=auroc_score, auc_percentage=0.6,
-                                 corr_threshold=0.5, CV=Keys.stratified, pretty_name=None, suffix=""):
+                                 included_channels=None, evaluation_metric=evaluation_metrics['score'], auc_percentage=0.6,
+                                 corr_threshold=0.5, irrelevant_selector_threshold=-100, CV=Keys.stratified, pretty_name=None, suffix=""):
     config = get_base_config(base_dir, locations, model=model, included_channels=included_channels,
                              pretty_name=pretty_name, batch_size=batch_size, CV=CV,
                              suffix=suffix)
@@ -202,10 +204,17 @@ def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_s
     config.channel_selection_evaluation_metric = evaluation_metric
     config.auc_percentage = auc_percentage
     config.corr_threshold = corr_threshold
+    config.channel_selection_settings = {
+        'evaluation_metric': evaluation_metric,
+        'auc_percentage': auc_percentage,
+        'corr_threshold': corr_threshold,
+        'irrelevant_selector_threshold': irrelevant_selector_threshold,
+    }
     config.add_to_name = (f'{"_channel_selection" if config.channel_selection else ""}'
                           f'{f"_evaluation_metric_{evaluation_metric.__name__}" if evaluation_metric != auroc_score else ""}'
-                          f'{f"_auc_percentage_{auc_percentage}" if auc_percentage != 0.6 else ""}'
-                            f'{f"_corr_threshold_{corr_threshold}" if corr_threshold != 0.5 else ""}'
+                          f'irr_th_{int(irrelevant_selector_threshold*100) if irrelevant_selector_threshold != 0.5 else ""}'  # threshold for irrelevant channels
+                          f'{f"_auc_percentage_{int(auc_percentage*100)}" if auc_percentage != 0.6 else ""}'
+                            f'{f"_corr_threshold_{int(corr_threshold*100)}" if corr_threshold != 0.5 else ""}'
                       f'{config.add_to_name}')  # str to add to the end of the experiment's config name
 
     return config

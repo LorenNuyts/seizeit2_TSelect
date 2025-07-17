@@ -38,6 +38,7 @@ parser.add_argument(
          f"Defaults to [{Locations.leuven_adult}]."
 )
 parser.add_argument("--nodes", type=str, nargs="?", default="all")
+parser.add_argument("--irr_th", type=float, nargs="?", default=None,)
 parser.add_argument("--auc", type=float, nargs="?", default=0.6)
 parser.add_argument("--corr", type=float, nargs="?", default=0.5)
 parser.add_argument("--batch_size", type=int, nargs="?", default=128)
@@ -49,6 +50,9 @@ parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
                     help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
 
 args = parser.parse_args()
+
+if args.irr_th is None:
+    args.irr_th = -100  if args.evaluation_metric=='score' else 0.5
 
 suffix_ = args.suffix
 unique_locations = sorted(list(dict.fromkeys(args.locations)))
