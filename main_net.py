@@ -76,7 +76,12 @@ if gpus:
 
 print("Locations:", unique_locations)
 print("Channel selection:", args.channel_selection)
-print("Evaluation metric:", args.evaluation_metric)
+if args.channel_selection:
+    print("Evaluation metric:", args.evaluation_metric)
+    print("Irrelevant threshold:", args.irr_th)
+    print("AUC percentage:", args.auc)
+    print("Correlation threshold:", args.corr)
+
 print("Model:", args.model)
 
 ###########################################
@@ -86,7 +91,7 @@ print("Model:", args.model)
 if args.channel_selection:
     config = get_channel_selection_config(base_, unique_locations, model=args.model,
                                           evaluation_metric=evaluation_metrics[args.evaluation_metric],
-                                          auc_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
+                                          irrelevant_selector_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
                                           suffix=suffix_, included_channels=args.nodes, batch_size=args.batch_size)
 else:
     config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
