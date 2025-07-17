@@ -10,6 +10,8 @@ base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__fi
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument("task", type=str,
+                        choices=["frequent_channels", "count_channels"])
     parser.add_argument("--suffix", type=str, nargs="?", default="")
     parser.add_argument(
         '--locations',
@@ -37,10 +39,17 @@ if __name__ == '__main__':
     download_remote_configs(configs_, local_base_dir=configs_[0].save_dir)
 
     if 'dtai' in base_dir:
-        output_path_ = os.path.join('/cw/dtailocal/loren/2025-Epilepsy','analysis', 'figures')
+        output_path_ = os.path.join('/cw/dtailocal/loren/2025-Epilepsy','analysis', 'results')
     else:
-        output_path_ = os.path.join(base_dir, 'analysis', 'figures')
+        output_path_ = os.path.join(base_dir, 'analysis', 'results')
 
-    count_selected_channels_across_folds(base_dir, configs_, output_path=output_path_)
+    if args.task == "frequent_channels":
+        mine_frequent_channels(base_dir, configs_, output_path=output_path_, min_support=0.2)
+    elif args.task == "count_channels":
+        count_selected_channels_across_folds(base_dir, configs_, output_path=output_path_)
+    else:
+        raise ValueError(f"Unknown task: {args.task}. Choose from 'frequent_channels' or 'count_channels'.")
+
+    # Clean up the net directory if it exists. It should not be created in the first place, but if it is, we remove it.
     if os.path.exists("net/"):
         shutil.rmtree("net/")

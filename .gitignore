@@ -18,3 +18,5 @@ __pycache__/
 analysis/figures/
 
 net/generators/
+
+analysis/results/
