@@ -43,7 +43,7 @@ class SequentialGenerator(keras.utils.Sequence):
         rec_data = Data.loadData(config.data_path, recs[prev_rec], included_channels=self.channels)
         rec_data.apply_preprocess(config)
         if set(rec_data.channels) != set(self.channels):
-            rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
+            rec_data.channels = switch_channels(rec_data.channels, self.channels, Nodes.switchable_nodes)
         if rec_data.channels != self.channels:
             rec_data.reorder_channels(self.channels)
 
