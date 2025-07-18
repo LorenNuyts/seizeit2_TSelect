@@ -91,11 +91,16 @@ print("Model:", args.model)
 if args.channel_selection:
     config = get_channel_selection_config(base_, unique_locations, model=args.model,
                                           evaluation_metric=evaluation_metrics[args.evaluation_metric],
+                                          irrelevant_selector_threshold=args.irr_th,
                                           irrelevant_selector_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
                                           suffix=suffix_, included_channels=args.nodes, batch_size=args.batch_size)
 else:
     config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
                              batch_size=args.batch_size, CV= args.CV,)
+
+if args.irr_th != config.channel_selection_settings['irrelevant_selector_threshold']:
+    print(f"Overriding irrelevant threshold in config from {config.channel_selection_settings['irrelevant_selector_threshold']} to {args.irr_th}")
+    config.channel_selection_settings['irrelevant_selector_threshold'] = args.irr_th
 
 ###########################################
 ###########################################
@@ -151,10 +156,7 @@ load_segments = True                                          # Boolean to load 
 save_segments = True                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
 print('Config loaded from:', config_path)
-if args.irr_th != config.channel_selection_settings['irrelevant_selector_threshold']:
-    print(f"Overriding irrelevant threshold in config from {config.irr_th} to {args.irr_th}")
-    config.irr_th = args.irr_th
-    config.save_config(config_path)
+
 
 main_func.train(config, results, load_segments, save_segments)
 
