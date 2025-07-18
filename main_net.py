@@ -46,7 +46,7 @@ parser.add_argument("--suffix", type=str, nargs="?", default="")
 parser.add_argument('--reset', action='store_true')
 parser.add_argument("--gpu", type=int, nargs="?", default=0)
 parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
-                    choices=["leave_one_person_out", "stratified"],
+                    choices=["leave_one_person_out", "stratified", "leave_one_hospital_out"],
                     help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
 
 args = parser.parse_args()

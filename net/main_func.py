@@ -15,8 +15,7 @@ from tensorflow.keras import backend as K
 
 from pympler import asizeof
 
-from analysis.dataset import dataset_stats
-from data.cross_validation import leave_one_person_out, multi_objective_grouped_stratified_cross_validation
+from data.cross_validation import get_CV_generator
 from net.DL_config import Config
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
 from net.generator_ds import build_tfrecord_dataset, SequentialGenerator
@@ -71,21 +70,7 @@ def train(config, results, load_segments, save_segments):
     config.save_config(save_path=config_path)
     results.save_results(save_path=results_path)
 
-    if config.cross_validation == Keys.leave_one_person_out:
-        CV_generator = leave_one_person_out(config.data_path, included_locations=config.locations,
-                                            validation_set=config.validation_percentage)
-    elif config.cross_validation == Keys.stratified:
-        info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"), config.locations)
-        CV_generator = multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
-                                                                           id_column='subject',
-                                                                           n_splits=config.n_folds,
-                                                                           train_size=config.train_percentage,
-                                                                           val_size=config.validation_percentage,
-                                                                           weights_columns = {'n_seizures': 0.4,
-                                                                                              'hours_of_data': 0.4},
-                                                                           seed=SEED)
-    else:
-        raise NotImplementedError('Cross-validation method not implemented yet')
+    CV_generator = get_CV_generator(config)
 
     for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(CV_generator):
         K.clear_session()

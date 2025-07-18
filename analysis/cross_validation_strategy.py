@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 from analysis.dataset import dataset_stats
-from data.cross_validation import multi_objective_grouped_stratified_cross_validation
+from data.cross_validation import multi_objective_grouped_stratified_cross_validation, get_CV_generator
 from net.DL_config import get_base_config
 from utility.constants import SEED, Keys, Locations
 
@@ -15,24 +15,16 @@ def dissimilarity_across_data_splits(config):
     splits: List of split dicts, where each dict has 'train', 'val', 'test' DataFrames with 'patient_id'
     Returns: dict of dissimilarity matrices (one per subset), each as a 2D numpy array (NxN)
     """
-    info_per_group = dataset_stats(config.data_path, os.path.join("..", config.save_dir, "dataset_stats"), config.locations)
-    splits = [x for x in multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
-                                                                           id_column='subject',
-                                                                           n_splits=config.n_folds,
-                                                                           train_size=config.train_percentage,
-                                                                           val_size=config.validation_percentage,
-                                                                           weights_columns = {'n_seizures': 0.4,
-                                                                                              'hours_of_data': 0.4},
-                                                                           seed=SEED)]
+    splits = [x for x in get_CV_generator(config)]
     n = len(splits)
     n_folds = len(splits[0])
-    matrices = {i: np.zeros((n, n)) for i in range(n_folds)}
+    dissimilarities = {i: [] for i in range(n_folds)}
 
     for f in range(n_folds):
         id_sets = [set(split[f]) for split in splits]
 
         for i in range(n):
-            for j in range(i, n):
+            for j in range(i + 1, n):
                 set_i = id_sets[i]
                 set_j = id_sets[j]
                 union = set_i | set_j
@@ -41,13 +33,11 @@ def dissimilarity_across_data_splits(config):
                 jaccard_sim = len(intersection) / len(union) if union else 1.0
                 dissim = 1 - jaccard_sim
 
-                matrices[f][i, j] = dissim
-                matrices[f][j, i] = dissim  # symmetric
+                dissimilarities[f].append(dissim)
 
-    for subset, matrix in matrices.items():
-        print("Mean dissimilarity for subset {}: {:.4f}".format(subset, np.mean(matrix)))
+    for subset, dissim in dissimilarities.items():
+        print("Mean dissimilarity for subset {}: {:.4f}".format(subset, np.mean(dissim)))
         print("###################################################")
-    return matrices
 
 
 if __name__ == '__main__':

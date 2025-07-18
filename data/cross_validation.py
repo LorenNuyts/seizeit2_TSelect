@@ -1,13 +1,13 @@
 import math
 import os
-import warnings
 from collections import defaultdict
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
 import pandas as pd
 
-from utility.constants import SEED, subjects_with_seizures, excluded_subjects, Locations
+from analysis.dataset import dataset_stats
+from utility.constants import SEED, subjects_with_seizures, excluded_subjects, Locations, Keys
 
 
 def leave_one_person_out(root_dir: str, included_locations: list[str] = None, validation_set: Optional[float] = None,
@@ -60,12 +60,34 @@ def leave_one_person_out(root_dir: str, included_locations: list[str] = None, va
         else:
             yield train, [subject]
 
+def leave_one_group_out(info_per_group: pd.DataFrame, group_column: str, id_column: str, validation_set: Optional[float] = None,
+                             seed: int = SEED):
+    all_groups = info_per_group[group_column].unique()
+    for i, group in enumerate(all_groups):
+        np.random.seed(seed + i)
+        test_ids = info_per_group[info_per_group[group_column] == group][id_column].unique().tolist()
+        train_groups = [g for g in all_groups if g != group]
+        if validation_set is not None:
+            train_val_df = info_per_group[info_per_group[group_column].isin(train_groups)]
+            train_ids, val_ids = next(multi_objective_grouped_stratified_cross_validation(train_val_df,
+                                                                                     group_column=group_column,
+                                                                                     id_column=id_column,
+                                                                                     n_splits=1,
+                                                                                     subset_sizes=[1 - validation_set, validation_set],
+                                                                                     weights_columns={'n_seizures': 0.4,
+                                                                                                      'hours_of_data': 0.4},
+                                                                                     seed=seed + i))
+            yield train_ids, val_ids, test_ids
+        else:
+            train_ids = info_per_group[info_per_group[group_column].isin(train_groups)][id_column].unique().tolist()
+            yield train_ids, test_ids
+
 def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataFrame, group_column: str,
-                                                        id_column: str, n_splits: int,
-                                                        train_size: float, val_size: float,
+                                                        id_column: str, n_splits: int, subset_sizes: List[float],
                                                         weights_columns: dict=None, seed=SEED):
     np.random.seed(seed)
     testing = 'dtai' not in os.path.dirname(os.path.realpath(__file__))
+    testing = False
     print("Testing setting:", testing)
     if testing:
         locations = info_per_group['hospital'].unique()
@@ -84,19 +106,14 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
     # Remove the excluded subjects
     df = df[~df[id_column].isin(excluded_subjects)]
 
-    assert train_size + val_size < 1, ("Train and validation sizes must sum to less than 1. The rest will be used for "
-                                       "the test set.")
-    assert n_splits > 1, "n_splits must be greater than 1 for cross-validation."
-    test_size = 1 - train_size - val_size
+    assert sum(subset_sizes) == 1, ("The sum of subset sizes must be 1, but got: {}".format(sum(subset_sizes)))
 
     group_names = df[group_column].unique()
     groups = {name: df[df[group_column] == name] for name in group_names}
     metrics = [c for c in df.columns if c not in [id_column, group_column]]
     totals_per_group = pd.DataFrame({name: group[[c for c in metrics]].sum(axis=0) for name, group in groups.items()}).transpose()
     totals_per_group['n_ids'] = df.groupby(group_column)[id_column].nunique()
-    split_targets = {'train': train_size * totals_per_group,
-                     'val': val_size * totals_per_group,
-                     'test': test_size * totals_per_group}
+    split_targets = {i: size * totals_per_group for i, size in enumerate(subset_sizes)}
     totals = totals_per_group.sum(axis=0)
     totals['n_ids'] = df.shape[0]
 
@@ -108,13 +125,13 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
         missing_weights = set(extended_metrics) - set(weights_columns.keys())
         weights = {k: weights_columns[k] if k in weights_columns.keys() else (1-total_weight)/len(missing_weights) for k in extended_metrics}
 
-    folds = ['train', 'val', 'test']
+    folds = list(split_targets.keys())
     for split in range(n_splits):
         # Shuffle the DataFrame
         df = df.sample(frac=1, random_state=seed + split).reset_index(drop=True)
 
         # Initialize tracking structures
-        assignments = defaultdict(list)
+        assignments = {fold: [] for fold in folds}  # Assignments for each fold
         current_sums = {fold:  pd.DataFrame(0, index=group_names, columns=extended_metrics, dtype=np.float64) for fold in folds}
 
         imbalance_per_fold = [(len(group_names)) for _ in folds]  # Initialize with the number of groups for each fold. Each group can have at most an imbalance of 1.
@@ -153,4 +170,31 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
             for k in extended_metrics:
                 current_sums[best_fold].loc[current_group, k] += current_metrics[k]
 
-        yield assignments['train'], assignments['val'], assignments['test']
+        yield tuple([v for v in assignments.values()])
+
+
+def get_CV_generator(config):
+    if config.cross_validation == Keys.leave_one_person_out:
+        CV_generator = leave_one_person_out(config.data_path, included_locations=config.locations,
+                                            validation_set=config.validation_percentage)
+    elif config.cross_validation == Keys.stratified:
+        info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"),
+                                       config.locations)
+        CV_generator = multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
+                                                                           id_column='subject',
+                                                                           n_splits=config.n_folds,
+                                                                            subset_sizes=[config.train_percentage,
+                                                                                          config.validation_percentage,
+                                                                                          1 - (config.train_percentage + config.validation_percentage)],
+                                                                           weights_columns={'n_seizures': 0.4,
+                                                                                            'hours_of_data': 0.4},
+                                                                           seed=SEED)
+    elif config.cross_validation == Keys.leave_one_hospital_out:
+        info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"),
+                                       config.locations)
+        CV_generator = leave_one_group_out(info_per_group, group_column='hospital', id_column='subject',
+                                           validation_set=config.validation_percentage, seed=SEED)
+
+    else:
+        raise NotImplementedError('Cross-validation method not implemented yet')
+    return CV_generator
