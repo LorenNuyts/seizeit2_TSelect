@@ -51,7 +51,9 @@ parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
 
 args = parser.parse_args()
 
+print(args.irr_th)
 if args.irr_th is None:
+    print("Setting irrelevant threshold to default value based on evaluation metric...")
     args.irr_th = -100  if args.evaluation_metric=='score' else 0.5
 
 suffix_ = args.suffix
