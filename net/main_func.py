@@ -19,7 +19,7 @@ from analysis.dataset import dataset_stats
 from data.cross_validation import leave_one_person_out, multi_objective_grouped_stratified_cross_validation
 from net.DL_config import Config
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
-from net.generator_ds import build_tfrecord_dataset
+from net.generator_ds import build_tfrecord_dataset, SequentialGenerator
 from net.routines import train_net, predict_net
 from net.utils import get_metrics_scoring
 
