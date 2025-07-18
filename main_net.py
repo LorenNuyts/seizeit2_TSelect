@@ -98,10 +98,6 @@ else:
     config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
                              batch_size=args.batch_size, CV= args.CV,)
 
-if args.irr_th != config.channel_selection_settings['irrelevant_selector_threshold']:
-    print(f"Overriding irrelevant threshold in config from {config.channel_selection_settings['irrelevant_selector_threshold']} to {args.irr_th}")
-    config.channel_selection_settings['irrelevant_selector_threshold'] = args.irr_th
-
 ###########################################
 ###########################################
 config_path = get_path_config(config, config.get_name())
