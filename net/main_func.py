@@ -271,25 +271,25 @@ def predict_per_fold(config, fold_i):
         if os.path.isfile(get_path_predictions(config, name, rec, fold_i)):
             print(f"Fold {fold_i}: {rec[0]} {rec[1]} {rec[2]} exists. Skipping...")
         else:
-            print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
-            with tf.device('/cpu:0'):
-                segments = generate_data_keys_sequential(config, [rec], verbose=False)
+            # print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
+            # with tf.device('/cpu:0'):
+            segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
-                # gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
-                #                                      shuffle=False, progress_bar=False,
-                #                                      channel_indices=selected_channels_indices)
-                # gen_test.repeat(2)
+            # gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
+            #                                      shuffle=False, progress_bar=False,
+            #                                      channel_indices=selected_channels_indices)
+            # gen_test.repeat(2)
 
-                gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments),
-                                               channels=config.selected_channels[fold_i] if config.channel_selection else None,
-                                               shuffle=False, verbose=False)
+            gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments),
+                                           channels=config.selected_channels[fold_i] if config.channel_selection else None,
+                                           shuffle=False, verbose=False)
 
-                config.reload_CH(fold_i)  # DO NOT REMOVE THIS
+            config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 
-                if config.model.lower() == Keys.minirocketLR.lower():
-                    y_pred, y_true = model.predict(gen_test)
-                else:
-                    y_pred, y_true = predict_net(gen_test, model_weights_path, model)
+            if config.model.lower() == Keys.minirocketLR.lower():
+                y_pred, y_true = model.predict(gen_test)
+            else:
+                y_pred, y_true = predict_net(gen_test, model_weights_path, model)
 
             os.makedirs(os.path.dirname(get_path_predictions(config, name, rec, fold_i)), exist_ok=True)
             with h5py.File(get_path_predictions(config, name, rec, fold_i), 'w') as f:
