@@ -1,6 +1,5 @@
 import math
 import os
-import time
 
 import numpy as np
 import tensorflow as tf
@@ -262,23 +261,14 @@ class SequentialGenerator(keras.utils.Sequence):
     def __data_generation__(self, keys):
         batch_segments = [self.segments[k] for k in keys]
         batch_data = []
-        loading_time = 0
-        preprocessing_time = 0
-        channel_time = 0
-        segmenting_time = 0
         for s in batch_segments:
-            time_start = time.process_time()
             path_preprocessed_data = get_path_preprocessed_data(self.config.data_path, self.recs[int(s[0])])
 
             # If the preprocessed data does not exist, load and preprocess the entire recording
             if not os.path.exists(path_preprocessed_data):
                 rec_data_segment = Data.loadData(self.config.data_path, self.recs[int(s[0])],
                                                  included_channels=self.config.included_channels)
-                loading_time += time.process_time() - time_start
-                time_start = time.process_time()
                 rec_data_segment.apply_preprocess(self.config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=self.recs[int(s[0])])
-                preprocessing_time += time.process_time() - time_start
-                time_start = time.process_time()
                 start_seg = int(s[1] * self.config.fs)
                 stop_seg = int(s[2] * self.config.fs)
                 # segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
@@ -287,15 +277,11 @@ class SequentialGenerator(keras.utils.Sequence):
                     index_channels = rec_data_segment.channels.index(ch)
                     rec_data_segment.data[index_channels] = rec_data_segment[ch_i][start_seg:stop_seg]
                 rec_data_segment.__segment = (s[1], s[2])  # Store segment start and stop times
-                segmenting_time += time.process_time() - time_start
-                time_start = time.process_time()
             # If the preprocessed data exists, load only the segment
             else:
                 rec_data_segment = Data.loadSegment(self.config.data_path, self.recs[int(s[0])],
                                                     start_time=s[1], stop_time=s[2], fs=self.config.fs,
                                                     included_channels=self.config.included_channels)
-                loading_time += time.process_time() - time_start
-                time_start = time.process_time()
 
             if self.channels is None:
                 self.channels = rec_data_segment.channels
@@ -309,20 +295,15 @@ class SequentialGenerator(keras.utils.Sequence):
                 print("Rec channels:", rec_data_segment.channels)
                 print("self.channels:", self.channels)
             assert rec_data_segment.channels == self.channels
-            channel_time += time.process_time() - time_start
-            time_start = time.process_time()
 
             channel_indices = [self.channels.index(ch) for ch in rec_data_segment.channels]
             segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
             segment_data[:, channel_indices] = np.array(rec_data_segment.data).T
 
             batch_data.append(segment_data)
-            segmenting_time += time.process_time() - time_start
         batch_data = np.array(batch_data)
         if self.config.model in ['DeepConvNet', 'EEGnet']:
             batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
-        print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
-              f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
         return batch_data, self.labels[keys]
 
 
@@ -373,23 +354,14 @@ class SegmentedGenerator(keras.utils.Sequence):
     def __data_generation__(self, keys):
         batch_segments = [self.segments[k] for k in keys]
         batch_data = []
-        loading_time = 0
-        preprocessing_time = 0
-        channel_time = 0
-        segmenting_time = 0
         for s in batch_segments:
-            time_start = time.process_time()
             path_preprocessed_data = get_path_preprocessed_data(self.config.data_path, self.recs[int(s[0])])
 
             # If the preprocessed data does not exist, load and preprocess the entire recording
             if not os.path.exists(path_preprocessed_data):
                 rec_data_segment = Data.loadData(self.config.data_path, self.recs[int(s[0])],
                                                  included_channels=self.config.included_channels)
-                loading_time += time.process_time() - time_start
-                time_start = time.process_time()
                 rec_data_segment.apply_preprocess(self.config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=self.recs[int(s[0])])
-                preprocessing_time += time.process_time() - time_start
-                time_start = time.process_time()
                 start_seg = int(s[1] * self.config.fs)
                 stop_seg = int(s[2] * self.config.fs)
                 # segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
@@ -398,15 +370,11 @@ class SegmentedGenerator(keras.utils.Sequence):
                     index_channels = rec_data_segment.channels.index(ch)
                     rec_data_segment.data[index_channels] = rec_data_segment[ch_i][start_seg:stop_seg]
                 rec_data_segment.__segment = (s[1], s[2])  # Store segment start and stop times
-                segmenting_time += time.process_time() - time_start
-                time_start = time.process_time()
             # If the preprocessed data exists, load only the segment
             else:
                 rec_data_segment = Data.loadSegment(self.config.data_path, self.recs[int(s[0])],
                                                     start_time=s[1], stop_time=s[2], fs=self.config.fs,
                                                     included_channels=self.config.included_channels)
-                loading_time += time.process_time() - time_start
-                time_start = time.process_time()
 
             if self.channels is None:
                 self.channels = rec_data_segment.channels
@@ -420,20 +388,15 @@ class SegmentedGenerator(keras.utils.Sequence):
                 print("Rec channels:", rec_data_segment.channels)
                 print("self.channels:", self.channels)
             assert rec_data_segment.channels == self.channels
-            channel_time += time.process_time() - time_start
-            time_start = time.process_time()
 
             channel_indices = [self.channels.index(ch) for ch in rec_data_segment.channels]
             segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
             segment_data[:, channel_indices] = np.array(rec_data_segment.data).T
 
             batch_data.append(segment_data)
-            segmenting_time += time.process_time() - time_start
         batch_data = np.array(batch_data)
         if self.config.model in ['DeepConvNet', 'EEGnet']:
             batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
-        print(f"Loading time: {loading_time:.2f}s, Preprocessing time: {preprocessing_time:.2f}s, "
-              f"Channel reordering time: {channel_time:.2f}s, Segmenting time: {segmenting_time:.2f}s")
         return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):
