@@ -457,7 +457,7 @@ def segment_generator(config, recs, segments, labels, shuffle=True):
             if not os.path.exists(path_preprocessed_data):
                 rec_data_segment = Data.loadData(config.data_path, recs[int(s[0])],
                                                  included_channels=config.included_channels)
-                rec_data_segment.apply_preprocess(config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=recs[int(s[0])])
+                rec_data_segment.apply_preprocess(config.fs, data_path=config.data_path, store_preprocessed=True, recording=recs[int(s[0])])
                 start_seg = int(s[1] * config.fs)
                 stop_seg = int(s[2] * config.fs)
                 for ch_i, ch in enumerate(rec_data_segment.channels):

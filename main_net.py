@@ -33,9 +33,9 @@ parser.add_argument(
     '--locations',
     nargs='+',  # accept multiple inputs
     type=parse_location,
-    default=[Locations.leuven_adult],
+    default=[parse_location(l) for l in Locations.all_keys()],
     help=f"List of locations. Choose from: {', '.join(Locations.all_keys())}. "
-         f"Defaults to [{Locations.leuven_adult}]."
+         f"Defaults to all locations."
 )
 parser.add_argument("--nodes", type=str, nargs="?", default="all")
 parser.add_argument("--irr_th", type=float, nargs="?", default=None,)

@@ -290,9 +290,12 @@ def predict_per_fold(config, fold_i):
             with tf.device('/cpu:0'):
                 segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
-                gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
-                                                     shuffle=False, progress_bar=False,
-                                                     channel_indices=selected_channels_indices)
+                # gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
+                #                                      shuffle=False, progress_bar=False,
+                #                                      channel_indices=selected_channels_indices)
+
+                gen_test = SequentialGenerator(config, [rec], segments, batch_size=config.test_batch_size,
+                                               shuffle=False, verbose=False)
 
                 config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 
