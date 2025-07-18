@@ -293,6 +293,7 @@ def predict_per_fold(config, fold_i):
                 # gen_test, _ = build_tfrecord_dataset(config, [rec], segments, batch_size=config.test_batch_size,
                 #                                      shuffle=False, progress_bar=False,
                 #                                      channel_indices=selected_channels_indices)
+                # gen_test.repeat(2)
 
                 gen_test = SequentialGenerator(config, [rec], segments, batch_size=config.test_batch_size,
                                                shuffle=False, verbose=False)

@@ -142,7 +142,7 @@ def predict_net(generator, model_weights_path, model: keras.Model):
     model.load_weights(model_weights_path)
 
     y_aux = []
-    for _, y in generator.repeat(2):
+    for _, y in generator:
         y_aux.append(y)
     # for j in range(len(generator)):
     #     _, y = generator[j]
