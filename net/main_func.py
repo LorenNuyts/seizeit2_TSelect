@@ -296,6 +296,7 @@ def predict_per_fold(config, fold_i):
                 # gen_test.repeat(2)
 
                 gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments),
+                                               channels=config.selected_channels[fold_i] if config.channel_selection else None,
                                                shuffle=False, verbose=False)
 
                 config.reload_CH(fold_i)  # DO NOT REMOVE THIS
