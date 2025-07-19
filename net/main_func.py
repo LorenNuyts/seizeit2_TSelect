@@ -77,9 +77,9 @@ def train(config, results, load_segments, save_segments):
         gc.collect()
         model_save_path = get_path_model(config, name, fold_i)
         path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
-        # if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
-        #     print('    | Model of fold {} already exists'.format(fold_i))
-        #     continue
+        if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
+            print('    | Model of fold {} already exists'.format(fold_i))
+            continue
         print('Fold {}'.format(fold_i))
         print('     | Test: {}'.format(test_subject))
         print('     | Validation: {}'.format(validation_subjects))
@@ -166,38 +166,38 @@ def train(config, results, load_segments, save_segments):
             del gen_val
             gc.collect()
 
-        #     # Reset the generators
-        #     gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments,
-        #                                                         batch_size=config.batch_size,
-        #                                                         shuffle=True, channel_indices=channel_indices)
-        #     gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments,
-        #                                                         batch_size=config.val_batch_size,
-        #                                                         shuffle=False, channel_indices=channel_indices)
-        #
-        #
-        # print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
-        # print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
-        #
-        # print('### Training model....')
-        # if config.model.lower() == Keys.minirocketLR.lower():
-        #     model_minirocket = MiniRocketLR()
-        #     start_train = time.time()
-        #     # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
-        #     model_minirocket.fit(config, gen_train, gen_val, model_save_path)
-        #     # train_net(config, model, gen_train, gen_val, model_save_path)
-        #
-        #     end_train = time.time() - start_train
-        #
-        # else:
-        #     model: keras.Model = net(config)
-        #
-        #     start_train = time.time()
-        #
-        #     train_net(config, model, gen_train, gen_val, model_save_path, steps_per_epoch, validation_steps)
-        #
-        #     end_train = time.time() - start_train
-        # print('Total train duration = ', end_train / 60)
-        # results.train_time[fold_i] = end_train
+            # Reset the generators
+            gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments,
+                                                                batch_size=config.batch_size,
+                                                                shuffle=True, channel_indices=channel_indices)
+            gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments,
+                                                                batch_size=config.val_batch_size,
+                                                                shuffle=False, channel_indices=channel_indices)
+
+
+        print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
+        print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
+
+        print('### Training model....')
+        if config.model.lower() == Keys.minirocketLR.lower():
+            model_minirocket = MiniRocketLR()
+            start_train = time.time()
+            # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
+            model_minirocket.fit(config, gen_train, gen_val, model_save_path)
+            # train_net(config, model, gen_train, gen_val, model_save_path)
+
+            end_train = time.time() - start_train
+
+        else:
+            model: keras.Model = net(config)
+
+            start_train = time.time()
+
+            train_net(config, model, gen_train, gen_val, model_save_path, steps_per_epoch, validation_steps)
+
+            end_train = time.time() - start_train
+        print('Total train duration = ', end_train / 60)
+        results.train_time[fold_i] = end_train
 
         config.reload_CH()
         config.save_config(save_path=config_path)
