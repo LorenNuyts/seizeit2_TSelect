@@ -77,9 +77,9 @@ def train(config, results, load_segments, save_segments):
         gc.collect()
         model_save_path = get_path_model(config, name, fold_i)
         path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
-        if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
-            print('    | Model of fold {} already exists'.format(fold_i))
-            continue
+        # if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
+        #     print('    | Model of fold {} already exists'.format(fold_i))
+        #     continue
         print('Fold {}'.format(fold_i))
         print('     | Test: {}'.format(test_subject))
         print('     | Validation: {}'.format(validation_subjects))
@@ -116,9 +116,6 @@ def train(config, results, load_segments, save_segments):
                         pickle.dump(train_segments, outp, pickle.HIGHEST_PROTOCOL)
 
             print('Generating training dataset...')
-            # gen_train: SegmentedGenerator = SegmentedGenerator(config, train_recs_list, train_segments, batch_size=config.batch_size, shuffle=True)
-            # gen_train = build_segment_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
-            #                                   shuffle=True)
             gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
                                                shuffle=True)
 
@@ -137,8 +134,6 @@ def train(config, results, load_segments, save_segments):
                         pickle.dump(val_segments, outp, pickle.HIGHEST_PROTOCOL)
 
             print('Generating validation dataset...')
-            # gen_val: SequentialGenerator = SequentialGenerator(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
-            # gen_val = build_segment_dataset(config, val_recs_list, val_segments, batch_size=600, shuffle=False)
             gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size,
                                              shuffle=False)
 
@@ -150,7 +145,7 @@ def train(config, results, load_segments, save_segments):
             selection_start = time.process_time()
 
             print('### Selecting channels....')
-            channel_selector = TSelect(random_state=SEED, evaluation_metric=config.channel_selection_settings['evaluation_metric'],
+            channel_selector: TSelect = TSelect(random_state=SEED, evaluation_metric=config.channel_selection_settings['evaluation_metric'],
                                        irrelevant_selector_percentage=config.channel_selection_settings['irrelevant_selector_percentage'],
                                        filtering_threshold_corr=config.channel_selection_settings['corr_threshold'],
                                        irrelevant_selector_threshold=config.channel_selection_settings['irrelevant_selector_threshold'],)
@@ -159,49 +154,50 @@ def train(config, results, load_segments, save_segments):
             if config.selected_channels is None:
                 channel_indices = channel_selector.selected_channels
                 config.selected_channels = {fold_i: [sorted(config.included_channels)[i] for i in channel_selector.selected_channels]}
+                config.channel_selector= {fold_i: channel_selector}
             else:
                 channel_indices = channel_selector.selected_channels
                 config.selected_channels[fold_i] = [sorted(config.included_channels)[i] for i in channel_selector.selected_channels]
+                config.channel_selector[fold_i] = channel_selector
             config.reload_CH(fold=fold_i)
             results.selection_time[fold_i] = time.process_time() - selection_start
 
             del gen_train
             del gen_val
-            del channel_selector
             gc.collect()
 
-            # Reset the generators
-            gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments,
-                                                                batch_size=config.batch_size,
-                                                                shuffle=True, channel_indices=channel_indices)
-            gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments,
-                                                                batch_size=config.val_batch_size,
-                                                                shuffle=False, channel_indices=channel_indices)
-
-
-        print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
-        print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
-
-        print('### Training model....')
-        if config.model.lower() == Keys.minirocketLR.lower():
-            model_minirocket = MiniRocketLR()
-            start_train = time.time()
-            # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
-            model_minirocket.fit(config, gen_train, gen_val, model_save_path)
-            # train_net(config, model, gen_train, gen_val, model_save_path)
-
-            end_train = time.time() - start_train
-
-        else:
-            model: keras.Model = net(config)
-
-            start_train = time.time()
-
-            train_net(config, model, gen_train, gen_val, model_save_path, steps_per_epoch, validation_steps)
-
-            end_train = time.time() - start_train
-        print('Total train duration = ', end_train / 60)
-        results.train_time[fold_i] = end_train
+        #     # Reset the generators
+        #     gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments,
+        #                                                         batch_size=config.batch_size,
+        #                                                         shuffle=True, channel_indices=channel_indices)
+        #     gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments,
+        #                                                         batch_size=config.val_batch_size,
+        #                                                         shuffle=False, channel_indices=channel_indices)
+        #
+        #
+        # print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
+        # print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
+        #
+        # print('### Training model....')
+        # if config.model.lower() == Keys.minirocketLR.lower():
+        #     model_minirocket = MiniRocketLR()
+        #     start_train = time.time()
+        #     # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
+        #     model_minirocket.fit(config, gen_train, gen_val, model_save_path)
+        #     # train_net(config, model, gen_train, gen_val, model_save_path)
+        #
+        #     end_train = time.time() - start_train
+        #
+        # else:
+        #     model: keras.Model = net(config)
+        #
+        #     start_train = time.time()
+        #
+        #     train_net(config, model, gen_train, gen_val, model_save_path, steps_per_epoch, validation_steps)
+        #
+        #     end_train = time.time() - start_train
+        # print('Total train duration = ', end_train / 60)
+        # results.train_time[fold_i] = end_train
 
         config.reload_CH()
         config.save_config(save_path=config_path)
