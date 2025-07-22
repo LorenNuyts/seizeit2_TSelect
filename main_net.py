@@ -129,12 +129,12 @@ if args.reset:
     if os.path.exists(segments_path):
         shutil.rmtree(segments_path)
 
-# if os.path.exists(config_path):
-#     config.load_config(config_path, config.get_name())
-#     # Loading the results from barabas on my personal computer
-#     if 'dtai' in config.save_dir and 'dtai' not in base_:
-#         config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
-#         config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
+if os.path.exists(config_path):
+    config.load_config(config_path, config.get_name())
+    # Loading the results from barabas on my personal computer
+    if 'dtai' in config.save_dir and 'dtai' not in base_:
+        config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
+        config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
 
 ##### RESULTS:
 results = Results(config)
