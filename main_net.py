@@ -135,6 +135,19 @@ if os.path.exists(config_path):
         config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
         config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
 
+    # Some fixes to load older configs and still be compatible with the current code
+    if not hasattr(config, 'channel_selection_settings'):
+        config.channel_selection_settings = {
+            'evaluation_metric': evaluation_metrics[args.evaluation_metric],
+            'irrelevant_selector_percentage': args.auc,
+            'corr_threshold': args.corr,
+            'irrelevant_selector_threshold': args.irr_th,
+        }
+
+    if not hasattr(config, 'channel_selector'):
+        config.channel_selector = defaultdict(
+            lambda: None)  # dictionary to store the channel selector for each fold
+
 
 ##### RESULTS:
 results = Results(config)
@@ -153,8 +166,6 @@ load_segments = True                                          # Boolean to load 
 save_segments = True                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
 print('Config loaded from:', config_path)
-if not hasattr(config, 'channel_selector'):
-    config.channel_selector = defaultdict(lambda: None)  # dictionary to store the channel selector for each fold
 main_func.train(config, results, load_segments, save_segments)
 
 ############################################
