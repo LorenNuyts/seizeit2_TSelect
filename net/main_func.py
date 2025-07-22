@@ -178,26 +178,26 @@ def train(config, results, load_segments, save_segments):
         print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
         print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
 
-        print('### Training model....')
-        if config.model.lower() == Keys.minirocketLR.lower():
-            model_minirocket = MiniRocketLR()
-            start_train = time.time()
-            # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
-            model_minirocket.fit(config, gen_train, gen_val, model_save_path)
-            # train_net(config, model, gen_train, gen_val, model_save_path)
-
-            end_train = time.time() - start_train
-
-        else:
-            model: keras.Model = net(config)
-
-            start_train = time.time()
-
-            train_net(config, model, gen_train, gen_val, model_save_path, steps_per_epoch, validation_steps)
-
-            end_train = time.time() - start_train
-        print('Total train duration = ', end_train / 60)
-        results.train_time[fold_i] = end_train
+        # print('### Training model....')
+        # if config.model.lower() == Keys.minirocketLR.lower():
+        #     model_minirocket = MiniRocketLR()
+        #     start_train = time.time()
+        #     # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
+        #     model_minirocket.fit(config, gen_train, gen_val, model_save_path)
+        #     # train_net(config, model, gen_train, gen_val, model_save_path)
+        #
+        #     end_train = time.time() - start_train
+        #
+        # else:
+        #     model: keras.Model = net(config)
+        #
+        #     start_train = time.time()
+        #
+        #     train_net(config, model, gen_train, gen_val, model_save_path, steps_per_epoch, validation_steps)
+        #
+        #     end_train = time.time() - start_train
+        # print('Total train duration = ', end_train / 60)
+        # results.train_time[fold_i] = end_train
 
         config.reload_CH()
         config.save_config(save_path=config_path)

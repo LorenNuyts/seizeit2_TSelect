@@ -1,6 +1,7 @@
 import argparse
 import random
 import shutil
+from collections import defaultdict
 
 from net.DL_config import get_base_config, get_channel_selection_config
 from utility.constants import *
@@ -152,6 +153,8 @@ load_segments = True                                          # Boolean to load 
 save_segments = True                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
 print('Config loaded from:', config_path)
+if not hasattr(config, 'channel_selector'):
+    config.channel_selector = defaultdict(lambda: None)  # dictionary to store the channel selector for each fold
 main_func.train(config, results, load_segments, save_segments)
 
 ############################################
@@ -163,8 +166,8 @@ main_func.train(config, results, load_segments, save_segments)
 
 ############################################
 
-print('Getting predictions on the test set...')
-main_func.predict(config)
-
-print('Getting evaluation metrics...')
-main_func.evaluate(config, results)
+# print('Getting predictions on the test set...')
+# main_func.predict(config)
+#
+# print('Getting evaluation metrics...')
+# main_func.evaluate(config, results)
