@@ -129,12 +129,24 @@ if args.reset:
     if os.path.exists(segments_path):
         shutil.rmtree(segments_path)
 
-if os.path.exists(config_path):
-    config.load_config(config_path, config.get_name())
+# if os.path.exists(config_path):
+#     config.load_config(config_path, config.get_name())
+#     # Loading the results from barabas on my personal computer
+#     if 'dtai' in config.save_dir and 'dtai' not in base_:
+#         config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
+#         config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
+
+##### RESULTS:
+results = Results(config)
+results_path = get_path_results(config, config.get_name())
+if os.path.exists(results_path):
+    results.load_results(results_path)
     # Loading the results from barabas on my personal computer
-    if 'dtai' in config.save_dir and 'dtai' not in base_:
-        config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
-        config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
+    if 'dtai' in results.config.save_dir and 'dtai' not in base_:
+        results.config.save_dir = results.config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
+        results.config.data_path = results.config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
+    config = results.config # If the config file is not there (because I didn't download it), load the config from the results file
+
 
 # Some fixes to load older configs and still be compatible with the current code
 if not hasattr(config, 'channel_selection_settings'):
@@ -147,18 +159,6 @@ if not hasattr(config, 'channel_selection_settings'):
 
 if not hasattr(config, 'channel_selector'):
     config.channel_selector = defaultdict()  # dictionary to store the channel selector for each fold
-
-
-##### RESULTS:
-results = Results(config)
-results_path = get_path_results(config, config.get_name())
-if os.path.exists(results_path):
-  results.load_results(results_path)
-  # Loading the results from barabas on my personal computer
-  if 'dtai' in results.config.save_dir and 'dtai' not in base_:
-    results.config.save_dir = results.config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
-    results.config.data_path = results.config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
-  config = results.config # If the config file is not there (because I didn't download it), load the config from the results file
 
 ###########################################
 ###########################################
