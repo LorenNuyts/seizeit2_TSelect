@@ -145,8 +145,7 @@ if os.path.exists(config_path):
         }
 
     if not hasattr(config, 'channel_selector'):
-        config.channel_selector = defaultdict(
-            lambda: None)  # dictionary to store the channel selector for each fold
+        config.channel_selector = defaultdict()  # dictionary to store the channel selector for each fold
 
 
 ##### RESULTS:

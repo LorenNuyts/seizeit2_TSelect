@@ -59,7 +59,7 @@ class Config():
         self.channel_selection = False
         self.selected_channels = None
         self.channel_selection_settings = None
-        self.channel_selector = defaultdict(lambda: None)  # dictionary to store the channel selector for each fold
+        self.channel_selector = defaultdict()  # dictionary to store the channel selector for each fold
         self.pretty_name = None
         self.folds = {}  # dictionary to store the folds
         self.nb_folds = 10  # number of folds for cross-validation
