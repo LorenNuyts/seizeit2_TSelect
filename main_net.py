@@ -135,17 +135,17 @@ if os.path.exists(config_path):
         config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
         config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
 
-    # Some fixes to load older configs and still be compatible with the current code
-    if not hasattr(config, 'channel_selection_settings'):
-        config.channel_selection_settings = {
-            'evaluation_metric': evaluation_metrics[args.evaluation_metric],
-            'irrelevant_selector_percentage': args.auc,
-            'corr_threshold': args.corr,
-            'irrelevant_selector_threshold': args.irr_th,
-        }
+# Some fixes to load older configs and still be compatible with the current code
+if not hasattr(config, 'channel_selection_settings'):
+    config.channel_selection_settings = {
+        'evaluation_metric': evaluation_metrics[args.evaluation_metric],
+        'irrelevant_selector_percentage': args.auc,
+        'corr_threshold': args.corr,
+        'irrelevant_selector_threshold': args.irr_th,
+    }
 
-    if not hasattr(config, 'channel_selector'):
-        config.channel_selector = defaultdict()  # dictionary to store the channel selector for each fold
+if not hasattr(config, 'channel_selector'):
+    config.channel_selector = defaultdict()  # dictionary to store the channel selector for each fold
 
 
 ##### RESULTS:
