@@ -80,6 +80,9 @@ def train(config, results, load_segments, save_segments):
         # if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
         #     print('    | Model of fold {} already exists'.format(fold_i))
         #     continue
+        if fold_i in config.channel_selector.keys():
+            print('    | Fold {} already has a channel selector'.format(fold_i))
+            continue
         print('Fold {}'.format(fold_i))
         print('     | Test: {}'.format(test_subject))
         print('     | Validation: {}'.format(validation_subjects))
@@ -166,18 +169,18 @@ def train(config, results, load_segments, save_segments):
             del gen_val
             gc.collect()
 
-            # Reset the generators
-            gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments,
-                                                                batch_size=config.batch_size,
-                                                                shuffle=True, channel_indices=channel_indices)
-            gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments,
-                                                                batch_size=config.val_batch_size,
-                                                                shuffle=False, channel_indices=channel_indices)
-
-
-        print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
-        print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
-
+            # # Reset the generators
+            # gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments,
+            #                                                     batch_size=config.batch_size,
+            #                                                     shuffle=True, channel_indices=channel_indices)
+            # gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments,
+            #                                                     batch_size=config.val_batch_size,
+            #                                                     shuffle=False, channel_indices=channel_indices)
+        #
+        #
+        # print(f"Size train dataset: {asizeof.asizeof(gen_train) / (1024 ** 2):.2f} MB")
+        # print(f"Size val dataset: {asizeof.asizeof(gen_val) / (1024 ** 2):.2f} MB")
+        #
         # print('### Training model....')
         # if config.model.lower() == Keys.minirocketLR.lower():
         #     model_minirocket = MiniRocketLR()
