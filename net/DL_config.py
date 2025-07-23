@@ -37,7 +37,8 @@ class Config():
 
     def __init__(self, data_path=None, model='ChronoNet', dataset='SZ2', fs=None, CH=None, frame=2, stride=1,
                  stride_s=0.5, boundary=0.5, batch_size=64, sample_type='subsample', factor=5, l2=0, lr=0.01,
-                 dropoutRate=0, nb_epochs=50, class_weights = {0:1, 1:1}, cross_validation='fixed', save_dir='savedir'):
+                 dropoutRate=0, nb_epochs=50, class_weights = {0:1, 1:1}, cross_validation=Keys.stratified, save_dir='savedir',
+                 held_out_fold = False):
 
         self.data_path = data_path
         self.model = model
@@ -63,6 +64,8 @@ class Config():
         self.pretty_name = None
         self.folds = {}  # dictionary to store the folds
         self.nb_folds = 10  # number of folds for cross-validation
+        self.held_out_fold = held_out_fold
+        self.held_out_subjects = None
 
         # models parameters
         self.data_format = tf.keras.backend.image_data_format
@@ -97,6 +100,8 @@ class Config():
     def get_name(self):
         locations_str = "-".join([Locations.to_acronym(loc) for loc in self.locations])
         base_name = '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), self.cross_validation + "CV"])
+        if self.held_out_fold:
+            base_name += '_held_out_fold'
         if locations_str != "":
             base_name += '_' + locations_str
         if hasattr(self, 'add_to_name') and self.add_to_name != "":
@@ -105,7 +110,7 @@ class Config():
 
 
 def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
-                    included_channels=None, CV=Keys.stratified, pretty_name=None, suffix=""):
+                    included_channels=None, CV=Keys.stratified, held_out_fold=False, pretty_name=None, suffix=""):
     """
     Function to get the base configuration for the model. The function sets the parameters for the model, including
     the data path, save directory, sampling frequency, number of channels, batch size, window size, stride, balancing
@@ -118,6 +123,7 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         batch_size (int): batch size for training the model.
         included_channels (list): list of channels to include in the model. If None, all channels are included.
         CV (str): cross-validation method to use. Options are 'leave_one_person_out' or 'stratified'.
+        held_out_fold (bool): whether to use a held-out fold that is not used for training, validation, or testing.
         pretty_name (str): pretty name for the experiment.
         suffix (str): suffix to add to the end of the experiment's config name.
 
@@ -135,7 +141,7 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
     else:
         raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all' or 'wearables'.")
 
-    config = Config()
+    config = Config(model=model, batch_size=batch_size, cross_validation=CV, held_out_fold=held_out_fold,)
     if pretty_name:
         config.pretty_name = pretty_name
     if 'dtai' in base_dir:
@@ -200,9 +206,10 @@ def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_s
                                  included_channels=None, evaluation_metric=evaluation_metrics['score'],
                                  irrelevant_selector_percentage=0.6,
                                  corr_threshold=0.5, irrelevant_selector_threshold=-100, CV=Keys.stratified,
+                                 held_out_fold=False,
                                  pretty_name=None, suffix=""):
     config = get_base_config(base_dir, locations, model=model, included_channels=included_channels,
-                             pretty_name=pretty_name, batch_size=batch_size, CV=CV,
+                             pretty_name=pretty_name, batch_size=batch_size, CV=CV, held_out_fold=held_out_fold,
                              suffix=suffix)
     config.channel_selection = True
     config.selected_channels = None

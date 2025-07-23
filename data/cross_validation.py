@@ -174,27 +174,68 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
 
 
 def get_CV_generator(config):
+    held_out_subjects = []
+
     if config.cross_validation == Keys.leave_one_person_out:
+        if config.held_out_fold:
+            raise NotImplementedError("Leave one person out cross-validation with held out fold is not implemented yet.")
         CV_generator = leave_one_person_out(config.data_path, included_locations=config.locations,
                                             validation_set=config.validation_percentage)
+
     elif config.cross_validation == Keys.stratified:
         info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"),
                                        config.locations)
+        test_size = 1 - (config.train_percentage + config.validation_percentage)
+        if config.held_out_fold:
+            gen = multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
+                                                                    id_column='subject',
+                                                                    n_splits=1,
+                                                                    subset_sizes=[1 - test_size, test_size]
+                                                                    , weights_columns={'n_seizures': 0.4,
+                                                                                        'hours_of_data': 0.4},
+                                                                    seed=SEED)
+            other_subjects, held_out_subjects = next(gen)
+            info_per_group = info_per_group[info_per_group['subject'].isin(other_subjects)]
         CV_generator = multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
                                                                            id_column='subject',
                                                                            n_splits=config.n_folds,
                                                                             subset_sizes=[config.train_percentage,
                                                                                           config.validation_percentage,
-                                                                                          1 - (config.train_percentage + config.validation_percentage)],
+                                                                                          test_size],
                                                                            weights_columns={'n_seizures': 0.4,
                                                                                             'hours_of_data': 0.4},
                                                                            seed=SEED)
     elif config.cross_validation == Keys.leave_one_hospital_out:
         info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"),
                                        config.locations)
+        if config.held_out_fold:
+            test_size = 1 - (config.train_percentage + config.validation_percentage)
+            df = info_per_group.copy()
+            group_column = 'hospital'
+            id_column = 'subject'
+            groups = {name: df[df['hospital'] == name] for name in config.locations}
+            metrics = [c for c in df.columns if c not in [id_column, group_column]]
+            totals_per_hospital = pd.DataFrame(
+                {name: group[[c for c in metrics]].sum(axis=0) for name, group in groups.items()}).transpose()
+            totals_per_hospital['n_ids'] = df.groupby(group_column)[id_column].nunique()
+            totals = totals_per_hospital.sum(axis=0)
+            split_targets: list = totals * test_size
+
+            weights = {'n_seizures': 0.4, 'hours_of_data': 0.4, 'n_ids': 0.2}
+            best_hospital = None
+            best_score = float('inf')
+            for hospital in config.locations:
+                score = abs(split_targets - totals_per_hospital.loc[hospital]).dot(pd.Series(weights))
+                if score < best_score:
+                    best_score = score
+                    best_hospital = hospital
+
+            held_out_subjects = info_per_group[info_per_group['hospital'] == best_hospital]['subject'].unique().tolist()
+            info_per_group = info_per_group[info_per_group['hospital'] != best_hospital]
+
         CV_generator = leave_one_group_out(info_per_group, group_column='hospital', id_column='subject',
                                            validation_set=config.validation_percentage, seed=SEED)
 
     else:
         raise NotImplementedError('Cross-validation method not implemented yet')
-    return CV_generator
+    return CV_generator, held_out_subjects

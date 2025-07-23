@@ -49,6 +49,7 @@ parser.add_argument("--gpu", type=int, nargs="?", default=0)
 parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
                     choices=["leave_one_person_out", "stratified", "leave_one_hospital_out"],
                     help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
+parser.add_argument("--held_out_fold", action='store_true')
 
 args = parser.parse_args()
 
@@ -94,10 +95,11 @@ if args.channel_selection:
                                           evaluation_metric=evaluation_metrics[args.evaluation_metric],
                                           irrelevant_selector_threshold=args.irr_th,
                                           irrelevant_selector_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
-                                          suffix=suffix_, included_channels=args.nodes, batch_size=args.batch_size)
+                                          suffix=suffix_, included_channels=args.nodes, batch_size=args.batch_size,
+                                          held_out_fold=args.held_out_fold)
 else:
     config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
-                             batch_size=args.batch_size, CV= args.CV,)
+                             batch_size=args.batch_size, CV= args.CV, held_out_fold=args.held_out_fold)
 
 ###########################################
 ###########################################
@@ -159,6 +161,10 @@ if not hasattr(config, 'channel_selection_settings'):
 
 if not hasattr(config, 'channel_selector'):
     config.channel_selector = defaultdict()  # dictionary to store the channel selector for each fold
+
+if not hasattr(config, "held_out_fold"):
+    config.held_out_fold = False  # If the config does not have this attribute, set it to False
+    config.held_out_subjects = None
 
 ###########################################
 ###########################################

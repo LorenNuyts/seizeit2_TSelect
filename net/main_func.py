@@ -70,7 +70,8 @@ def train(config, results, load_segments, save_segments):
     config.save_config(save_path=config_path)
     results.save_results(save_path=results_path)
 
-    CV_generator = get_CV_generator(config)
+    CV_generator, held_out_subjects = get_CV_generator(config)
+    config.held_out_subjects = held_out_subjects
 
     for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(CV_generator):
         K.clear_session()
