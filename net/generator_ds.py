@@ -503,7 +503,11 @@ def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, 
         path = get_path_tfrecord(config.data_path, recs[int(rec_idx)], start, stop)
         tfrecord_files.append(path)
         if not os.path.exists(path):
-            create_single_tfrecord(config, recs, s)
+            try:
+                create_single_tfrecord(config, recs, s)
+            except Exception as e:
+                print(f"Error creating TFRecord for segment {s}: {e}")
+                raise e
 
     dataset = tf.data.TFRecordDataset(tfrecord_files, num_parallel_reads=tf.data.AUTOTUNE)
     if shuffle:
