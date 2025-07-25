@@ -154,7 +154,7 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         os.makedirs(config.save_dir)
 
     config.fs = 250  # Sampling frequency of the data after post-processing
-    config.included_channels = included_channels
+    config.included_channels = sorted(included_channels)
     config.CH = len(config.included_channels)  # Nr of EEG channels
     if Nodes.BTEleft in config.included_channels and Nodes.BTEright in config.included_channels and \
         Nodes.CROSStop in config.included_channels:

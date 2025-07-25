@@ -21,9 +21,13 @@ def inspect_channels():
     config = get_base_config(os.path.join(base_, ".."), locations=[Locations.karolinska, Locations.freiburg,
                                                                    Locations.leuven_adult])
     recs = [# ['University_Hospital_Leuven_Pediatric', 'SUBJ-1b-315', 'r4'],
-            ['University_Hospital_Leuven_Adult', 'SUBJ-1a-006', 'r10']
+            # ['University_Hospital_Leuven_Adult', 'SUBJ-1a-006', 'r10'],
+            ['Karolinska_Institute', 'SUBJ-6-402', 'r11'],
             ]
-    segments = generate_data_keys_sequential(config, recs, 6 * 60)
+    # segments = generate_data_keys_sequential(config, recs, 6 * 60)
+    # segments = generate_data_keys_sequential_window(config, recs, 6 * 60)
+    # segments = generate_data_keys_subsample(config, recs)
+    segments = [[  0, 12398., 12400.,     0.]]
     for s in tqdm(segments, desc="Writing TFRecord"):
         create_single_tfrecord(config, recs, s)
 
@@ -133,6 +137,6 @@ def ts_reshape_error():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    # inspect_channels()
-    negative_dimensions()
+    inspect_channels()
+    # negative_dimensions()
     # ts_reshape_error()

@@ -182,8 +182,8 @@ main_func.train(config, results, load_segments, save_segments)
 
 ############################################
 
-# print('Getting predictions on the test set...')
-# main_func.predict(config)
-#
-# print('Getting evaluation metrics...')
-# main_func.evaluate(config, results)
+print('Getting predictions on the test set...')
+main_func.predict(config)
+
+print('Getting evaluation metrics...')
+main_func.evaluate(config, results)
