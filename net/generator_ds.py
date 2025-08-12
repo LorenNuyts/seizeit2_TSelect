@@ -240,7 +240,7 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
 
     '''
 
-    def __init__(self, config, recs, segments, batch_size=32, shuffle=False, verbose=True):
+    def __init__(self, config, recs, segments, channels=None, batch_size=32, shuffle=False, verbose=True):
         super().__init__()
         self.config = config
         self.recs = recs
@@ -248,7 +248,7 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.verbose = verbose
-        self.channels = None
+        self.channels = channels if channels is not None else config.included_channels
         self.labels = np.array([[1, 0] if s[3] == 0 else [0, 1] for s in segments], dtype=np.float32)
         self.key_array = np.arange(len(self.labels))
         self.on_epoch_end()
@@ -273,7 +273,7 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
             # If the preprocessed data does not exist, load and preprocess the entire recording
             if not os.path.exists(path_preprocessed_data):
                 rec_data_segment = Data.loadData(self.config.data_path, self.recs[int(s[0])],
-                                                 included_channels=self.config.included_channels)
+                                                 included_channels=self.channels)
                 rec_data_segment.apply_preprocess(self.config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=self.recs[int(s[0])])
                 start_seg = int(s[1] * self.config.fs)
                 stop_seg = int(s[2] * self.config.fs)
@@ -289,8 +289,8 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
                                                     start_time=s[1], stop_time=s[2], fs=self.config.fs,
                                                     included_channels=self.config.included_channels)
 
-            if self.channels is None:
-                self.channels = rec_data_segment.channels
+            # if self.channels is None:
+            #     self.channels = rec_data_segment.channels
             if set(rec_data_segment.channels) != set(self.channels):
                 rec_data_segment.channels = switch_channels(self.channels, rec_data_segment.channels,
                                                             Nodes.switchable_nodes)

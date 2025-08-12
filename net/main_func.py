@@ -19,7 +19,7 @@ from analysis.dataset import dataset_stats
 from data.cross_validation import get_CV_generator, multi_objective_grouped_stratified_cross_validation
 from net.DL_config import Config
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
-from net.generator_ds import build_tfrecord_dataset, SequentialGenerator
+from net.generator_ds import build_tfrecord_dataset, SequentialGenerator, SequentialGeneratorDynamic
 from net.routines import train_net, predict_net
 from net.utils import get_metrics_scoring
 
@@ -435,8 +435,12 @@ def predict_per_fold(config, fold_i):
             #                                      channel_indices=selected_channels_indices)
             # gen_test.repeat(2)
 
-            gen_test = SequentialGenerator(config, [rec], segments, batch_size=config.test_batch_size,
-                                           channels=config.selected_channels[fold_i] if config.channel_selection else None,
+            # gen_test = SequentialGenerator(config, [rec], segments, batch_size=config.test_batch_size,
+            #                                channels=config.selected_channels[fold_i] if config.channel_selection else None,
+            #                                shuffle=False, verbose=False)
+            gen_test = SequentialGeneratorDynamic(config, [rec], segments, batch_size=config.test_batch_size,
+                                           channels=config.selected_channels[
+                                               fold_i] if config.channel_selection else None,
                                            shuffle=False, verbose=False)
 
             config.reload_CH(fold_i)  # DO NOT REMOVE THIS
