@@ -268,26 +268,26 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
         batch_segments = [self.segments[k] for k in keys]
         batch_data = []
         for s in batch_segments:
-            path_preprocessed_data = get_path_preprocessed_data(self.config.data_path, self.recs[int(s[0])])
+            # path_preprocessed_data = get_path_preprocessed_data(self.config.data_path, self.recs[int(s[0])])
 
-            # If the preprocessed data does not exist, load and preprocess the entire recording
-            if not os.path.exists(path_preprocessed_data):
-                rec_data_segment = Data.loadData(self.config.data_path, self.recs[int(s[0])],
-                                                 included_channels=self.channels)
-                rec_data_segment.apply_preprocess(self.config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=self.recs[int(s[0])])
-                start_seg = int(s[1] * self.config.fs)
-                stop_seg = int(s[2] * self.config.fs)
-                # segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
-                # rec_data_segment.data = rec_data_segment.data[:, start_seg:stop_seg]
-                for ch_i, ch in enumerate(rec_data_segment.channels):
-                    index_channels = rec_data_segment.channels.index(ch)
-                    rec_data_segment.data[index_channels] = rec_data_segment[ch_i][start_seg:stop_seg]
-                rec_data_segment.__segment = (s[1], s[2])  # Store segment start and stop times
-            # If the preprocessed data exists, load only the segment
-            else:
-                rec_data_segment = Data.loadSegment(self.config.data_path, self.recs[int(s[0])],
-                                                    start_time=s[1], stop_time=s[2], fs=self.config.fs,
-                                                    included_channels=self.config.included_channels)
+            # # If the preprocessed data does not exist, load and preprocess the entire recording
+            # if not os.path.exists(path_preprocessed_data):
+            #     rec_data_segment = Data.loadData(self.config.data_path, self.recs[int(s[0])],
+            #                                      included_channels=self.channels)
+            #     rec_data_segment.apply_preprocess(self.config.fs, data_path=self.config.data_path, store_preprocessed=True, recording=self.recs[int(s[0])])
+            #     start_seg = int(s[1] * self.config.fs)
+            #     stop_seg = int(s[2] * self.config.fs)
+            #     # segment_data = np.zeros((self.config.frame * self.config.fs, len(self.channels)), dtype=np.float32)
+            #     # rec_data_segment.data = rec_data_segment.data[:, start_seg:stop_seg]
+            #     for ch_i, ch in enumerate(rec_data_segment.channels):
+            #         index_channels = rec_data_segment.channels.index(ch)
+            #         rec_data_segment.data[index_channels] = rec_data_segment[ch_i][start_seg:stop_seg]
+            #     rec_data_segment.__segment = (s[1], s[2])  # Store segment start and stop times
+            # # If the preprocessed data exists, load only the segment
+            # else:
+            rec_data_segment = Data.loadSegment(self.config.data_path, self.recs[int(s[0])],
+                                                start_time=s[1], stop_time=s[2], fs=self.config.fs,
+                                                included_channels=self.config.included_channels)
 
             # if self.channels is None:
             #     self.channels = rec_data_segment.channels

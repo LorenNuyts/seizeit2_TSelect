@@ -442,9 +442,11 @@ def predict_per_fold(config, fold_i):
                                            channels=config.selected_channels[
                                                fold_i] if config.channel_selection else None,
                                            shuffle=False, verbose=False)
+            print("Size test dataset: {:.2f} MB".format(asizeof.asizeof(gen_test) / (1024 ** 2)))
 
             config.reload_CH(fold_i)  # DO NOT REMOVE THIS
 
+            print('### Predicting model....')
             if config.model.lower() == Keys.minirocketLR.lower():
                 y_pred, y_true = model.predict(gen_test)
             else:
