@@ -5,7 +5,9 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from net.DL_config import Config
-from utility.paths import get_path_config
+from utility.paths import get_path_config, get_path_results
+from utility.stats import Results
+
 
 def count_selected_channels_across_folds(base_dir, configs: List[Config], output_path: str = None):
     for config in configs:
@@ -83,3 +85,34 @@ def mine_frequent_channels(base_dir, configs: List[Config], output_path: str = N
             with open(output_file, 'a') as f:
                 f.write('\n')
             rules.to_csv(output_file, index=False, mode='a')
+
+def find_interchangeable_channels(base_dir, configs: List[Config], results: List[Results], output_path:str):
+    assert len(configs) == len(results), "Configs and results must have the same length"
+    for i, config in enumerate(configs):
+        config_path = os.path.join(base_dir, "..", "..", get_path_config(config, config.get_name()))
+        if os.path.exists(config_path):
+            config.load_config(config_path, config.get_name())
+        else:
+            print(f"Config not found for {config.get_name()}")
+            continue
+        results_path = os.path.join(base_dir, "..", "..", get_path_results(config, config.get_name()))
+        if os.path.exists(results_path):
+            results[i].load_results(results_path)
+        else:
+            print(f"Results not found for {config.get_name()}")
+            continue
+
+        result = results[i]
+
+        # TODO: possibly change these two lines
+        selected_channels = [config.selected_channels[fold_i] for fold_i in range(config.nb_folds)]
+        clusters = [config.channel_selector[fold_i].clusters for fold_i in range(config.nb_folds)]
+
+        # Map clusters between folds
+
+        # Count how many times a channel appears in the same cluster
+
+        # Average the evaluation metric for channel selection across the folds to get an indication of how relevant
+        # the channel is
+
+        # Combine the count and averaged evaluation metric to find the channels that are equally relevant, but redundant

@@ -51,9 +51,12 @@ def download_remote_results(configs, local_base_dir=None, remote_base_dir=None, 
         host = Paths.remote_host
 
     for config in configs:
-        config.save_dir = local_base_dir
-        local_path = get_path_results(config, config.get_name())
+        original_save_dir = config.save_dir
+        if local_base_dir is not None:
+            config.save_dir = local_base_dir
+        local_path = os.path.dirname(get_path_results(config, config.get_name()))
         config.save_dir = remote_base_dir
         remote_path = get_path_results(config, config.get_name())
         os.makedirs(local_path, exist_ok=True)
         os.system(f'scp {host}:{remote_path} {local_path} ')
+        config.save_dir = original_save_dir

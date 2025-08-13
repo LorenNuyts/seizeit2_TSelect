@@ -4,7 +4,7 @@ import shutil
 from analysis.channel_analysis import *
 from analysis.channel_analysis.file_management import download_remote_configs
 from net.DL_config import get_channel_selection_config
-from utility.constants import evaluation_metrics, Locations, parse_location
+from utility.constants import evaluation_metrics, Locations, parse_location, Keys
 
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -25,12 +25,22 @@ if __name__ == '__main__':
     locations_ = sorted(list(dict.fromkeys(args.locations)))
     suffix_ = args.suffix
     configs_ = [
+        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
                 # get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_),
                 # get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_,
                 #                              included_channels='wearables'),
-                get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                             evaluation_metric=evaluation_metrics['score'],
-                                             irrelevant_selector_threshold=0.5),
+                # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+                #                              evaluation_metric=evaluation_metrics['score'],
+                #                              irrelevant_selector_threshold=0.5),
+                # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+                #                              evaluation_metric=evaluation_metrics['score'],
+                #                              irrelevant_selector_threshold=0.5, CV=Keys.leave_one_hospital_out),
                 # get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_,
                 #                              included_channels='wearables',
                 #                              evaluation_metric=evaluation_metrics['score'])
