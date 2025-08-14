@@ -125,7 +125,7 @@ def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path, s
 
 
 def predict_net(generator, model_weights_path, model: keras.Model):
-    ''' Routine to obtain predictions from the trained model with the desired configurations.
+    """ Routine to obtain predictions from the trained model with the desired configurations.
 
     Args:
         generator: a keras data generator containing the data to predict
@@ -133,10 +133,10 @@ def predict_net(generator, model_weights_path, model: keras.Model):
         model: keras model object
 
     Returns:
-        y_pred: array with the probability of seizure occurences (0 to 1) of each consecutive
+        y_pred: array with the probability of seizure occurrences (0 to 1) of each consecutive
                 window of the recording.
         y_true: analogous to y_pred, the array contains the label of each segment (0 or 1)
-    '''
+    """
 
     K.set_image_data_format('channels_last')
 
@@ -146,7 +146,7 @@ def predict_net(generator, model_weights_path, model: keras.Model):
     all_y_pred = []
 
     for batch_x, batch_y in generator:
-        pred_batch = model.predict(batch_x, verbose=0)
+        pred_batch = model.predict_on_batch(batch_x)
         all_y_pred.extend(pred_batch[:, 1].astype('float32'))
         all_y_true.extend(batch_y[:, 1].astype('uint8'))
         del batch_x, batch_y, pred_batch
