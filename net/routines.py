@@ -145,7 +145,9 @@ def predict_net(generator, model_weights_path, model: keras.Model):
     all_y_true = []
     all_y_pred = []
 
-    for batch_x, batch_y in generator:
+    for i, (batch_x, batch_y) in enumerate(generator):
+        if batch_x.shape[0] == 0:
+            print(f"Batch {i} is empty")
         pred_batch = model.predict_on_batch(batch_x)
         all_y_pred.extend(pred_batch[:, 1].astype('float32'))
         all_y_true.extend(batch_y[:, 1].astype('uint8'))

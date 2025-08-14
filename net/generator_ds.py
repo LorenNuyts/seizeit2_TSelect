@@ -310,6 +310,10 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
         batch_data = np.array(batch_data)
         if self.config.model in ['DeepConvNet', 'EEGnet']:
             batch_data = batch_data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
+
+        if batch_data.shape[0] == 0:
+            print(f"Batch data is empty for segments {batch_segments} of recordings "
+                  f"{[self.recs[int(s[0])] for s in batch_segments]}")
         return batch_data, self.labels[keys]
 
 

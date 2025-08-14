@@ -37,7 +37,8 @@ def negative_dimensions():
                      # ['Freiburg_University_Medical_Center', 'SUBJ-4-230', 'r1'],
                      # ['Freiburg_University_Medical_Center', 'SUBJ-4-230', 'r2'],
                      # ['Freiburg_University_Medical_Center', 'SUBJ-4-230', 'r3'],
-                     ['University_Hospital_Leuven_Adult', 'SUBJ-1a-006', 'r10'],
+                     # ['University_Hospital_Leuven_Adult', 'SUBJ-1a-006', 'r10'],
+        ['Freiburg_University_Medical_Center', 'SUBJ-4-381', 'r6'],
                      ]
     val_segments = generate_data_keys_sequential(config, val_recs_list, 6 * 60)
 
@@ -137,6 +138,6 @@ def ts_reshape_error():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    inspect_channels()
-    # negative_dimensions()
+    # inspect_channels()
+    negative_dimensions()
     # ts_reshape_error()
