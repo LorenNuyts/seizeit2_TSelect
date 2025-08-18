@@ -425,7 +425,8 @@ def predict_per_fold(config, fold_i):
         model = net(config)
     for rec in tqdm(test_recs_list):
         if os.path.isfile(get_path_predictions(config, name, rec, fold_i)):
-            print(f"Fold {fold_i}: {rec[0]} {rec[1]} {rec[2]} exists. Skipping...")
+            pass
+            # print(f"Fold {fold_i}: {rec[0]} {rec[1]} {rec[2]} exists. Skipping...")
         else:
             # print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
             # with tf.device('/cpu:0'):
