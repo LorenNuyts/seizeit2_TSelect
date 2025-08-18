@@ -428,7 +428,7 @@ def predict_per_fold(config, fold_i):
             pass
             # print(f"Fold {fold_i}: {rec[0]} {rec[1]} {rec[2]} exists. Skipping...")
         else:
-            # print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
+            print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
             # with tf.device('/cpu:0'):
             segments = generate_data_keys_sequential(config, [rec], verbose=False)
 
