@@ -40,11 +40,11 @@ def download_remote_results(configs, local_base_dir=None, remote_base_dir=None, 
     :param remote_base_dir: Remote directory from which results will be downloaded.
     :param host: Remote host to connect to. If None, uses the default host.
     """
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if remote_base_dir is None:
         remote_base_dir = Paths.remote_save_dir
 
     if local_base_dir is None:
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         local_base_dir = os.path.join(project_root, "..", Paths.local_save_dir)
 
     if host is None:

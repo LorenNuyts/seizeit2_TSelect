@@ -2,7 +2,7 @@ import argparse
 import shutil
 
 from analysis.channel_analysis import *
-from analysis.channel_analysis.file_management import download_remote_configs
+from analysis.channel_analysis.file_management import download_remote_configs, download_remote_results
 from net.DL_config import get_channel_selection_config
 from utility.constants import evaluation_metrics, Locations, parse_location, Keys
 
@@ -11,7 +11,7 @@ base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__fi
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str,
-                        choices=["frequent_channels", "count_channels"])
+                        choices=["frequent_channels", "count_channels", "interchangeable_channels"],)
     parser.add_argument("--suffix", type=str, nargs="?", default="")
     parser.add_argument(
         '--locations',
@@ -21,6 +21,7 @@ if __name__ == '__main__':
         help=f"List of locations. Choose from: {', '.join(Locations.all_keys())}. "
              f"Defaults to [{Locations.all_keys()}]."
     )
+    parser.add_argument("--download", action='store_true',)
     args = parser.parse_args()
     locations_ = sorted(list(dict.fromkeys(args.locations)))
     suffix_ = args.suffix
@@ -46,7 +47,9 @@ if __name__ == '__main__':
                 #                              evaluation_metric=evaluation_metrics['score'])
     ]
 
-    download_remote_configs(configs_, local_base_dir=configs_[0].save_dir)
+    if args.download:
+        download_remote_configs(configs_, local_base_dir=configs_[0].save_dir)
+
 
     if 'dtai' in base_dir:
         output_path_ = os.path.join('/cw/dtailocal/loren/2025-Epilepsy','analysis', 'results')
@@ -57,6 +60,11 @@ if __name__ == '__main__':
         mine_frequent_channels(base_dir, configs_, output_path=output_path_, min_support=0.2)
     elif args.task == "count_channels":
         count_selected_channels_across_folds(base_dir, configs_, output_path=output_path_)
+    elif args.task == "interchangeable_channels":
+        if args.download:
+            download_remote_results(configs_, local_base_dir=configs_[0].save_dir)
+
+        find_interchangeable_channels(base_dir, configs_, output_path_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Choose from 'frequent_channels' or 'count_channels'.")
 
