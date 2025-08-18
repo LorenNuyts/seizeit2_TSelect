@@ -259,9 +259,7 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
     def __getitem__(self, index):
         keys = self.key_array[index * self.batch_size:(index + 1) * self.batch_size]
         if len(keys) == 0:
-            print(f" Key array: {self.key_array}")
-            print(f" Keys are empty for index {index} with batch size {self.batch_size}. ")
-            print(f"Key array length: {len(self.key_array)}")
+            raise IndexError
         return self.__data_generation__(keys)
 
     def on_epoch_end(self):
