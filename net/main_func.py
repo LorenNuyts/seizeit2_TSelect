@@ -406,6 +406,7 @@ def predict_per_fold(config, fold_i):
     gc.collect()
     config.reload_CH(fold=fold_i)
     test_recs_list = get_recs_list(config.data_path, config.locations, test_subjects)
+    print("Recordings to predict:", test_recs_list)
     selected_channels_indices = [sorted(config.included_channels).index(ch) for ch in
                                  config.selected_channels[fold_i]] if config.channel_selection else None
     model_save_path = get_path_model(config, name, fold_i)
