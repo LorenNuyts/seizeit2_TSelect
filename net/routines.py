@@ -138,27 +138,27 @@ def predict_net(generator, model_weights_path, model: keras.Model):
         y_true: analogous to y_pred, the array contains the label of each segment (0 or 1)
     """
 
-    K.set_image_data_format('channels_last')
-
-    model.load_weights(model_weights_path)
-
-    # all_y_true = []
-    # all_y_pred = []
-
-    # for i, (batch_x, batch_y) in enumerate(generator):
-    #     if batch_x.shape[0] == 0:
-    #         print(f"Batch {i} is empty")
-    #     pred_batch = model.predict_on_batch(batch_x)
-    #     all_y_pred.extend(pred_batch[:, 1].astype('float32'))
-    #     all_y_true.extend(batch_y[:, 1].astype('uint8'))
-    #     del batch_x, batch_y, pred_batch
-    #     gc.collect()
+    # K.set_image_data_format('channels_last')
     #
-    # # Convert lists to numpy arrays once at the end
-    # y_pred = np.array(all_y_pred, dtype='float32')
-    # y_true = np.array(all_y_true, dtype='uint8')
-    #
-    # return y_pred, y_true
+    # model.load_weights(model_weights_path)
+
+    all_y_true = []
+    all_y_pred = []
+
+    for batch_x, batch_y in generator:
+        if batch_x.shape[0] == 0:
+            print("Empty batch encountered, skipping.")
+            continue
+        # Predict for the batch
+        pred_batch = model.predict(batch_x, batch_size=batch_x.shape[0], verbose=0)
+        all_y_pred.append(pred_batch[:, 1].astype('float32'))
+        all_y_true.append(batch_y[:, 1].astype('uint8'))
+
+    # Concatenate all batches into single arrays
+    y_pred = np.concatenate(all_y_pred, axis=0)
+    y_true = np.concatenate(all_y_true, axis=0)
+
+    return y_pred, y_true
     y_aux = []
     for _, y in generator:
         y_aux.append(y)

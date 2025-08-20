@@ -423,6 +423,8 @@ def predict_per_fold(config, fold_i):
         model = MiniRocketLR(model_save_path)
     else:
         model = net(config)
+        K.set_image_data_format('channels_last')
+        model.load_weights(model_weights_path)
     for rec in tqdm(test_recs_list):
         if os.path.isfile(get_path_predictions(config, name, rec, fold_i)):
             pass
@@ -456,15 +458,22 @@ def predict_per_fold(config, fold_i):
             else:
                 y_pred, y_true = predict_net(gen_test, model_weights_path, model)
 
-            del gen_test
+            del gen_test, segments
             gc.collect()
+            # K.clear_session()
 
             os.makedirs(os.path.dirname(get_path_predictions(config, name, rec, fold_i)), exist_ok=True)
             with h5py.File(get_path_predictions(config, name, rec, fold_i), 'w') as f:
                 f.create_dataset('y_pred', data=y_pred)
                 f.create_dataset('y_true', data=y_true)
             config.reload_CH()
+
+            del y_pred, y_true
             gc.collect()
+
+    del model
+    K.clear_session()
+    gc.collect()
     return fold_i
 
 
