@@ -439,13 +439,13 @@ def predict_per_fold(config, fold_i):
             #                                      channel_indices=selected_channels_indices)
             # gen_test.repeat(2)
 
-            # gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments),
-            #                                channels=config.selected_channels[fold_i] if config.channel_selection else None,
-            #                                shuffle=False, verbose=False)
-            gen_test = SequentialGeneratorDynamic(config, [rec], segments, batch_size=config.test_batch_size,
-                                           channels=config.selected_channels[
-                                               fold_i] if config.channel_selection else None,
+            gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments),
+                                           channels=config.selected_channels[fold_i] if config.channel_selection else None,
                                            shuffle=False, verbose=False)
+            # gen_test = SequentialGeneratorDynamic(config, [rec], segments, batch_size=config.test_batch_size,
+            #                                channels=config.selected_channels[
+            #                                    fold_i] if config.channel_selection else None,
+            #                                shuffle=False, verbose=False)
             # print("Size test dataset: {:.2f} MB".format(asizeof.asizeof(gen_test) / (1024 ** 2)))
 
             config.reload_CH(fold_i)  # DO NOT REMOVE THIS
