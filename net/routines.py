@@ -142,39 +142,39 @@ def predict_net(generator, model_weights_path, model: keras.Model):
 
     model.load_weights(model_weights_path)
 
-    all_y_true = []
-    all_y_pred = []
+    # all_y_true = []
+    # all_y_pred = []
 
-    for i, (batch_x, batch_y) in enumerate(generator):
-        if batch_x.shape[0] == 0:
-            print(f"Batch {i} is empty")
-        pred_batch = model.predict_on_batch(batch_x)
-        all_y_pred.extend(pred_batch[:, 1].astype('float32'))
-        all_y_true.extend(batch_y[:, 1].astype('uint8'))
-        del batch_x, batch_y, pred_batch
-        gc.collect()
-
-    # Convert lists to numpy arrays once at the end
-    y_pred = np.array(all_y_pred, dtype='float32')
-    y_true = np.array(all_y_true, dtype='uint8')
-
-    return y_pred, y_true
-    # y_aux = []
-    # for _, y in generator:
-    #     y_aux.append(y)
-    # # for j in range(len(generator)):
-    # #     _, y = generator[j]
-    # #     y_aux.append(y)
-    # true_labels = np.vstack(y_aux)
+    # for i, (batch_x, batch_y) in enumerate(generator):
+    #     if batch_x.shape[0] == 0:
+    #         print(f"Batch {i} is empty")
+    #     pred_batch = model.predict_on_batch(batch_x)
+    #     all_y_pred.extend(pred_batch[:, 1].astype('float32'))
+    #     all_y_true.extend(batch_y[:, 1].astype('uint8'))
+    #     del batch_x, batch_y, pred_batch
+    #     gc.collect()
     #
-    # prediction = model.predict(generator, verbose=0)
-    #
-    # y_pred = np.empty(len(prediction), dtype='float32')
-    # for j in range(len(y_pred)):
-    #     y_pred[j] = prediction[j][1]
-    #
-    # y_true = np.empty(len(true_labels), dtype='uint8')
-    # for j in range(len(y_true)):
-    #     y_true[j] = true_labels[j][1]
+    # # Convert lists to numpy arrays once at the end
+    # y_pred = np.array(all_y_pred, dtype='float32')
+    # y_true = np.array(all_y_true, dtype='uint8')
     #
     # return y_pred, y_true
+    y_aux = []
+    for _, y in generator:
+        y_aux.append(y)
+    # for j in range(len(generator)):
+    #     _, y = generator[j]
+    #     y_aux.append(y)
+    true_labels = np.vstack(y_aux)
+
+    prediction = model.predict(generator, verbose=0)
+
+    y_pred = np.empty(len(prediction), dtype='float32')
+    for j in range(len(y_pred)):
+        y_pred[j] = prediction[j][1]
+
+    y_true = np.empty(len(true_labels), dtype='uint8')
+    for j in range(len(y_true)):
+        y_true[j] = true_labels[j][1]
+
+    return y_pred, y_true

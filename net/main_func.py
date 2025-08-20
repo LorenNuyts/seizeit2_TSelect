@@ -439,7 +439,7 @@ def predict_per_fold(config, fold_i):
             #                                      channel_indices=selected_channels_indices)
             # gen_test.repeat(2)
 
-            # gen_test = SequentialGenerator(config, [rec], segments, batch_size=config.test_batch_size,
+            # gen_test = SequentialGenerator(config, [rec], segments, batch_size=len(segments),
             #                                channels=config.selected_channels[fold_i] if config.channel_selection else None,
             #                                shuffle=False, verbose=False)
             gen_test = SequentialGeneratorDynamic(config, [rec], segments, batch_size=config.test_batch_size,
@@ -455,6 +455,9 @@ def predict_per_fold(config, fold_i):
                 y_pred, y_true = model.predict(gen_test)
             else:
                 y_pred, y_true = predict_net(gen_test, model_weights_path, model)
+
+            del gen_test
+            gc.collect()
 
             os.makedirs(os.path.dirname(get_path_predictions(config, name, rec, fold_i)), exist_ok=True)
             with h5py.File(get_path_predictions(config, name, rec, fold_i), 'w') as f:
