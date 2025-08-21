@@ -138,8 +138,13 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
     elif included_channels == "wearables":
         included_channels = Nodes.included_wearables
         suffix = "wearables" + ("__" if len(suffix) != 0 else "") + suffix
+    elif included_channels == "Cross_T7":
+        included_channels = [Nodes.CROSStop, "T7"]
+    elif included_channels == "T7":
+        included_channels = ["T7"]
     else:
-        raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all' or 'wearables'.")
+        raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all', 'wearables',"
+                         f"'Cross_T7' or 'T7'.")
 
     config = Config(model=model, batch_size=batch_size, cross_validation=CV, held_out_fold=held_out_fold,)
     if pretty_name:
