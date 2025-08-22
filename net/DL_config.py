@@ -85,6 +85,7 @@ class Config():
         name = self.get_name()
         with open(os.path.join(save_path, name + '.cfg'), 'wb') as output:  # Overwrites any existing file.
             pickle.dump(self.__dict__, output, pickle.HIGHEST_PROTOCOL)
+            print("Config saved:", os.path.join(save_path, name + '.cfg'))
 
 
     def load_config(self, config_path, config_name):
