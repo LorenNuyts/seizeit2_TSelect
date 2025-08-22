@@ -86,6 +86,8 @@ if args.reset:
     if os.path.exists(predictions_path):
         shutil.rmtree(predictions_path)
 
+print("Path exists:", os.path.exists(config_path), config_path)
+print("Reset?", args.reset)
 if os.path.exists(config_path):
     config.load_config(config_path, config.get_name())
     # Loading the results from barabas on my personal computer
