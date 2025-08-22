@@ -66,7 +66,7 @@ if gpus:
 ## Initialize standard config parameters ##
 ###########################################
 
-config = get_base_config(base_, locations_, suffix="_final_model_reuse", included_channels=args.nodes,)
+config = get_base_config(base_, locations_, suffix="_final_model_reuse", included_channels=args.nodes, held_out_fold=True)
 
 ###########################################
 ###########################################
