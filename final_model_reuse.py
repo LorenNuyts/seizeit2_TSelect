@@ -139,7 +139,7 @@ for config_model, folds in config_models.items():
         config.folds[fold_i] = config_model.folds[fold_i]
         config.folds[fold_i]['test'] = config_model.held_out_subjects
 
-
+os.makedirs(os.path.dirname(config_path), exist_ok=True)
 config.save_config(save_path=config_path)
 results.config = config
 results.save_results(save_path=results_path)
