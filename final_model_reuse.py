@@ -24,11 +24,11 @@ base_ = os.path.dirname(os.path.realpath(__file__))
 locations_ = [parse_location(l) for l in Locations.all_keys()]
 locations_ = sorted(list(dict.fromkeys(locations_)))
 config_stratified_ch_05 = get_channel_selection_config(base_, locations=locations_,
-                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
-                                     held_out_fold=True)
-config_stratified_ch_100 = get_channel_selection_config(base_, locations=locations_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                     held_out_fold=True)
+config_stratified_ch_100 = get_channel_selection_config(base_, locations=locations_,
+                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
                                      held_out_fold=True)
 
 stratified_configs = {
@@ -66,7 +66,7 @@ if gpus:
 ## Initialize standard config parameters ##
 ###########################################
 
-config = get_base_config(base_, locations_, suffix="_final_model", included_channels=args.nodes,)
+config = get_base_config(base_, locations_, suffix="_final_model_reuse", included_channels=args.nodes,)
 
 ###########################################
 ###########################################
@@ -106,27 +106,43 @@ if os.path.exists(results_path):
         config = results.config # If the config file is not there (because I didn't download it), load the config from the results file
 
 config.held_out_fold = True
-config.nb_folds = len(set.union(*stratified_configs[tuple(config.nodes)].values()))
+config.nb_folds = len(set.union(*[set(x) for x in stratified_configs[tuple(config.included_channels)].values()]))
 
 ###########################################
 ###########################################
 # If models don't exist yet, copy them
-config_models = stratified_configs[tuple(config.nodes)]
+config_models = stratified_configs[tuple(config.included_channels)]
 included_folds = []
 for config_model, folds in config_models.items():
+    config_model_path = get_path_config(config_model, config_model.get_name())
+    if os.path.exists(config_model_path):
+        original_save_dir = config_model.save_dir
+        config_model.load_config(config_model_path, config_model.get_name())
+        config_model.save_dir = original_save_dir
+    else:
+        raise ValueError(f'Config file for model {config_model.get_name()} not found at {config_model_path}. Please run the channel selection experiment first.')
     for fold_i in folds:
         if fold_i in included_folds:
             continue
         new_model_save_path = get_path_model(config, config.get_name(), fold_i)
+        new_model_weights_path = get_path_model_weights(new_model_save_path, config.get_name())
         reference_model_save_path = get_path_model(config_model, config_model.get_name(), fold_i)
-        if not os.path.exists(new_model_save_path):
-            print(f'Copying model from {reference_model_save_path} to {new_model_save_path}')
-            shutil.copytree(reference_model_save_path, new_model_save_path)
+        reference_model_weights_path = get_path_model_weights(reference_model_save_path, config_model.get_name())
+        if not os.path.exists(new_model_weights_path):
+            os.makedirs(os.path.dirname(new_model_weights_path), exist_ok=True)
+            print(f'Copying model from {reference_model_weights_path} to {new_model_weights_path}')
+            shutil.copyfile(reference_model_weights_path, new_model_weights_path)
+            # shutil.copytree(reference_model_save_path, new_model_save_path)
         included_folds.append(fold_i)
 
         # Make sure the correct held-out fold is set as the test set
         config.folds[fold_i] = config_model.folds[fold_i]
         config.folds[fold_i]['test'] = config_model.held_out_subjects
+
+
+config.save_config(save_path=config_path)
+results.config = config
+results.save_results(save_path=results_path)
 
 print('Getting predictions on the held-out set...')
 main_func.predict(config)
