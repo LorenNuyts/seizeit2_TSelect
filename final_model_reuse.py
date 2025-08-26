@@ -118,7 +118,7 @@ config.nb_folds = len(set.union(*[set(x) for x in stratified_configs[tuple(confi
 ###########################################
 # If models don't exist yet, copy them
 if args.nodes == 'all':
-    config_models = {config_base: list(set.union(*[set(x) for x in stratified_configs[tuple(config.included_channels)].values()]))}
+    config_models = {config_base: list(set.union(*[set(x) for x in stratified_configs[(Nodes.CROSStop, "T7")].values()]))}
 else:
     config_models = stratified_configs[tuple(config.included_channels)]
 included_folds = []
