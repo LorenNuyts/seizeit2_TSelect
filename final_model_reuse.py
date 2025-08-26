@@ -30,6 +30,7 @@ config_stratified_ch_05 = get_channel_selection_config(base_, locations=location
 config_stratified_ch_100 = get_channel_selection_config(base_, locations=locations_,
                                      evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
                                      held_out_fold=True)
+config_base = get_base_config(base_, locations=locations_, CV=Keys.stratified, held_out_fold=True)
 
 stratified_configs = {
     (Nodes.CROSStop, "T7"): {
@@ -65,8 +66,11 @@ if gpus:
 ###########################################
 ## Initialize standard config parameters ##
 ###########################################
-
-config = get_base_config(base_, locations_, suffix="_final_model_reuse", included_channels=args.nodes, held_out_fold=True)
+if args.nodes == "all":
+    suffix_ = "_final_model_reuse_base"
+else:
+    suffix_ = "_final_model_reuse"
+config = get_base_config(base_, locations_, suffix=suffix_, included_channels=args.nodes, held_out_fold=True)
 
 ###########################################
 ###########################################
@@ -113,7 +117,10 @@ config.nb_folds = len(set.union(*[set(x) for x in stratified_configs[tuple(confi
 ###########################################
 ###########################################
 # If models don't exist yet, copy them
-config_models = stratified_configs[tuple(config.included_channels)]
+if args.nodes == 'all':
+    config_models = {config_base: list(set.union(*[set(x) for x in stratified_configs[tuple(config.included_channels)].values()]))}
+else:
+    config_models = stratified_configs[tuple(config.included_channels)]
 included_folds = []
 for config_model, folds in config_models.items():
     config_model_path = get_path_config(config_model, config_model.get_name())
@@ -141,7 +148,6 @@ for config_model, folds in config_models.items():
         config.folds[fold_i] = config_model.folds[fold_i]
         config.folds[fold_i]['test'] = config_model.held_out_subjects
 
-print("Config path (line 142):", config_path)
 os.makedirs(config_path, exist_ok=True)
 config.save_config(save_path=config_path)
 results.config = config

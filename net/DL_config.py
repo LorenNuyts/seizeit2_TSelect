@@ -122,7 +122,7 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         locations (list): list of locations to use for the experiment.
         model (str): model architecture (Options: Chrononet, EEGnet, DeepConvNet, MiniRocketLR)
         batch_size (int): batch size for training the model.
-        included_channels (list): list of channels to include in the model. If None, all channels are included.
+        included_channels (str): list of channels to include in the model. If None, all channels are included.
         CV (str): cross-validation method to use. Options are 'leave_one_person_out' or 'stratified'.
         held_out_fold (bool): whether to use a held-out fold that is not used for training, validation, or testing.
         pretty_name (str): pretty name for the experiment.
