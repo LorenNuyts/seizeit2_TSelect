@@ -68,8 +68,10 @@ if gpus:
 ###########################################
 if args.nodes == "all":
     suffix_ = "_final_model_reuse_base"
-else:
+elif args.nodes == "Cross_T7":
     suffix_ = "_final_model_reuse"
+else:
+    raise NotImplementedError(f'Nodes {args.nodes} not implemented.')
 config = get_base_config(base_, locations_, suffix=suffix_, included_channels=args.nodes, held_out_fold=True)
 
 ###########################################
@@ -112,7 +114,10 @@ if os.path.exists(results_path):
         config = results.config # If the config file is not there (because I didn't download it), load the config from the results file
 
 config.held_out_fold = True
-config.nb_folds = len(set.union(*[set(x) for x in stratified_configs[tuple(config.included_channels)].values()]))
+if args.nodes == 'all':
+    config.nb_folds = len(set.union(*[set(x) for x in stratified_configs[(Nodes.CROSStop, "T7")].values()]))
+else:
+    config.nb_folds = len(set.union(*[set(x) for x in stratified_configs[tuple(config.included_channels)].values()]))
 
 ###########################################
 ###########################################
