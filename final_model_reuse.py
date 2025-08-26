@@ -101,7 +101,7 @@ elif args.CV == Keys.leave_one_hospital_out:
 else:
     raise NotImplementedError(f'CV method {args.CV} not implemented.')
 
-config = get_base_config(base_, locations_, suffix=suffix_, included_channels=args.nodes, held_out_fold=True)
+config = get_base_config(base_, locations_, suffix=suffix_, included_channels=args.nodes, held_out_fold=True, CV=args.CV)
 
 ###########################################
 ###########################################
