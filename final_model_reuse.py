@@ -30,7 +30,16 @@ config_stratified_ch_05 = get_channel_selection_config(base_, locations=location
 config_stratified_ch_100 = get_channel_selection_config(base_, locations=locations_,
                                      evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
                                      held_out_fold=True)
-config_base = get_base_config(base_, locations=locations_, CV=Keys.stratified, held_out_fold=True)
+config_stratified_base = get_base_config(base_, locations=locations_, CV=Keys.stratified, held_out_fold=True)
+
+config_loho_ch_05 = get_channel_selection_config(base_, locations=locations_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0.5, CV=Keys.leave_one_hospital_out,
+                                     held_out_fold=True)
+config_loho_ch_100 = get_channel_selection_config(base_, locations=locations_,
+                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
+                                     held_out_fold=True)
+config_loho_base = get_base_config(base_, locations=locations_, CV=Keys.leave_one_hospital_out, held_out_fold=True)
 
 stratified_configs = {
     (Nodes.CROSStop, "T7"): {
@@ -40,6 +49,13 @@ stratified_configs = {
     ("T7",) : {config_stratified_ch_05: [5]}
 }
 
+loho_configs = {
+    (Nodes.CROSStop, "T7"): {
+        config_loho_ch_05: [0, 4],
+        config_loho_ch_100: [0]
+    },
+}
+
 ###########################################
 ### Parse parameters from command line ####
 ###########################################
@@ -47,6 +63,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--nodes", type=str, nargs="?", default="Cross_T7")
 parser.add_argument('--reset', action='store_true')
 parser.add_argument("--gpu", type=int, nargs="?", default=0)
+parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
+                    choices=["stratified", "leave_one_hospital_out"],
+                    help="Cross-validation method to use. Defaults to 'stratified'.")
 
 args = parser.parse_args()
 
@@ -72,6 +91,16 @@ elif args.nodes == "Cross_T7":
     suffix_ = "_final_model_reuse"
 else:
     raise NotImplementedError(f'Nodes {args.nodes} not implemented.')
+
+if args.CV == Keys.stratified:
+    config_base = config_stratified_base
+    dual_configs = stratified_configs
+elif args.CV == Keys.leave_one_hospital_out:
+    config_base = config_loho_base
+    dual_configs = loho_configs
+else:
+    raise NotImplementedError(f'CV method {args.CV} not implemented.')
+
 config = get_base_config(base_, locations_, suffix=suffix_, included_channels=args.nodes, held_out_fold=True)
 
 ###########################################
@@ -115,17 +144,17 @@ if os.path.exists(results_path):
 
 config.held_out_fold = True
 if args.nodes == 'all':
-    config.nb_folds = len(set.union(*[set(x) for x in stratified_configs[(Nodes.CROSStop, "T7")].values()]))
+    config.nb_folds = len(set.union(*[set(x) for x in dual_configs[(Nodes.CROSStop, "T7")].values()]))
 else:
-    config.nb_folds = len(set.union(*[set(x) for x in stratified_configs[tuple(config.included_channels)].values()]))
+    config.nb_folds = len(set.union(*[set(x) for x in dual_configs[tuple(config.included_channels)].values()]))
 
 ###########################################
 ###########################################
 # If models don't exist yet, copy them
 if args.nodes == 'all':
-    config_models = {config_base: list(set.union(*[set(x) for x in stratified_configs[(Nodes.CROSStop, "T7")].values()]))}
+    config_models = {config_base: list(set.union(*[set(x) for x in dual_configs[(Nodes.CROSStop, "T7")].values()]))}
 else:
-    config_models = stratified_configs[tuple(config.included_channels)]
+    config_models = dual_configs[tuple(config.included_channels)]
 included_folds = []
 for config_model, folds in config_models.items():
     config_model_path = get_path_config(config_model, config_model.get_name())
