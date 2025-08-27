@@ -49,7 +49,7 @@ parser.add_argument("--gpu", type=int, nargs="?", default=0)
 parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
                     choices=["leave_one_person_out", "stratified", "leave_one_hospital_out"],
                     help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
-parser.add_argument("--held_out_fold", action='stratified')
+parser.add_argument("--held_out_fold", action='store_true')
 
 args = parser.parse_args()
 
