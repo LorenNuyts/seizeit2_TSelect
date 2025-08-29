@@ -89,6 +89,7 @@ def violin_plot(configs: list, metric: str, threshold: float, output_path: str):
             plt.close()
 
 def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_path: str):
+    # included_folds = [1,3,4,5,7,8,9]
     full_to_short_names = get_unique_config_names(configs)
 
     fah_epoch_included = "fah_epoch" in metrics
@@ -109,6 +110,9 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
                 download_remote_configs([config], local_base_dir=config.save_dir)
                 download_remote_results([config], local_base_dir=config.save_dir)
                 results.load_results(results_path)
+
+            # included_values = [v for i, v in enumerate(getattr(results, metric)) if i in included_folds]
+            # setattr(results, metric, included_values)
 
             average_values = getattr(results, f"average_{metric}_all_thresholds", None)
             if average_values is None:
@@ -155,13 +159,18 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
                              np.array(average_values) - np.array(std_values),
                              np.array(average_values) + np.array(std_values),
                              alpha=0.2)
-        plt.xlabel("Threshold")
-        plt.ylabel(metric.replace("_", " ").title())
-        plt.legend()
+        plt.xlabel("Threshold", fontsize=14)
+        plt.xticks(fontsize=14)
+        plt.ylabel(metric.replace("_", " ",).title(), fontsize=14)
+        plt.yticks(fontsize=14)
+        plt.axvline(x=0.5, linestyle='--', color='black')
+        plt.title(configs[0].cross_validation.replace("_", " ").title(), fontsize=16)
+        plt.legend(fontsize=14)
         plt.tight_layout()
 
         if output_path:
-            plot_path = os.path.splitext(output_path)[0] + f"_{metric.replace('.', '_')}.png"
+            suffix = configs[0].cross_validation #+ "_heldout_only"
+            plot_path = os.path.splitext(output_path)[0] + f"_{metric.replace('.', '_')}_{suffix}.png"
             if not os.path.exists(os.path.dirname(plot_path)):
                 os.makedirs(os.path.dirname(plot_path))
             plt.savefig(plot_path)
@@ -194,26 +203,33 @@ if __name__ == '__main__':
     #     raise ValueError(f"Metric {metric_} is not allowed. Choose from {allowed_metrics}")
 
     configs_ = [
-        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
-                        held_out_fold=True, pretty_name="Baseline"),
-        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
-        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
-        get_base_config(base_dir, unique_locations, suffix="_final_model_reuse", included_channels="Cross_T7",
-                        held_out_fold=True)
-        # get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.leave_one_hospital_out,
+        # get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
         #                 held_out_fold=True, pretty_name="Baseline"),
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
+        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'],
-        #                              irrelevant_selector_threshold=0.5, CV=Keys.leave_one_hospital_out,
+        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+        # get_base_config(base_dir, unique_locations, suffix="_final_model_reuse_base", included_channels="all",
+        #                 held_out_fold=True, pretty_name="Baseline (held-out fold)"),
+        # get_base_config(base_dir, unique_locations, suffix="_final_model_reuse", included_channels="Cross_T7",
+        #                 held_out_fold=True, pretty_name="CROSStop SD and T7 (held-out fold)"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.leave_one_hospital_out,
+                        held_out_fold=True, pretty_name="Baseline"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
+                                     held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0.5, CV=Keys.leave_one_hospital_out,
+                                     held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+        get_base_config(base_dir, unique_locations, suffix="_final_model_reuse_base", included_channels="all",
+                        held_out_fold=True, CV=Keys.leave_one_hospital_out, pretty_name="Baseline (held-out fold)"),
+        get_base_config(base_dir, unique_locations, suffix="_final_model_reuse", included_channels="Cross_T7",
+                        held_out_fold=True, CV=Keys.leave_one_hospital_out,
+                        pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
     # configs_wearables = [
     #     get_base_config(base_dir, suffix=suffix_, included_channels='wearables', pretty_name="Baseline"),

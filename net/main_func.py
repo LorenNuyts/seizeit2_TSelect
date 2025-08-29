@@ -254,20 +254,11 @@ def train_final_model(config, results, load_segments, save_segments):
 
     config.save_config(save_path=config_path)
     results.save_results(save_path=results_path)
-    info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"),
-                                   config.locations)
-    info_per_group = info_per_group[~info_per_group['subject'].isin(config.held_out_subjects)]
-    train_size = config.train_percentage / (config.train_percentage + config.validation_percentage)
+    for fold_i in config.folds.keys():
+        train_subjects = config.folds[fold_i]['train']
+        validation_subjects = config.folds[fold_i]['validation']
+        test_subjects = config.folds[fold_i]['test']
 
-    CV_generator = multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
-                                                                    id_column='subject',
-                                                                    n_splits=1,
-                                                                    subset_sizes=[train_size, 1 - train_size]
-                                                                    , weights_columns={'n_seizures': 0.4,
-                                                                                        'hours_of_data': 0.4},
-                                                                    seed=SEED)
-
-    for fold_i, (train_subjects, validation_subjects) in enumerate(CV_generator):
         K.clear_session()
         gc.collect()
         model_save_path = get_path_model(config, name, fold_i)
@@ -280,7 +271,8 @@ def train_final_model(config, results, load_segments, save_segments):
         #     continue
         print('Fold {}'.format(fold_i))
         print('     | Validation: {}'.format(validation_subjects))
-        config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': config.held_out_subjects}
+        config.folds[fold_i] = {'train': train_subjects, 'validation': validation_subjects, 'test': config.held_out_subjects,
+                                'other_test': test_subjects}
         if not os.path.exists(model_save_path):
             os.makedirs(model_save_path)
 

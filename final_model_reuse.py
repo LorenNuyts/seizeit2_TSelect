@@ -3,6 +3,7 @@ import random
 import shutil
 from collections import defaultdict
 
+from analysis.channel_analysis.file_management import download_remote_configs
 from net.DL_config import get_base_config, get_channel_selection_config
 from utility.constants import *
 from utility.constants import parse_location
@@ -147,6 +148,27 @@ if args.nodes == 'all':
     config.nb_folds = len(set.union(*[set(x) for x in dual_configs[(Nodes.CROSStop, "T7")].values()]))
 else:
     config.nb_folds = len(set.union(*[set(x) for x in dual_configs[tuple(config.included_channels)].values()]))
+
+# # Check that the train, validation, test and held-out sets are disjoint
+# for config_to_check in {c for d in dual_configs.values() for c in [config_base, *d]}:
+#     p = get_path_config(config_to_check, config_to_check.get_name())
+#     # download_remote_configs([config_to_check], local_base_dir=config.save_dir)
+#     if not os.path.exists(p):
+#         raise ValueError(f'Config file for model {config_to_check.get_name()} not found at {p}. Please run the experiment first.')
+#     config_to_check.load_config(p, config_to_check.get_name())
+#     for fold_i in config_to_check.folds:
+#         train_set = set(config_to_check.folds[fold_i]['train'])
+#         val_set = set(config_to_check.folds[fold_i]['validation'])
+#         test_set = set(config_to_check.folds[fold_i]['test'])
+#         held_out_set = set(config_to_check.held_out_subjects)
+#         assert len(train_set.intersection(val_set)) == 0
+#         assert len(train_set.intersection(test_set)) == 0
+#         assert len(train_set.intersection(held_out_set)) == 0
+#         assert len(val_set.intersection(test_set)) == 0
+#         assert len(val_set.intersection(held_out_set)) == 0
+#         assert len(test_set.intersection(held_out_set)) == 0
+#
+# exit()
 
 ###########################################
 ###########################################
