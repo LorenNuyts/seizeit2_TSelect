@@ -143,6 +143,8 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         included_channels = [Nodes.CROSStop, "T7"]
     elif included_channels == "T7":
         included_channels = ["T7"]
+    elif included_channels == "CROSStop":
+        included_channels = [Nodes.CROSStop]
     else:
         raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all', 'wearables',"
                          f"'Cross_T7' or 'T7'.")
