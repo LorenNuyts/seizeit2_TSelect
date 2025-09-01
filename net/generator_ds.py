@@ -502,6 +502,10 @@ def parse_example(example_proto, config, channel_indices=None):
     return segment_data, parsed["label"]
 
 def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, progress_bar=True, channel_indices=None):
+    if len(config.included_channels) != 21 and channel_indices is None:
+        all_nodes = sorted(Nodes.basic_eeg_nodes + Nodes.included_wearables)
+        channel_indices = [all_nodes.index(ch) for ch in config.included_channels]
+
     # Generate TFRecord paths for each segment
     tfrecord_files = []
     for s in tqdm(segments, disable=not progress_bar, desc="Preparing TFRecord files"):

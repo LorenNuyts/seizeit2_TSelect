@@ -82,7 +82,8 @@ print("Model:", args.model)
 ## Initialize standard config parameters ##
 ###########################################
 
-config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_ + "_final_model_" + args.nodes, included_channels=args.nodes,
+config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_ + "_final_model_" + args.nodes,
+                         included_channels=args.nodes,
                              batch_size=args.batch_size)
 dual_config = get_channel_selection_config(base_, unique_locations, model=args.model,
                                           evaluation_metric=evaluation_metrics[args.evaluation_metric],
