@@ -503,6 +503,7 @@ def parse_example(example_proto, config, channel_indices=None):
 
 def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, progress_bar=True, channel_indices=None):
     if len(config.included_channels) != 21 and channel_indices is None:
+        print("Deducing channel indices for included channels...")
         all_nodes = sorted(Nodes.basic_eeg_nodes + Nodes.included_wearables)
         channel_indices = [all_nodes.index(ch) for ch in config.included_channels]
 
