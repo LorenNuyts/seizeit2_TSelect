@@ -487,7 +487,7 @@ def parse_example(example_proto, config, channel_indices=None):
         "label": tf.io.FixedLenFeature([2], tf.float32),
     }
     parsed = tf.io.parse_single_example(example_proto, features)
-    segment_shape = (config.frame * config.fs, len(config.included_channels), 1)
+    segment_shape = (config.frame * config.fs, 21, 1)
     segment_data = tf.io.decode_raw(parsed["segment"], tf.float32)
     segment_data = tf.reshape(segment_data, segment_shape)
 
@@ -523,7 +523,7 @@ def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, 
     dataset = tf.data.TFRecordDataset(tfrecord_files, num_parallel_reads=tf.data.AUTOTUNE)
     if shuffle:
         dataset = dataset.shuffle(buffer_size=2048)
-
+    print("Channel indices:", channel_indices)
     dataset = dataset.map(lambda x: parse_example(x, config, channel_indices),
                           num_parallel_calls=tf.data.AUTOTUNE)
 
