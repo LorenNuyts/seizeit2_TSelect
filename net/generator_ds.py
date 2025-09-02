@@ -487,7 +487,7 @@ def parse_example(example_proto, config, channel_indices=None):
         "label": tf.io.FixedLenFeature([2], tf.float32),
     }
     parsed = tf.io.parse_single_example(example_proto, features)
-    segment_shape = (config.frame * config.fs, 21, 1)
+    segment_shape = (config.frame * config.fs, len(Nodes.baseline_eeg_nodes), 1)
     segment_data = tf.io.decode_raw(parsed["segment"], tf.float32)
     segment_data = tf.reshape(segment_data, segment_shape)
 
@@ -502,7 +502,7 @@ def parse_example(example_proto, config, channel_indices=None):
     return segment_data, parsed["label"]
 
 def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, progress_bar=True, channel_indices=None):
-    if len(config.included_channels) != 21 and channel_indices is None:
+    if len(config.included_channels) != len(Nodes.baseline_eeg_nodes) and channel_indices is None:
         print("Deducing channel indices for included channels...")
         all_nodes = sorted(Nodes.basic_eeg_nodes + Nodes.included_wearables)
         channel_indices = [all_nodes.index(ch) for ch in config.included_channels]

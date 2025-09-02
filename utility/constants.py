@@ -62,6 +62,8 @@ class Nodes:
     wearable_nodes = [BTEleft, BTEright, CROSStop]
     included_wearables = [BTEleft, CROSStop]
 
+    baseline_eeg_nodes = basic_eeg_nodes + included_wearables
+
     eeg_sd_acc_x = 'EEG SD ACC X'
     eeg_sd_acc_y = 'EEG SD ACC Y'
     eeg_sd_acc_z = 'EEG SD ACC Z'

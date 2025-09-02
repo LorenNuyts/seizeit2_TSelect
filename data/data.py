@@ -324,7 +324,7 @@ def create_single_tfrecord(config, recs, segment):
                                start_time=start_time,
                                stop_time=stop_time,
                                fs=config.fs,
-                               included_channels=config.included_channels)
+                               included_channels=Nodes.baseline_eeg_nodes)
     # Build data tensor
     segment_data = np.stack(s.data, axis=1)  # shape (T, CH)
     segment_data = segment_data.astype(np.float32)
@@ -333,7 +333,7 @@ def create_single_tfrecord(config, recs, segment):
     assert segment_data.shape == (config.frame * config.fs, 21, 1), f"Recording {recording}: Unexpected shape: {segment_data.shape}"
 
     # Check that the segment data has the expected shape
-    assert segment_data.shape[1] == 21, \
+    assert segment_data.shape[1] == len(Nodes.baseline_eeg_nodes), \
         (f"Recording {recording}: Segment data shape mismatch: {segment_data.shape[1]} channels found, expected {len(config.included_channels)} "
          f"channels.")
     # Check that the channels are ordered alphabetically
