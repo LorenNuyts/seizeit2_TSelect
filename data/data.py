@@ -330,16 +330,18 @@ def create_single_tfrecord(config, recs, segment):
     segment_data = segment_data.astype(np.float32)
     segment_data = segment_data[:, :, np.newaxis]  # shape (T, CH, 1)
 
-    assert segment_data.shape == (config.frame * config.fs, 21, 1), f"Recording {recording}: Unexpected shape: {segment_data.shape}"
+    assert segment_data.shape == (config.frame * config.fs, len(Nodes.baseline_eeg_nodes), 1), \
+        f"Recording {recording}: Unexpected shape: {segment_data.shape}"
 
     # Check that the segment data has the expected shape
     assert segment_data.shape[1] == len(Nodes.baseline_eeg_nodes), \
-        (f"Recording {recording}: Segment data shape mismatch: {segment_data.shape[1]} channels found, expected {len(config.included_channels)} "
+        (f"Recording {recording}: Segment data shape mismatch: {segment_data.shape[1]} channels found, expected "
+         f"{len(Nodes.baseline_eeg_nodes)} "
          f"channels.")
     # Check that the channels are ordered alphabetically
-    assert np.all(s.channels == sorted(config.included_channels)), \
+    assert np.all(s.channels == sorted(Nodes.baseline_eeg_nodes)), \
         (f"Recording {recording}: Channels do not match the ordered list of included channels. "
-         f"Expected: {sorted(config.included_channels)}, Found: {s.channels}")
+         f"Expected: {sorted(Nodes.baseline_eeg_nodes)}, Found: {s.channels}")
     # Check that none of T3, T4, T5, T6 or BTEright are present
     assert not any(channel in s.channels for channel in ['T3', 'T4', 'T5', 'T6', Nodes.BTEright]), \
         (f"Recording {recording}: Channels T3, T4, T5, T6 or BTEright should not be present in the data. "
