@@ -219,7 +219,7 @@ def train(config, results, load_segments, save_segments):
 #######################################################################################################################
 #######################################################################################################################
 
-def train_final_model(config, results, load_segments, save_segments):
+def train_final_model(config, dual_config, results, load_segments, save_segments):
     """ Train the model on all data except the held out fold. Only a single fold is trained, aimed to estimate how well
     the previously selected channels are on unseen data.
 
@@ -255,9 +255,9 @@ def train_final_model(config, results, load_segments, save_segments):
     config.save_config(save_path=config_path)
     results.save_results(save_path=results_path)
     for fold_i in config.folds.keys():
-        train_subjects = config.folds[fold_i]['train']
-        validation_subjects = config.folds[fold_i]['validation']
-        test_subjects = config.folds[fold_i]['test']
+        train_subjects = dual_config.folds[fold_i]['train']
+        validation_subjects = dual_config.folds[fold_i]['validation']
+        test_subjects = dual_config.folds[fold_i]['test']
 
         K.clear_session()
         gc.collect()
@@ -277,32 +277,37 @@ def train_final_model(config, results, load_segments, save_segments):
             os.makedirs(model_save_path)
 
         if config.sample_type == 'subsample':
-            train_segments = None
-            val_segments = None
-            if load_segments:
-                print('Loading segments...')
-                path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
-                if os.path.exists(path_segments_train):
-                    with open(path_segments_train, 'rb') as inp:
-                        train_segments = pickle.load(inp)
+            # train_segments = None
+            # val_segments = None
+            print('Loading segments...')
+            path_segments_train = get_paths_segments_train(dual_config, dual_config.get_name(), fold_i)
+            if os.path.exists(path_segments_train):
+                with open(path_segments_train, 'rb') as inp:
+                    train_segments = pickle.load(inp)
+            else:
+                raise ValueError(f"Training segments for fold {fold_i} not found at {path_segments_train}. Please run "
+                                 f"the channel selection experiment first.")
 
-                path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
-                if os.path.exists(path_segments_val):
-                    with open(get_paths_segments_val(config, config.get_name(), fold_i), 'rb') as inp:
-                        val_segments = pickle.load(inp)
+            path_segments_val = get_paths_segments_val(dual_config, dual_config.get_name(), fold_i)
+            if os.path.exists(path_segments_val):
+                with open(path_segments_val, 'rb') as inp:
+                    val_segments = pickle.load(inp)
+            else:
+                raise ValueError(f"Validation segments for fold {fold_i} not found at {path_segments_val}. Please run "
+                                 f"the channel selection experiment first.")
 
             train_recs_list = get_recs_list(config.data_path, config.locations, train_subjects)
 
-            if train_segments is None:
-                train_segments = generate_data_keys_subsample(config, train_recs_list)
-                if save_segments:
-                    path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
-                    if not os.path.exists(os.path.dirname(path_segments_train)):
-                        os.makedirs(os.path.dirname(path_segments_train))
-
-                    with open(path_segments_train, 'wb') as outp:
-                        # noinspection PyTypeChecker
-                        pickle.dump(train_segments, outp, pickle.HIGHEST_PROTOCOL)
+            # if train_segments is None:
+            #     train_segments = generate_data_keys_subsample(config, train_recs_list)
+            #     if save_segments:
+            #         path_segments_train = get_paths_segments_train(config, config.get_name(), fold_i)
+            #         if not os.path.exists(os.path.dirname(path_segments_train)):
+            #             os.makedirs(os.path.dirname(path_segments_train))
+            #
+            #         with open(path_segments_train, 'wb') as outp:
+            #             # noinspection PyTypeChecker
+            #             pickle.dump(train_segments, outp, pickle.HIGHEST_PROTOCOL)
 
             print('Generating training dataset...')
             gen_train, steps_per_epoch = build_tfrecord_dataset(config, train_recs_list, train_segments, batch_size=config.batch_size,
@@ -310,17 +315,17 @@ def train_final_model(config, results, load_segments, save_segments):
 
             val_recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
 
-            if val_segments is None:
-                val_segments = generate_data_keys_sequential_window(config, val_recs_list, config.val_batch_size)
-
-                if save_segments:
-                    path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
-                    if not os.path.exists(os.path.dirname(path_segments_val)):
-                        os.makedirs(os.path.dirname(path_segments_val))
-
-                    with open(path_segments_val, 'wb') as outp:
-                        # noinspection PyTypeChecker
-                        pickle.dump(val_segments, outp, pickle.HIGHEST_PROTOCOL)
+            # if val_segments is None:
+            #     val_segments = generate_data_keys_sequential_window(config, val_recs_list, config.val_batch_size)
+            #
+            #     if save_segments:
+            #         path_segments_val = get_paths_segments_val(config, config.get_name(), fold_i)
+            #         if not os.path.exists(os.path.dirname(path_segments_val)):
+            #             os.makedirs(os.path.dirname(path_segments_val))
+            #
+            #         with open(path_segments_val, 'wb') as outp:
+            #             # noinspection PyTypeChecker
+            #             pickle.dump(val_segments, outp, pickle.HIGHEST_PROTOCOL)
 
             print('Generating validation dataset...')
             gen_val, validation_steps = build_tfrecord_dataset(config, val_recs_list, val_segments, batch_size=config.val_batch_size,

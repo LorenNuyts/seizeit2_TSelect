@@ -154,7 +154,7 @@ config.nb_folds = 1
 load_segments = True                                          # Boolean to load generators from file
 save_segments = True                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
-main_func.train_final_model(config, results, load_segments, save_segments)
+main_func.train_final_model(config, dual_config, results, load_segments, save_segments)
 
 ############################################
 ##### Multiprocessing settings for the #####
