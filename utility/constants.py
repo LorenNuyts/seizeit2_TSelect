@@ -41,10 +41,10 @@ class Nodes:
                           'CP5', 'CP1', 'CP2', 'CP6',
                            'PO1', 'PO2',
                            'Iz',
-                          'A1', 'A2',
                            'FT9', 'FT10', 'FT7', 'FT8',
                            'TP7', 'TP8']
                           + T_nodes
+                          + a_nodes
                           + optional_F_nodes
                           + optional_P_nodes
                           + optional_FC_nodes

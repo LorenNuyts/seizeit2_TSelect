@@ -254,12 +254,47 @@ def dataset_stats(data_path: str, save_dir: str, locations: List[str] = None):
 
     return pd.concat(data)
 
+def find_subjects_without_channels(data_path: str, channels:List[str], locations: List[str] = None):
+    if locations is None:
+        locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,
+                     Locations.leuven_adult, Locations.leuven_pediatric]
+
+    subjects_without_channels = {loc: dict() for loc in locations}
+    for location in locations:
+        print(f"Processing location: {location}")
+        location_path = os.path.join(data_path, location)
+        if not os.path.isdir(location_path):
+            print(f"Location {location} does not exist in the dataset.")
+            continue
+        subjects = os.listdir(location_path)
+        for subject in subjects:
+            subject_path = os.path.join(location_path, subject)
+            recordings = [f for f in os.listdir(subject_path) if f.endswith('.edf')]
+            for recording in recordings:
+                if subject in subjects_without_channels[location] and len(subjects_without_channels[location][subject]) == len(channels):
+                    break
+                edf_file = os.path.join(subject_path, recording)
+                with pyedflib.EdfReader(edf_file) as edf:
+                    channels_subject = edf.getSignalLabels()
+                    for ch in channels:
+                        if ch not in channels_subject:
+                            if subject not in subjects_without_channels[location]:
+                                subjects_without_channels[location][subject] = set()
+                            subjects_without_channels[location][subject].add(ch)
+                            print(f"Subject {subject} in location {location} is missing channel {ch}")
+
+    print("Subjects without required channels:")
+    print(subjects_without_channels)
+    return subjects_without_channels
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures",
                                                    "channel_differences", "rank_locations", "average_memory_size",
-                                                   "seizure_segments", "hours_of_data", "compute_dataset_stats"],)
+                                                   "seizure_segments", "hours_of_data", "compute_dataset_stats",
+                                                   "subjects_wo_channels"],)
     parser.add_argument("--locations", type=str, nargs="?", default="all")
     args = parser.parse_args()
 
@@ -295,5 +330,7 @@ if __name__ == '__main__':
         hours_of_data_per_location(data_path_, locations=locations_)
     elif args.task == "compute_dataset_stats":
         dataset_stats(data_path_, os.path.join(base_dir, "..", save_dir_, "dataset_stats"), locations=locations_)
+    elif args.task == "subjects_wo_channels":
+        find_subjects_without_channels(data_path_, channels=Nodes.a_nodes, locations=locations_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")
