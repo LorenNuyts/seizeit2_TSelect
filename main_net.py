@@ -50,6 +50,7 @@ parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
                     choices=["leave_one_person_out", "stratified", "leave_one_hospital_out"],
                     help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
 parser.add_argument("--held_out_fold", action='store_true')
+parser.add_argument("--fold", type=int, nargs="?", default=None)
 
 args = parser.parse_args()
 
@@ -171,7 +172,7 @@ if not hasattr(config, "held_out_fold"):
 load_segments = True                                          # Boolean to load generators from file
 save_segments = True                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
-main_func.train(config, results, load_segments, save_segments)
+main_func.train(config, results, load_segments, save_segments, fold=args.fold)
 
 ############################################
 ##### Multiprocessing settings for the #####
@@ -183,7 +184,8 @@ main_func.train(config, results, load_segments, save_segments)
 ############################################
 
 print('Getting predictions on the test set...')
-main_func.predict(config)
+main_func.predict(config, fold=args.fold)
 
-print('Getting evaluation metrics...')
-main_func.evaluate(config, results)
+if args.fold is None:
+    print('Getting evaluation metrics...')
+    main_func.evaluate(config, results)

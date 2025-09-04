@@ -35,7 +35,7 @@ from TSelect.tselect.tselect.channel_selectors.tselect import TSelect
 from utility.stats import Results
 
 
-def train(config, results, load_segments, save_segments):
+def train(config, results, load_segments, save_segments, fold=None):
     """ Routine to run the model's training routine.
 
         Args:
@@ -75,6 +75,9 @@ def train(config, results, load_segments, save_segments):
     config.held_out_subjects = held_out_subjects
 
     for fold_i, (train_subjects, validation_subjects, test_subject) in enumerate(CV_generator):
+        if fold is not None and fold_i != fold:
+            print(f"Skipping fold {fold_i} because we only want to train fold {fold}")
+            continue
         K.clear_session()
         gc.collect()
         model_save_path = get_path_model(config, name, fold_i)
@@ -219,15 +222,16 @@ def train(config, results, load_segments, save_segments):
 #######################################################################################################################
 #######################################################################################################################
 
-def train_final_model(config, dual_config, results, load_segments, save_segments):
+def train_final_model(config, dual_config, results, fold):
     """ Train the model on all data except the held out fold. Only a single fold is trained, aimed to estimate how well
     the previously selected channels are on unseen data.
 
         Args:
             config (cls): a config object with the data input type and model parameters
+            dual_config (Config): a config object with the data input and model parameters of the corresponding channel
+            selection experiment. This is only used to determine the train, validation and test sets.
             results (cls): a Results object to store the results
-            load_segments (bool): boolean to load the training and validation generators from a file
-            save_segments (bool): boolean to save the training and validation generators
+
     """
     name = config.get_name()
 
@@ -255,6 +259,9 @@ def train_final_model(config, dual_config, results, load_segments, save_segments
     config.save_config(save_path=config_path)
     results.save_results(save_path=results_path)
     for fold_i in config.folds.keys():
+        if fold is not None and fold_i != fold:
+            print(f"Skipping fold {fold_i} because we only want to train fold {fold}")
+            continue
         train_subjects = dual_config.folds[fold_i]['train']
         validation_subjects = dual_config.folds[fold_i]['validation']
         test_subjects = dual_config.folds[fold_i]['test']
@@ -364,7 +371,7 @@ def train_final_model(config, dual_config, results, load_segments, save_segments
 #######################################################################################################################
 
 
-def predict(config):
+def predict(config, fold=None):
     # import concurrent.futures
     name = config.get_name()
     config_path = get_path_config(config, name)
@@ -392,6 +399,9 @@ def predict(config):
     #         print(f"Fold {fold_index} completed")
 
     for fold_i in config.folds.keys():
+        if fold is not None and fold_i != fold:
+            print(f"Skipping fold {fold_i} because we only want to predict fold {fold}")
+            continue
         predict_per_fold(config, fold_i)
 
 
