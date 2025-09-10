@@ -16,9 +16,9 @@ class MiniRocketLR:
 
     def fit(self, config, gen_train, gen_val, model_save_path):
         for batch_x, batch_y in gen_train:
-            batch_x = batch_x.to_numpy()
+            batch_x = batch_x.numpy()
             batch_x = self._ensure_shape(batch_x)
-            batch_y = batch_y.to_numpy()
+            batch_y = batch_y.numpy()
 
             if not self.rocket.is_fitted:
                 self.rocket.fit(batch_x)
