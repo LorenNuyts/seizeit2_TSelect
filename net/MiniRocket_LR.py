@@ -18,7 +18,7 @@ class MiniRocketLR:
     def fit(self, config, gen_train, gen_val, model_save_path):
         for batch_x, batch_y in gen_train:
             batch_x = batch_x.numpy()
-            batch_x = self._ensure_shape(batch_x)
+            batch_x = self._ensure_3Dshape(batch_x)
             print("Batch x shape:", batch_x.shape)
             batch_x = from_3d_numpy_to_multi_index(batch_x)
             print("Converted batch x shape:", batch_x.index.shape, "columns:", batch_x.columns)
@@ -61,9 +61,11 @@ class MiniRocketLR:
         X = self._ensure_shape(X)
         return self.rocket.transform(X)
 
-    def _ensure_shape(self, X: np.ndarray):
+    def _ensure_3Dshape(self, X: np.ndarray):
         if X.ndim == 2:
             return X[:, np.newaxis, :]
+        elif X.ndim == 4:
+            return X.reshape(X.shape[0], X.shape[1], -1)
         return X
 
     def save(self, model_save_path):
