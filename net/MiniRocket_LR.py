@@ -1,6 +1,7 @@
 import joblib
 import numpy as np
 from sklearn.linear_model import SGDClassifier
+from sktime.datatypes._panel._convert import from_3d_numpy_to_multi_index
 from sktime.transformations.panel.rocket import MiniRocketMultivariate
 
 
@@ -18,6 +19,9 @@ class MiniRocketLR:
         for batch_x, batch_y in gen_train:
             batch_x = batch_x.numpy()
             batch_x = self._ensure_shape(batch_x)
+            print("Batch x shape:", batch_x.shape)
+            batch_x = from_3d_numpy_to_multi_index(batch_x)
+            print("Converted batch x shape:", batch_x.index.shape, "columns:", batch_x.columns)
             batch_y = batch_y.numpy()
 
             if not self.rocket.is_fitted:
