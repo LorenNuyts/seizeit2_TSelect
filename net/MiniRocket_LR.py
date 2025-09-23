@@ -1,3 +1,5 @@
+import os
+
 import joblib
 import numpy as np
 from sklearn.linear_model import SGDClassifier
@@ -19,9 +21,9 @@ class MiniRocketLR:
         for batch_x, batch_y in gen_train:
             batch_x = batch_x.numpy()
             batch_x = self._ensure_3Dshape(batch_x)
-            print("Batch x shape:", batch_x.shape)
+            # print("Batch x shape:", batch_x.shape)
             batch_x = from_3d_numpy_to_multi_index(batch_x)
-            print("Converted batch x shape:", batch_x.index.shape, "columns:", batch_x.columns)
+            # print("Converted batch x shape:", batch_x.index.shape, "columns:", batch_x.columns)
             batch_y = batch_y.numpy()
 
             if not self.rocket.is_fitted:
@@ -69,6 +71,7 @@ class MiniRocketLR:
         return X
 
     def save(self, model_save_path):
+        model_save_path = os.path.join(model_save_path, 'MiniRocketLR_model.joblib')
         joblib.dump({
             "rocket": self.rocket,
             "classifier": self.classifier
@@ -76,6 +79,7 @@ class MiniRocketLR:
         print(f"Model saved to {model_save_path}")
 
     def load(self, model_load_path):
+        model_load_path = os.path.join(model_load_path, 'MiniRocketLR_model.joblib')
         model_data = joblib.load(model_load_path)
         self.rocket = model_data["rocket"]
         self.classifier = model_data["classifier"]
