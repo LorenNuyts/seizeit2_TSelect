@@ -12,7 +12,7 @@ from sktime.transformations.panel.rocket import MiniRocketMultivariate
 class MiniRocketLR:
     def __init__(self, model_load_path=None):
         self.rocket = MiniRocketMultivariate()
-        self.classifier = LogisticRegression()
+        self.classifier = LogisticRegression(max_iter=1000)
         # self.classifier = SGDClassifier()
         self.is_fitted = False
 

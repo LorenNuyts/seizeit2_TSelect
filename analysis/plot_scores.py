@@ -146,29 +146,44 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
 
     thresholds = thresholds[lower_bound:upper_bound]
 
+    plt.rcParams['axes.spines.right'] = False
+    plt.rcParams['axes.spines.top'] = False
+    fontsize = 20
+    # plt.rcParams.update({'font.size': 30})
+
+    # # Custom colors (normalized RGB values)
+    # colors = [(78 / 255, 167 / 255, 46 / 255),  # RGB(78, 167, 46)
+    #           (15 / 255, 158 / 255, 213 / 255),  # RGB(15, 158, 213)
+    #           (112 / 255, 48 / 255, 160 / 255),  # RGB(112, 48, 160)
+    #           (153 / 255, 33 / 255, 9 / 255),  # RGB(153, 33, 9)]
+    #           ]
+
     for metric in metrics:
         if metric == "fah_epoch" and not fah_epoch_included:
             continue
 
         plt.figure(figsize=(10, 6))
-        for label, values in data[metric].items():
+        for i, (label, values) in enumerate(data[metric].items()):
             average_values = values["average"][lower_bound:upper_bound]
             std_values = values["std"][lower_bound:upper_bound]
-            plt.plot(thresholds, average_values, label=label)
+            plt.plot(thresholds, average_values, label=label, linewidth=3)
             plt.fill_between(thresholds,
                              np.array(average_values) - np.array(std_values),
                              np.array(average_values) + np.array(std_values),
                              alpha=0.2)
-        plt.xlabel("Threshold", fontsize=14)
-        plt.xticks(fontsize=14)
-        plt.ylabel(metric.replace("_", " ",).title(), fontsize=14)
-        plt.yticks(fontsize=14)
+
+        plt.xlabel("Threshold", fontsize=fontsize)
+        plt.xticks(fontsize=fontsize-2)
+        plt.ylabel(pretty_print_metrics[metric], fontsize=fontsize)
+        plt.yticks(fontsize=fontsize-2)
         plt.axvline(x=0.5, linestyle='--', color='black')
-        plt.title(configs[0].cross_validation.replace("_", " ").title(), fontsize=16)
-        plt.legend(fontsize=14)
+        # plt.title(configs[0].cross_validation.replace("_", " ").title(), fontsize=16)
+        plt.legend(fontsize=fontsize)
         plt.tight_layout()
 
         if output_path:
+            # suffix = configs[0].cross_validation
+            # suffix = configs[0].cross_validation + "_no_heldout"
             suffix = configs[0].cross_validation + "_heldout_only"
             plot_path = os.path.splitext(output_path)[0] + f"_{metric.replace('.', '_')}_{suffix}.png"
             if not os.path.exists(os.path.dirname(plot_path)):
@@ -182,6 +197,9 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
 if __name__ == '__main__':
     allowed_metrics = {'f1_ovlp', 'fah_ovlp', 'fah_epoch', 'prec_ovlp', 'sens_ovlp', 'score',
                        'nb_channels', 'selection_time', 'train_time', 'total_time', 'all'}
+    pretty_print_metrics = {'f1_ovlp': 'F1 (overlap)', 'fah_ovlp': 'False alarm rate (overlap)',
+                            'fah_epoch': 'False alarm rate',
+                            'prec_ovlp': 'Precision (overlap)', 'sens_ovlp': 'Sensitivity', 'score': 'Score',}
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices={'violin', 'thresholds'},)
     parser.add_argument("metric", type=str, choices=allowed_metrics)
@@ -207,13 +225,13 @@ if __name__ == '__main__':
         #                 held_out_fold=True, pretty_name="Baseline"),
         get_base_config(base_dir, unique_locations, suffix="rerun", CV=Keys.stratified,
                         held_out_fold=True, pretty_name="Baseline"),
-        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+                                     held_out_fold=True, pretty_name="Channel Selection"),
         ]
     configs_stratified_final_model_reuse = [
         get_base_config(base_dir, unique_locations, suffix="_final_model_reuse_base", included_channels="all",
@@ -223,11 +241,11 @@ if __name__ == '__main__':
         ]
     configs_stratified_final_model = [
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_all", held_out_fold=True,
-                                 included_channels='all', pretty_name="Baseline (held-out fold)"),
+                                 included_channels='all', pretty_name="Baseline"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_Cross_T7", held_out_fold=True,
-                                 included_channels='Cross_T7', pretty_name="CROSStop SD and T7 (held-out fold)"),
+                                 included_channels='Cross_T7', pretty_name="CROSStop SD and T7"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_CROSStop", held_out_fold=True,
-                                 included_channels='CROSStop', pretty_name="CROSStop SD (held-out fold)"),
+                                 included_channels='CROSStop', pretty_name="CROSStop SD"),
     ]
     configs_loo = [
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.leave_one_hospital_out,
