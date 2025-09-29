@@ -195,6 +195,8 @@ def train(config, results, load_segments, save_segments, fold=None):
 
         print('### Training model....')
         if config.model.lower() == Keys.minirocketLR.lower():
+            print(os.path.join(model_save_path, 'MiniRocketLR_model.joblib'))
+            print(os.path.exists(os.path.join(model_save_path, 'MiniRocketLR_model.joblib')))
             if os.path.exists(os.path.join(model_save_path, 'MiniRocketLR_model.joblib')):
                 print(f"Model for fold {fold_i} already exists. Skipping...")
                 continue
