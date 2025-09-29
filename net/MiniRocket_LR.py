@@ -12,8 +12,11 @@ from sktime.transformations.panel.rocket import MiniRocketMultivariate
 class MiniRocketLR:
     def __init__(self, model_load_path=None):
         self.rocket = MiniRocketMultivariate()
-        self.classifier = LogisticRegression(max_iter=1000)
-        # self.classifier = SGDClassifier()
+        self.collect_all_features = False
+        if self.collect_all_features:
+            self.classifier = LogisticRegression(max_iter=1000)
+        else:
+            self.classifier = SGDClassifier()
         self.is_fitted = False
 
         if model_load_path:
@@ -33,15 +36,18 @@ class MiniRocketLR:
             if not self.rocket.is_fitted:
                 self.rocket.fit(batch_x)
             X_transformed = self.rocket.transform(batch_x)
-            all_x.append(X_transformed)
-            all_y.append(batch_y)
-            # y_batch = batch_y[:, 0]  # Assuming binary classification and one-hot encoding
-            # self.classifier.partial_fit(X_transformed, y_batch, classes=np.array([0, 1]))
+            if self.collect_all_features:
+                all_x.append(X_transformed)
+                all_y.append(batch_y)
+            else:
+                y_batch = batch_y[:, 0]  # Assuming binary classification and one-hot encoding
+                self.classifier.partial_fit(X_transformed, y_batch, classes=np.array([0, 1]))
 
-        X = pd.concat(all_x)
-        y = np.vstack(all_y)
-        y = y[:, 0]  # Assuming binary classification and one-hot encoding
-        self.classifier.fit(X, y)
+        if self.collect_all_features:
+            X = pd.concat(all_x)
+            y = np.vstack(all_y)
+            y = y[:, 0]  # Assuming binary classification and one-hot encoding
+            self.classifier.fit(X, y)
 
         self.is_fitted = True
 
