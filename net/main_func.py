@@ -195,11 +195,12 @@ def train(config, results, load_segments, save_segments, fold=None):
 
         print('### Training model....')
         if config.model.lower() == Keys.minirocketLR.lower():
+            if os.path.exists(os.path.join(model_save_path, 'MiniRocketLR_model.joblib')):
+                print(f"Model for fold {fold_i} already exists. Skipping...")
+                continue
             model_minirocket = MiniRocketLR()
             start_train = time.time()
-            # model.fit(gen_train.data_segs, gen_train.labels[:, 0], gen_val.data_segs, gen_val.labels[:, 0])
             model_minirocket.fit(config, gen_train, gen_val, model_save_path)
-            # train_net(config, model, gen_train, gen_val, model_save_path)
 
             end_train = time.time() - start_train
 
