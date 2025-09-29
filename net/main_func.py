@@ -85,6 +85,9 @@ def train(config, results, load_segments, save_segments, fold=None):
         if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
             print('    | Model of fold {} already exists'.format(fold_i))
             continue
+        elif config.model.lower() == Keys.minirocketLR and os.path.exists(os.path.join(model_save_path, 'MiniRocketLR_model.joblib')):
+            print('    | Model of fold {} already exists'.format(fold_i))
+            continue
         # if fold_i in config.channel_selector.keys():
         #     print('    | Fold {} already has a channel selector'.format(fold_i))
         #     continue
@@ -195,11 +198,6 @@ def train(config, results, load_segments, save_segments, fold=None):
 
         print('### Training model....')
         if config.model.lower() == Keys.minirocketLR.lower():
-            print(os.path.join(model_save_path, 'MiniRocketLR_model.joblib'))
-            print(os.path.exists(os.path.join(model_save_path, 'MiniRocketLR_model.joblib')))
-            if os.path.exists(os.path.join(model_save_path, 'MiniRocketLR_model.joblib')):
-                print(f"Model for fold {fold_i} already exists. Skipping...")
-                continue
             model_minirocket = MiniRocketLR()
             start_train = time.time()
             model_minirocket.fit(config, gen_train, gen_val, model_save_path)
