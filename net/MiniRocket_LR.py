@@ -68,7 +68,7 @@ class MiniRocketLR:
             y_true[j] = true_labels[j][1]
 
         X = gen_test.data_segs
-        X = self._ensure_shape(X)
+        X = self._ensure_3Dshape(X)
         X_transformed = self.rocket.transform(X)
         return self.classifier.predict(X_transformed), y_true
 
@@ -77,7 +77,7 @@ class MiniRocketLR:
             raise RuntimeError("Model is not fitted.")
 
         X = gen_data.data_segs
-        X = self._ensure_shape(X)
+        X = self._ensure_3Dshape(X)
         return self.rocket.transform(X)
 
     def _ensure_3Dshape(self, X: np.ndarray):
