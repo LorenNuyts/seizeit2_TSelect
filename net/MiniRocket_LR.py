@@ -28,7 +28,7 @@ class MiniRocketLR:
         for batch_x, batch_y in gen_train:
             batch_x = batch_x.numpy()
             batch_x = self._ensure_3Dshape(batch_x)
-            # print("Batch x shape:", batch_x.shape)
+            print("Batch x shape:", batch_x.shape)
             batch_x = from_3d_numpy_to_multi_index(batch_x)
             print("Converted batch x shape:", batch_x.index.shape, "columns:", batch_x.columns)
             batch_y = batch_y.numpy()
