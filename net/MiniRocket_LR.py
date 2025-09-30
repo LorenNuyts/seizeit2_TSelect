@@ -28,6 +28,7 @@ class MiniRocketLR:
         for batch_x, batch_y in gen_train:
             batch_x = batch_x.numpy()
             batch_x = self._ensure_3Dshape(batch_x)
+            batch_x = np.transpose(batch_x, (0, 2, 1))  # (n_samples, n_channels, n_timestamps)
             print("Batch x shape:", batch_x.shape)
             batch_x = from_3d_numpy_to_multi_index(batch_x)
             print("Converted batch x shape:", batch_x.index.shape, "columns:", batch_x.columns)
@@ -69,16 +70,9 @@ class MiniRocketLR:
 
         X = gen_test.data_segs
         X = self._ensure_3Dshape(X)
+        X = np.transpose(X, (0, 2, 1))  # (n_samples, n_channels, n_timestamps)
         X_transformed = self.rocket.transform(X)
         return self.classifier.predict(X_transformed), y_true
-
-    def transform(self, gen_data):
-        if not self.is_fitted:
-            raise RuntimeError("Model is not fitted.")
-
-        X = gen_data.data_segs
-        X = self._ensure_3Dshape(X)
-        return self.rocket.transform(X)
 
     def _ensure_3Dshape(self, X: np.ndarray):
         if X.ndim == 2:
