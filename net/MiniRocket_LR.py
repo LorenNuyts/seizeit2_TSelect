@@ -30,7 +30,7 @@ class MiniRocketLR:
             batch_x = self._ensure_3Dshape(batch_x)
             # print("Batch x shape:", batch_x.shape)
             batch_x = from_3d_numpy_to_multi_index(batch_x)
-            # print("Converted batch x shape:", batch_x.index.shape, "columns:", batch_x.columns)
+            print("Converted batch x shape:", batch_x.index.shape, "columns:", batch_x.columns)
             batch_y = batch_y.numpy()
 
             if not self.rocket.is_fitted:
