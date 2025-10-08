@@ -21,7 +21,7 @@ from net.DL_config import Config
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
 from net.generator_ds import build_tfrecord_dataset, SequentialGenerator, SequentialGeneratorDynamic
 from net.routines import train_net, predict_net
-from net.utils import get_metrics_scoring
+from utility.metrics import get_metrics_scoring
 
 from data.data import Data
 from net.MiniRocket_LR import MiniRocketLR

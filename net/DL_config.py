@@ -38,7 +38,7 @@ class Config():
     def __init__(self, data_path=None, model='ChronoNet', dataset='SZ2', fs=None, CH=None, frame=2, stride=1,
                  stride_s=0.5, boundary=0.5, batch_size=64, sample_type='subsample', factor=5, l2=0, lr=0.01,
                  dropoutRate=0, nb_epochs=50, class_weights = {0:1, 1:1}, cross_validation=Keys.stratified, save_dir='savedir',
-                 held_out_fold = False):
+                 held_out_fold = False, version_experiments=1):
 
         self.data_path = data_path
         self.model = model
@@ -66,6 +66,7 @@ class Config():
         self.nb_folds = 10  # number of folds for cross-validation
         self.held_out_fold = held_out_fold
         self.held_out_subjects = None
+        self.version_experiments = version_experiments
 
         # models parameters
         self.data_format = tf.keras.backend.image_data_format
@@ -100,13 +101,17 @@ class Config():
         
     def get_name(self):
         locations_str = "-".join([Locations.to_acronym(loc) for loc in self.locations])
-        base_name = '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), self.cross_validation + "CV"])
+        base_name = '_'.join([self.model, self.sample_type, 'factor' + str(self.factor), self.cross_validation + "CV",])
         if self.held_out_fold:
             base_name += '_held_out_fold'
         if locations_str != "":
             base_name += '_' + locations_str
+        if set(self.included_channels).intersection(set(Nodes.wearable_nodes)) == 0:
+            base_name += '_no_wearables'
         if hasattr(self, 'add_to_name') and self.add_to_name != "":
             base_name = base_name + '_' + self.add_to_name
+        if self.version_experiments is not None:
+            base_name += f'_v{self.version_experiments}'
         return base_name
 
 

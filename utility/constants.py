@@ -1,7 +1,7 @@
 import os.path
 
 from TSelect.tselect.tselect.utils.metrics import auroc_score
-from net.utils import get_sens_FA_score
+from utility.metrics import get_sens_FA_score
 
 SEED = 0
 
@@ -34,7 +34,7 @@ class Nodes:
     # T_nodes = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T9', 'T10']
     T_nodes = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T9', 'T10']
     optional_F_nodes = ['F9', 'F10']
-    optional_P_nodes = ['P7', 'P8', 'P9', 'P10']
+    optional_P_nodes = ['P9', 'P10']
     optional_FC_nodes = ['FC1', 'FC2', 'FC5', 'FC6']
     optional_AF_nodes = ['AF1', 'AF2', 'AF7', 'AF8', 'AF11', 'AF12']
     optional_eeg_nodes = (['B2',

@@ -331,6 +331,9 @@ if __name__ == '__main__':
     elif args.task == "compute_dataset_stats":
         dataset_stats(data_path_, os.path.join(base_dir, "..", save_dir_, "dataset_stats"), locations=locations_)
     elif args.task == "subjects_wo_channels":
-        find_subjects_without_channels(data_path_, channels=Nodes.a_nodes, locations=locations_)
+        # find_subjects_without_channels(data_path_, channels=Nodes.a_nodes, locations=locations_)
+        find_subjects_without_channels(data_path_,
+                                       channels=Nodes.baseline_eeg_nodes + Nodes.optional_F_nodes + Nodes.optional_P_nodes + ['T9', 'T10'],
+                                       locations=locations_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")

@@ -182,9 +182,9 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
         plt.tight_layout()
 
         if output_path:
-            # suffix = configs[0].cross_validation
+            suffix = configs[0].cross_validation
             # suffix = configs[0].cross_validation + "_no_heldout"
-            suffix = configs[0].cross_validation + "_heldout_only"
+            # suffix = configs[0].cross_validation + "_heldout_only"
             plot_path = os.path.splitext(output_path)[0] + f"_{metric.replace('.', '_')}_{suffix}.png"
             if not os.path.exists(os.path.dirname(plot_path)):
                 os.makedirs(os.path.dirname(plot_path))
@@ -198,8 +198,8 @@ if __name__ == '__main__':
     allowed_metrics = {'f1_ovlp', 'fah_ovlp', 'fah_epoch', 'prec_ovlp', 'sens_ovlp', 'score',
                        'nb_channels', 'selection_time', 'train_time', 'total_time', 'all'}
     pretty_print_metrics = {'f1_ovlp': 'F1 (overlap)', 'fah_ovlp': 'False alarm rate (overlap)',
-                            'fah_epoch': 'False alarm rate',
-                            'prec_ovlp': 'Precision (overlap)', 'sens_ovlp': 'Sensitivity', 'score': 'Score',}
+                            'fah_epoch': 'False alarm rate (epoch)',
+                            'prec_ovlp': 'Precision (overlap)', 'sens_ovlp': 'Sensitivity (overlap)', 'score': 'Score',}
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices={'violin', 'thresholds'},)
     parser.add_argument("metric", type=str, choices=allowed_metrics)
@@ -241,32 +241,33 @@ if __name__ == '__main__':
         ]
     configs_stratified_final_model = [
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_all", held_out_fold=True,
-                                 included_channels='all', pretty_name="Baseline"),
+                                 included_channels='all', pretty_name="Baseline (held-out fold)"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_Cross_T7", held_out_fold=True,
-                                 included_channels='Cross_T7', pretty_name="CROSStop SD and T7"),
+                                 included_channels='Cross_T7', pretty_name="CROSStop SD and T7 (held-out fold)"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_CROSStop", held_out_fold=True,
-                                 included_channels='CROSStop', pretty_name="CROSStop SD"),
+                                 included_channels='CROSStop', pretty_name="CROSStop SD (held-out fold)"),
     ]
-    configs_loo = [
+    configs_loho = [
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.leave_one_hospital_out,
                         held_out_fold=True, pretty_name="Baseline"),
-        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
+        #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0.5, CV=Keys.leave_one_hospital_out,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+                                     held_out_fold=True, pretty_name="Channel Selection"),
         ]
-    configs_loo_final_model_reuse = [
+    configs_loho_final_model_reuse = [
         get_base_config(base_dir, unique_locations, suffix="_final_model_reuse_base", included_channels="all",
                         held_out_fold=True, CV=Keys.leave_one_hospital_out, pretty_name="Baseline (held-out fold)"),
         get_base_config(base_dir, unique_locations, suffix="_final_model_reuse", included_channels="Cross_T7",
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    # configs_ = configs_stratified + configs_stratified_final_model
-    configs_ = configs_stratified_final_model
+    configs_ = configs_stratified + configs_stratified_final_model
+    # configs_ = configs_stratified_final_model
+    # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [
     #     get_base_config(base_dir, suffix=suffix_, included_channels='wearables', pretty_name="Baseline"),
     #     get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables', pretty_name="Channel Selection (AUROC)"),

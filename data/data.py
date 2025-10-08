@@ -7,7 +7,7 @@ import warnings
 
 import tensorflow as tf
 
-from net.utils import pre_process_ch
+from net.utils import pre_process_ch, rereference_average_signal
 from utility.constants import Nodes
 from utility.paths import get_path_recording, get_path_preprocessed_data, get_path_tfrecord
 
@@ -49,6 +49,7 @@ class Data:
         data_path: str,
         recording: List[str],
         included_channels: List[str],
+        load_preprocessed: bool = True
     ):
         """Instantiate a data object from an EDF file.
 
@@ -65,7 +66,7 @@ class Data:
         channels = list()
         samplingFrequencies = list()
         h5_file = get_path_preprocessed_data(data_path, recording)
-        if os.path.exists(h5_file):
+        if load_preprocessed and os.path.exists(h5_file):
             # pass
             return Data.load_h5(h5_file)
 
@@ -234,6 +235,8 @@ class Data:
         """
         if self.__preprocessed:
             return
+        rereference_average_signal(self.data, self.channels, exclude_channels_for_average=Nodes.prefrontal_nodes,
+                                   exclude_channels_for_rereference=Nodes.wearable_nodes)
         for i, channel in enumerate(self.channels):
             self.data[i], self.fs[i] = pre_process_ch(self.data[i], self.fs[i], fs)
         self.__preprocessed = True
