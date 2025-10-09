@@ -24,14 +24,15 @@ def create_preprocessed_dataset(root_dir, config):
         config (cls): Configuration object with experiment parameters.
     """
     for location in config.locations:
+    # for location in [Locations.coimbra]:
         print("Processing location:", location)
         location_path = os.path.join(root_dir, location)
         if not os.path.isdir(location_path):
             continue
 
-        subj = ['SUBJ-1b-315']
-        # for subject in os.listdir(location_path):
-        for subject in subj:
+        subj = ['SUBJ-7-329']
+        for subject in os.listdir(location_path):
+        # for subject in subj:
             print("     | Processing subject:", subject)
             subject_path = os.path.join(location_path, subject)
             if not os.path.isdir(subject_path):
@@ -108,7 +109,7 @@ def create_rereferenced_dataset(root_dir, config):
                     channels_in_file = original_edf.getSignalLabels()
                     included_channels = rec_data.channels
                     standardized_channels_in_file = switch_channels(channels_in_file, included_channels,
-                                                                    Nodes.switchable_nodes)
+                                                                    Nodes.switchable_channels)
                     # standardized_included_channels = Nodes.match_nodes(included_channels, Nodes.all_nodes())
 
                     # Build the channel info list (can reuse original parameters)
@@ -176,6 +177,6 @@ if __name__ == '__main__':
     unique_locations = list(dict.fromkeys(args.locations))
     # Import your configuration class
     config_ = get_base_config(base_, locations=unique_locations,)
-    # create_preprocessed_dataset(config_.data_path, config_)
-    create_rereferenced_dataset(config_.data_path, config_)
+    create_preprocessed_dataset(config_.data_path, config_)
+    # create_rereferenced_dataset(config_.data_path, config_)
     # create_tfrecord_dataset(config_.data_path, config_)

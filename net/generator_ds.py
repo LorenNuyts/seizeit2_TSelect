@@ -43,7 +43,7 @@ class SequentialGenerator(keras.utils.Sequence):
         rec_data = Data.loadData(config.data_path, recs[prev_rec], included_channels=self.channels)
         rec_data.apply_preprocess(config)
         if set(rec_data.channels) != set(self.channels):
-            rec_data.channels = switch_channels(rec_data.channels, self.channels, Nodes.switchable_nodes)
+            rec_data.channels = switch_channels(rec_data.channels, self.channels, Nodes.switchable_channels)
         if rec_data.channels != self.channels:
             rec_data.reorder_channels(self.channels)
 
@@ -64,7 +64,7 @@ class SequentialGenerator(keras.utils.Sequence):
                 rec_data.apply_preprocess(config)
 
                 if set(rec_data.channels) != set(self.channels):
-                    rec_data.channels = switch_channels(rec_data.channels, self.channels, Nodes.switchable_nodes)
+                    rec_data.channels = switch_channels(rec_data.channels, self.channels, Nodes.switchable_channels)
                 if rec_data.channels != self.channels:
                     rec_data.reorder_channels(self.channels)
 
@@ -118,7 +118,7 @@ class SequentialGenerator(keras.utils.Sequence):
         return out
 
     def change_included_channels(self, included_channels: list):
-        included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
+        included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_channels)
         assert set(included_channels).issubset(set(self.channels))
         self.data_segs = self.data_segs[:, :, [i for i, ch in enumerate(self.channels) if ch in included_channels]]
         self.channels = [ch for ch in self.channels if ch in included_channels]
@@ -163,7 +163,7 @@ class SequentialGenerator(keras.utils.Sequence):
 #             if len(self.channels) == 0:
 #                 self.channels = rec_data.channels
 #             if set(rec_data.channels) != set(self.channels):
-#                 rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_nodes)
+#                 rec_data.channels = switch_channels(self.channels, rec_data.channels, Nodes.switchable_channels)
 #             if rec_data.channels != self.channels:
 #                 rec_data.reorder_channels(self.channels)
 #
@@ -222,7 +222,7 @@ class SequentialGenerator(keras.utils.Sequence):
 #         return out
 #
 #     def change_included_channels(self, included_channels: list):
-#         included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
+#         included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_channels)
 #         assert set(included_channels).issubset(set(self.channels))
 #         self.data_segs = self.data_segs[:, :, [i for i, ch in enumerate(self.channels) if ch in included_channels]]
 #         self.channels = [ch for ch in self.channels if ch in included_channels]
@@ -295,7 +295,7 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
             #     self.channels = rec_data_segment.channels
             if set(rec_data_segment.channels) != set(self.channels):
                 rec_data_segment.channels = switch_channels(self.channels, rec_data_segment.channels,
-                                                            Nodes.switchable_nodes)
+                                                            Nodes.switchable_channels)
             if rec_data_segment.channels != self.channels:
                 rec_data_segment.reorder_channels(self.channels)
 
@@ -320,7 +320,7 @@ class SequentialGeneratorDynamic(keras.utils.Sequence):
 
 
     def change_included_channels(self, included_channels: list):
-        included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
+        included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_channels)
         assert set(included_channels).issubset(set(self.channels))
         # self.data_segs = self.data_segs[:, :, [i for i, ch in enumerate(self.channels) if ch in included_channels]]
         self.channels = [ch for ch in self.channels if ch in included_channels]
@@ -392,7 +392,7 @@ class SegmentedGeneratorDynamic(keras.utils.Sequence):
                 self.channels = rec_data_segment.channels
             if set(rec_data_segment.channels) != set(self.channels):
                 rec_data_segment.channels = switch_channels(self.channels, rec_data_segment.channels,
-                                                            Nodes.switchable_nodes)
+                                                            Nodes.switchable_channels)
             if rec_data_segment.channels != self.channels:
                 rec_data_segment.reorder_channels(self.channels)
 
@@ -412,7 +412,7 @@ class SegmentedGeneratorDynamic(keras.utils.Sequence):
         return batch_data, self.labels[keys]
 
     def change_included_channels(self, included_channels: list):
-        included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_nodes)
+        included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_channels)
         assert set(included_channels).issubset(set(self.channels))
         # self.data_segs = self.data_segs[:, :, [i for i, ch in enumerate(self.channels) if ch in included_channels]]
         self.channels = [ch for ch in self.channels if ch in included_channels]
@@ -449,7 +449,7 @@ def segment_generator(config, recs, segments, labels, shuffle=True):
                 channels = rec_data_segment.channels
             if set(rec_data_segment.channels) != set(channels):
                 rec_data_segment.channels = switch_channels(channels, rec_data_segment.channels,
-                                                            Nodes.switchable_nodes)
+                                                            Nodes.switchable_channels)
             if rec_data_segment.channels != channels:
                 rec_data_segment.reorder_channels(channels)
 

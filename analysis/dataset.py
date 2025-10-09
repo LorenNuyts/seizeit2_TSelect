@@ -106,7 +106,7 @@ def channel_differences_between_subjects(root_dir, locations: List[str]):
                     with pyedflib.EdfReader(edf_file) as edf:
                         channels_in_file = edf.getSignalLabels()
                         formatted_channels = set(Nodes.match_nodes(channels_in_file, list(ref_channels)))
-                        switched_channels = set(switch_channels(list(ref_channels), list(formatted_channels),  Nodes.switchable_nodes))
+                        switched_channels = set(switch_channels(list(ref_channels), list(formatted_channels), Nodes.switchable_channels))
                         if not ref_channels.issubset(switched_channels):
                             if location not in channel_differences:
                                 channel_differences[location] = dict()
@@ -258,6 +258,7 @@ def find_subjects_without_channels(data_path: str, channels:List[str], locations
     if locations is None:
         locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,
                      Locations.leuven_adult, Locations.leuven_pediatric]
+    locations = [Locations.freiburg]
 
     subjects_without_channels = {loc: dict() for loc in locations}
     for location in locations:
@@ -266,7 +267,8 @@ def find_subjects_without_channels(data_path: str, channels:List[str], locations
         if not os.path.isdir(location_path):
             print(f"Location {location} does not exist in the dataset.")
             continue
-        subjects = os.listdir(location_path)
+        # subjects = os.listdir(location_path)
+        subjects = ['SUBJ-4-097']
         for subject in subjects:
             subject_path = os.path.join(location_path, subject)
             recordings = [f for f in os.listdir(subject_path) if f.endswith('.edf')]

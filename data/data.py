@@ -76,7 +76,7 @@ class Data:
                 all_samplingFrequencies = edf.getSampleFrequencies()
                 # samplingFrequencies.extend(edf.getSampleFrequencies())
                 channels_in_file = edf.getSignalLabels()
-                standardized_channels_in_file = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
+                standardized_channels_in_file = switch_channels(channels_in_file, included_channels, Nodes.switchable_channels)
                 standardized_included_channels = Nodes.match_nodes(included_channels, Nodes.all_nodes())
                 for ch in sorted(standardized_included_channels):
                     if ch in standardized_channels_in_file:
@@ -84,11 +84,24 @@ class Data:
                         data.append(edf.readSignal(ix))
                         channels.append(ch)
                         samplingFrequencies.append(all_samplingFrequencies[ix])
+                    elif ch in Nodes.computable_channels:
+                        required_args = Nodes.computable_channels[ch]["args"]
+                        if all(arg in standardized_channels_in_file for arg in required_args):
+                            freqs = {all_samplingFrequencies[standardized_channels_in_file.index(arg)] for arg in required_args}
+                            if len(freqs) > 1:
+                                warnings.warn(f"Required arguments for computing channel {ch} have different sampling frequencies: {freqs}, which is not taken into account.")
+                            args_data = [edf.readSignal(standardized_channels_in_file.index(arg)) for arg in required_args]
+                            computed_data = Nodes.computable_channels[ch]["function"](*args_data)
+                            data.append(computed_data)
+                            channels.append(ch)
+                            samplingFrequencies.append(min([all_samplingFrequencies[standardized_channels_in_file.index(arg)] for arg in required_args]))
+                        else:
+                            warnings.warn(f"Could not compute channel {ch} because not all required arguments are available. Required: {required_args}, available: {standardized_channels_in_file}")
                 # channels_in_file = Nodes.match_nodes(channels_in_file, Nodes.all_nodes())
                 # for ch in sorted(included_channels):
                 # n = edf.signals_in_file
                 # for i in range(n):
-                #     included_channels = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
+                #     included_channels = switch_channels(channels_in_file, included_channels, Nodes.switchable_channels)
                 #     if channels_in_file[i] in included_channels:
                 #         data.append(edf.readSignal(i))
                 #         channels.append(channels_in_file[i])
@@ -111,7 +124,7 @@ class Data:
         return data_object
 
     @classmethod
-    def loadSegment(cls, data_path, recording, start_time, stop_time, fs: int, included_channels=None):
+    def loadSegment(cls, data_path, recording, start_time, stop_time, fs: int, included_channels=None, load_preprocessed=True):
         """Load a segment of the data object.
 
         Args:
@@ -127,7 +140,7 @@ class Data:
         """
 
         h5_file = get_path_preprocessed_data(data_path, recording)
-        if os.path.exists(h5_file):
+        if load_preprocessed and os.path.exists(h5_file):
             return cls.loadSegment_h5(h5_file, start_time, stop_time, fs, included_channels)
         else:
             warnings.warn("No preprocessed data found. Loading entire EDF file, preprocessing and storing it... ")
@@ -202,7 +215,7 @@ class Data:
             samplingFrequencies = []
             all_samplingFrequencies = h5f['fs'][()]
             channels_in_file = list(h5f.keys())
-            standardized_channels_in_file = switch_channels(channels_in_file, included_channels, Nodes.switchable_nodes)
+            standardized_channels_in_file = switch_channels(channels_in_file, included_channels, Nodes.switchable_channels)
             standardized_included_channels = Nodes.match_nodes(included_channels, Nodes.all_nodes())
             for ch in sorted(standardized_included_channels):
                 if ch in standardized_channels_in_file:
@@ -235,10 +248,10 @@ class Data:
         """
         if self.__preprocessed:
             return
-        rereference_average_signal(self.data, self.channels, exclude_channels_for_average=Nodes.prefrontal_nodes,
+        rereferenced_data = rereference_average_signal(self.data, self.channels, exclude_channels_for_average=Nodes.prefrontal_nodes,
                                    exclude_channels_for_rereference=Nodes.wearable_nodes)
         for i, channel in enumerate(self.channels):
-            self.data[i], self.fs[i] = pre_process_ch(self.data[i], self.fs[i], fs)
+            self.data[i], self.fs[i] = pre_process_ch(rereferenced_data[i], self.fs[i], fs)
         self.__preprocessed = True
         if store_preprocessed and self.__segment is None:
             if data_path is None:
@@ -280,7 +293,7 @@ def switch_channels(available_channels: list[str], desired_channels: list[str], 
     missing_channels = [ch for ch in desired_channels if ch not in available_channels]
     options = {ch for ch in available_channels if ch not in desired_channels}
     non_switched_channels = set()
-    result = available_channels.copy()
+    result: list[str] = available_channels.copy()
     for ch in missing_channels:
         # if (ch in Nodes.wearable_nodes and len({c for c in Nodes.wearable_nodes if c in available_channels}) >= 2 and
         #     len({c for c in Nodes.wearable_nodes if c in desired_channels}) >= 3):
@@ -294,10 +307,22 @@ def switch_channels(available_channels: list[str], desired_channels: list[str], 
                     options.remove(option)
                     switch_found = True
                     break
+
         if not switch_found:
             non_switched_channels.add(ch)
 
+    to_remove = set()
+    for ch in non_switched_channels:
+        if ch in Nodes.computable_channels:
+            required_args = Nodes.computable_channels[ch]["args"]
+            if all(arg in result for arg in required_args):
+                # ix_result: int = result.index(ch)
+                # result[ix_result] = f"compute_{ch}"
+                to_remove.add(ch)
+            else:
+                warnings.warn(f"Could not compute channel {ch} because not all required arguments are available. Required: {required_args}, available: {result}")
 
+    non_switched_channels.difference_update(to_remove)
     if len(non_switched_channels) > 0:
         warnings.warn(f"Could not find a suitable channel for {non_switched_channels}. The available channels are {available_channels}, "
                          f"while the requested channels are {desired_channels}")

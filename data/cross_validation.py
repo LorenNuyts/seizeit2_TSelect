@@ -87,7 +87,6 @@ def multi_objective_grouped_stratified_cross_validation(info_per_group: pd.DataF
                                                         weights_columns: dict=None, seed=SEED):
     np.random.seed(seed)
     testing = 'dtai' not in os.path.dirname(os.path.realpath(__file__))
-    testing = False
     print("Testing setting:", testing)
     if testing:
         locations = info_per_group['hospital'].unique()

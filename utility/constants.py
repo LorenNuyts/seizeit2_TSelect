@@ -91,12 +91,12 @@ class Nodes:
     # To obtain the key node, you can use all nodes in the corresponding value. E.g.: BTEleft: [BTEright] means that a
     # BTEright node can be switched for a BTEleft node. This is not symmetrical such that there is a unique set of included
     # nodes. All BTEright nodes should be switched for a BTEleft or CROSStop node. Similar for the T3-T6 nodes.
-    switchable_nodes = {
+    switchable_channels = {
         # BTEright: [BTEleft, CROSStop],
         # BTEleft: [BTEright, CROSStop],
         BTEleft: [BTEright],
         # CROSStop: [BTEright, BTEleft],
-        CROSStop: [BTEright],
+        # CROSStop: [BTEright],
         # 'T3': ['T7'],
         # 'T4': ['T8'],
         # 'T5': ['P7'],
@@ -105,6 +105,13 @@ class Nodes:
         'T8': ['T4'],
         'P7': ['T5'],
         'P8': ['T6'],
+    }
+
+    computable_channels = {
+        CROSStop: {
+            "args": [BTEleft, BTEright],
+            "function": lambda l, r: l - r,
+        }
     }
 
     @classmethod
