@@ -106,8 +106,8 @@ class Config():
             base_name += '_held_out_fold'
         if locations_str != "":
             base_name += '_' + locations_str
-        if set(self.included_channels).intersection(set(Nodes.wearable_nodes)) == 0:
-            base_name += '_no_wearables'
+        # if set(self.included_channels).intersection(set(Nodes.wearable_nodes)) == 0:
+        #     base_name += '_no_wearables'
         if hasattr(self, 'add_to_name') and self.add_to_name != "":
             base_name = base_name + '_' + self.add_to_name
         if self.version_experiments is not None:
@@ -144,6 +144,9 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
     elif included_channels == "wearables":
         included_channels = Nodes.included_wearables
         suffix = "wearables" + ("__" if len(suffix) != 0 else "") + suffix
+    elif included_channels == "no_wearables":
+        included_channels = Nodes.basic_eeg_nodes
+        suffix = "no_wearables" + ("__" if len(suffix) != 0 else "") + suffix
     elif included_channels == "Cross_T7":
         included_channels = [Nodes.CROSStop, "T7"]
     elif included_channels == "T7":
