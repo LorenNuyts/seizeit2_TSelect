@@ -73,7 +73,8 @@ def pre_process_ch(ch_data, fs_data, fs_resamp):
     return ch_data, fs_resamp
 
 
-def rereference_average_signal(data, channels: List[str], exclude_channels_for_average: List[str] = Nodes.prefrontal_nodes,
+def rereference_average_signal(data, channels: List[str],
+                               exclude_channels_for_average: List[str] = Nodes.prefrontal_nodes + Nodes.wearable_nodes,
                                exclude_channels_for_rereference: List[str] = Nodes.wearable_nodes) -> List[np.ndarray]:
     """
     Rereference the EEG signal using the average of all channels, excluding specified channels.
@@ -82,7 +83,7 @@ def rereference_average_signal(data, channels: List[str], exclude_channels_for_a
                                                    entry in the list as a data array that stores the samples in time.
         channels: List of channel names corresponding to the data arrays.
         exclude_channels_for_average: List of channel names to exclude from the average reference calculation.
-                          Default is Nodes.prefrontal_nodes.
+                          Default is Nodes.prefrontal_nodes + Nodes.wearable_nodes.
         exclude_channels_for_rereference: List of channel names to exclude from the rereferencing process.
                             Default is Nodes.wearable_nodes.
     Returns:

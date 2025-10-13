@@ -248,7 +248,8 @@ class Data:
         """
         if self.__preprocessed:
             return
-        rereferenced_data = rereference_average_signal(self.data, self.channels, exclude_channels_for_average=Nodes.prefrontal_nodes,
+        rereferenced_data = rereference_average_signal(self.data, self.channels,
+                                                       exclude_channels_for_average=Nodes.prefrontal_nodes + Nodes.wearable_nodes,
                                    exclude_channels_for_rereference=Nodes.wearable_nodes)
         for i, channel in enumerate(self.channels):
             self.data[i], self.fs[i] = pre_process_ch(rereferenced_data[i], self.fs[i], fs)
