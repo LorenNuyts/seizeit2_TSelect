@@ -149,10 +149,13 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         suffix = "no_wearables" + ("__" if len(suffix) != 0 else "") + suffix
     elif included_channels == "Cross_T7":
         included_channels = [Nodes.CROSStop, "T7"]
+        suffix = "Cross_T7" + ("__" if len(suffix) != 0 else "") + suffix
     elif included_channels == "T7":
         included_channels = ["T7"]
+        suffix = "T7" + ("__" if len(suffix) != 0 else "") + suffix
     elif included_channels == "CROSStop":
         included_channels = [Nodes.CROSStop]
+        suffix = "CROSStop" + ("__" if len(suffix) != 0 else "") + suffix
     else:
         raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all', 'wearables',"
                          f"'Cross_T7' or 'T7'.")
