@@ -240,7 +240,7 @@ def same_segments():
         with open(old_path_segments_train, 'rb') as inp:
             old_train_segments: List[list] = pickle.load(inp)
 
-        print(f"Fold {fold_i}: New train segments: {len(new_train_segments)}, Old train segments: {len(old_train_segments)}")
+        print(f"Fold {fold_i}: New train segments: {new_train_segments}, Old train segments: {old_train_segments}")
         assert all(sorted(new_train_segments) == sorted(old_train_segments)), f"Train segments differ in fold {fold_i}"
 
         new_path_segments_val = get_paths_segments_val(new_config, new_config.get_name(), fold_i)
