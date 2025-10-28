@@ -35,6 +35,8 @@ def decay_schedule(epoch, lr):
 #######################################
 ############### metrics ###############
 
+def get_sens_FA_score(y_true, y_pred, fs=1/2, th=0.5):
+    pass
 
 #### Pre-process EEG data
 

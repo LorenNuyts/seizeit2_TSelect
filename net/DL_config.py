@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import List
 
 import tensorflow as tf
 import pickle
@@ -55,7 +56,7 @@ class Config():
         self.factor = factor
         self.cross_validation = cross_validation
         self.save_dir = save_dir
-        self.locations = []
+        self.locations: List[str] = []
         self.included_channels = None
         self.channel_selection = False
         self.selected_channels = None
@@ -116,7 +117,8 @@ class Config():
 
 
 def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
-                    included_channels=None, CV=Keys.stratified, held_out_fold=False, pretty_name=None, suffix=""):
+                    included_channels=None, CV=Keys.stratified, held_out_fold=False, pretty_name=None,
+                    version_experiments=1, suffix=""):
     """
     Function to get the base configuration for the model. The function sets the parameters for the model, including
     the data path, save directory, sampling frequency, number of channels, batch size, window size, stride, balancing
@@ -160,7 +162,8 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all', 'wearables',"
                          f"'Cross_T7' or 'T7'.")
 
-    config = Config(model=model, batch_size=batch_size, cross_validation=CV, held_out_fold=held_out_fold,)
+    config = Config(model=model, batch_size=batch_size, cross_validation=CV, held_out_fold=held_out_fold,
+                    version_experiments=version_experiments)
     if pretty_name:
         config.pretty_name = pretty_name
     if 'dtai' in base_dir:
@@ -226,9 +229,11 @@ def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_s
                                  irrelevant_selector_percentage=0.6,
                                  corr_threshold=0.5, irrelevant_selector_threshold=-100, CV=Keys.stratified,
                                  held_out_fold=False,
-                                 pretty_name=None, suffix=""):
+                                 pretty_name=None,
+                                version_experiments=1, suffix="") -> Config:
     config = get_base_config(base_dir, locations, model=model, included_channels=included_channels,
                              pretty_name=pretty_name, batch_size=batch_size, CV=CV, held_out_fold=held_out_fold,
+                             version_experiments=version_experiments,
                              suffix=suffix)
     config.channel_selection = True
     config.selected_channels = None
