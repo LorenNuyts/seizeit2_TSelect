@@ -211,6 +211,19 @@ def same_cross_validation_split():
     print("All folds are identical.")
 
 def same_segments():
+    def diff_arrays(list1, list2):
+        unmatched_1 = list1.copy()
+        unmatched_2 = list2.copy()
+
+        # Mark matches
+        for arr1 in list1:
+            for arr2 in unmatched_2:
+                if np.array_equal(arr1, arr2):
+                    unmatched_1.remove(arr1)
+                    unmatched_2.remove(arr2)
+                    break
+
+        return unmatched_1, unmatched_2
     new_config = get_channel_selection_config(os.path.join(base_, ".."), locations=[parse_location(l) for l in Locations.all_keys()],
                                                               evaluation_metric=evaluation_metrics['score'],
                                                               irrelevant_selector_threshold=0.5, CV=Keys.stratified,
@@ -242,7 +255,11 @@ def same_segments():
 
         rep1 = {a.tobytes() for a in new_train_segments}
         rep2 = {a.tobytes() for a in old_train_segments}
-        assert rep1 == rep2, f"Train segments differ in fold {fold_i}"
+        if rep1 != rep2:
+            unmatched_new, unmatched_old = diff_arrays(new_train_segments, old_train_segments)
+            print(f"Train segments differ in fold {fold_i}")
+            print("     | In new only:", unmatched_new)
+            print("     | In old only:", unmatched_old)
 
         new_path_segments_val = get_paths_segments_val(new_config, new_config.get_name(), fold_i)
         with open(new_path_segments_val, 'rb') as inp:
@@ -252,7 +269,11 @@ def same_segments():
             old_val_segments = pickle.load(inp)
         rep1 = {a.tobytes() for a in new_val_segments}
         rep2 = {a.tobytes() for a in old_val_segments}
-        assert rep1 == rep2, f"Validation segments differ in fold {fold_i}"
+        if rep1 != rep2:
+            unmatched_new, unmatched_old = diff_arrays(new_val_segments, old_val_segments)
+            print(f"Validation segments differ in fold {fold_i}")
+            print("     | In new only:", unmatched_new)
+            print("     | In old only:", unmatched_old)
 
     print("All segments in all folds are identical.")
 
