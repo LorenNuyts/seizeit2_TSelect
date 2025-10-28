@@ -258,8 +258,8 @@ def same_segments():
         rep1 = {a.tobytes() for a in new_train_segments}
         rep2 = {a.tobytes() for a in old_train_segments}
         if rep1 != rep2:
-            unmatched_new, unmatched_old = diff_arrays(new_train_segments, old_train_segments)
             print(f"Train segments differ in fold {fold_i}")
+            unmatched_new, unmatched_old = diff_arrays(new_train_segments, old_train_segments)
             print("     | In new only:", unmatched_new)
             print("     | In old only:", unmatched_old)
 
