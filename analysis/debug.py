@@ -215,13 +215,15 @@ def same_segments():
         unmatched_1 = list1.copy()
         unmatched_2 = list2.copy()
 
-        # Mark matches
         for arr1 in list1:
-            for arr2 in unmatched_2:
+            match_idx = None
+            for i, arr2 in enumerate(unmatched_2):
                 if np.array_equal(arr1, arr2):
-                    unmatched_1.remove(arr1)
-                    unmatched_2.remove(arr2)
+                    match_idx = i
                     break
+            if match_idx is not None:
+                unmatched_1.remove(arr1)
+                del unmatched_2[match_idx]
 
         return unmatched_1, unmatched_2
     new_config = get_channel_selection_config(os.path.join(base_, ".."), locations=[parse_location(l) for l in Locations.all_keys()],
