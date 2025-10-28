@@ -234,14 +234,15 @@ def same_segments():
     for fold_i in folds:
         new_path_segments_train = get_paths_segments_train(new_config, new_config.get_name(), fold_i)
         with open(new_path_segments_train, 'rb') as inp:
-            new_train_segments: List[list] = pickle.load(inp)
+            new_train_segments: List[np.ndarray] = pickle.load(inp)
 
         old_path_segments_train = get_paths_segments_train(old_config, old_config.get_name(), fold_i)
         with open(old_path_segments_train, 'rb') as inp:
-            old_train_segments: List[list] = pickle.load(inp)
+            old_train_segments: List[np.ndarray] = pickle.load(inp)
 
-        print(f"Fold {fold_i}: New train segments: {new_train_segments}, Old train segments: {old_train_segments}")
-        assert all(sorted(new_train_segments) == sorted(old_train_segments)), f"Train segments differ in fold {fold_i}"
+        rep1 = {a.tobytes() for a in new_train_segments}
+        rep2 = {a.tobytes() for a in old_train_segments}
+        assert rep1 == rep2, f"Train segments differ in fold {fold_i}"
 
         new_path_segments_val = get_paths_segments_val(new_config, new_config.get_name(), fold_i)
         with open(new_path_segments_val, 'rb') as inp:
@@ -249,7 +250,9 @@ def same_segments():
         old_path_segments_val = get_paths_segments_val(old_config, old_config.get_name(), fold_i)
         with open(old_path_segments_val, 'rb') as inp:
             old_val_segments = pickle.load(inp)
-        assert sorted(new_val_segments) == sorted(old_val_segments), f"Validation segments differ in fold {fold_i}"
+        rep1 = {a.tobytes() for a in new_val_segments}
+        rep2 = {a.tobytes() for a in old_val_segments}
+        assert rep1 == rep2, f"Validation segments differ in fold {fold_i}"
 
     print("All segments in all folds are identical.")
 
