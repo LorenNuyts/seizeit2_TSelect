@@ -212,18 +212,18 @@ def same_cross_validation_split():
 
 def same_segments():
     def diff_arrays(list1, list2):
-        unmatched_1 = list1.copy()
+        unmatched_1 = []
         unmatched_2 = list2.copy()
 
         for arr1 in list1:
-            match_idx = None
+            found = False
             for i, arr2 in enumerate(unmatched_2):
                 if np.array_equal(arr1, arr2):
-                    match_idx = i
+                    del unmatched_2[i]
+                    found = True
                     break
-            if match_idx is not None:
-                unmatched_1.remove(arr1)
-                del unmatched_2[match_idx]
+            if not found:
+                unmatched_1.append(arr1)
 
         return unmatched_1, unmatched_2
     new_config = get_channel_selection_config(os.path.join(base_, ".."), locations=[parse_location(l) for l in Locations.all_keys()],
