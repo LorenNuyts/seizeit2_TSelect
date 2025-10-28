@@ -1,19 +1,25 @@
 import argparse
+import copy
 import os
 import pickle
+from collections import defaultdict
+from typing import List
+
+import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
+from analysis.channel_analysis.file_management import download_remote_configs
 from analysis.dataset import dataset_stats
 from data.cross_validation import multi_objective_grouped_stratified_cross_validation
-from net.DL_config import get_base_config
+from net.DL_config import get_base_config, get_channel_selection_config
 from net.generator_ds import build_tfrecord_dataset, parse_example
 from net.key_generator import generate_data_keys_sequential_window, generate_data_keys_sequential, \
     generate_data_keys_subsample
 from utility import get_recs_list
-from utility.constants import Locations, SEED
-from data.data import create_single_tfrecord
-from utility.paths import get_paths_segments_train, get_paths_segments_val, get_path_tfrecord
+from utility.constants import Locations, SEED, parse_location, Nodes, evaluation_metrics, Keys
+from data.data import create_single_tfrecord, Data
+from utility.paths import get_paths_segments_train, get_paths_segments_val, get_path_tfrecord, get_path_config
 
 base_ = os.path.dirname(os.path.realpath(__file__))
 
@@ -135,9 +141,122 @@ def ts_reshape_error():
     #               "has shape", segment[0].shape, "instead of (?, 21)")
     #         continue
 
+def changed_channels_rereferencing():
+    config = get_base_config(os.path.join(base_, ".."), locations=[parse_location(l) for l in Locations.all_keys()])
+    changed_channels = defaultdict(list)
+    for location in config.locations:
+        data_path = os.path.join(config.data_path, location)
+        if not os.path.isdir(data_path):
+            print("Data path", data_path, "is not a directory")
+            continue
+
+        for subject in os.listdir(data_path):
+            print("     | Processing subject:", subject)
+            subject_path = os.path.join(data_path, subject)
+
+            if not os.path.isdir(subject_path):
+                print("     | Skipping subject because it is not a directory:", subject)
+                continue
+
+            recs = get_recs_list(config.data_path, [location], [subject])
+            for recording in recs:
+                print("         | Processing recording:", recording)
+                rec_data = Data.loadData(config.data_path, recording,
+                                         included_channels=config.included_channels, load_preprocessed=False)
+                rec_data_rereferenced = copy.deepcopy(rec_data)
+                rec_data.apply_preprocess(data_path=config.data_path, fs=config.fs, rereference_channel=False)
+                rec_data_rereferenced.apply_preprocess(data_path=config.data_path, fs=config.fs, rereference_channel=True)
+
+                for ch_index, ch in enumerate(config.included_channels):
+                    data_rereferenced_ch = rec_data_rereferenced[ch_index]
+                    data_ch = rec_data[ch_index]
+
+                    if not np.array_equal(data_rereferenced_ch, data_ch):
+                    # if not data_rereferenced_ch.equals(data_ch):
+                        changed_channels[ch].append(subject)
+                        if ch in Nodes.wearable_nodes:
+                            print(f"         | Channel {ch} changed for subject {subject}")
+
+
+def same_cross_validation_split():
+    new_config = get_channel_selection_config(os.path.join(base_, ".."), locations=[parse_location(l) for l in Locations.all_keys()],
+                                                              evaluation_metric=evaluation_metrics['score'],
+                                                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                                              held_out_fold=True, pretty_name="Channel Selection")
+
+    old_config = get_channel_selection_config(os.path.join(base_, ".."), locations=[parse_location(l) for l in Locations.all_keys()],
+                                                              evaluation_metric=evaluation_metrics['score'],
+                                                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                                              held_out_fold=True, pretty_name="Channel Selection",
+                                                              version_experiments=None)
+    for c in [new_config, old_config]:
+        c_path = get_path_config(c, c.get_name())
+        if os.path.exists(c_path):
+            c.load_config(c_path, c.get_name())
+        else:
+            print(f"Config not found for {c.get_name()}, downloading...")
+            download_remote_configs([c], local_base_dir=c.save_dir)
+            c.load_config(c_path, c.get_name())
+
+    new_folds = new_config.folds
+    old_folds = old_config.folds
+    for i in new_folds.keys():
+        if i not in old_folds:
+            print(f"Fold {i} is missing")
+
+        for s in new_folds[i]:
+            assert sorted(new_folds[i][s]) == sorted(old_folds[i][s])
+
+    assert sorted(new_config.held_out_subjects) == sorted(old_config.held_out_subjects)
+    print("All folds are identical.")
+
+def same_segments():
+    new_config = get_channel_selection_config(os.path.join(base_, ".."), locations=[parse_location(l) for l in Locations.all_keys()],
+                                                              evaluation_metric=evaluation_metrics['score'],
+                                                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                                              held_out_fold=True, pretty_name="Channel Selection")
+
+    old_config = get_channel_selection_config(os.path.join(base_, ".."), locations=[parse_location(l) for l in Locations.all_keys()],
+                                                              evaluation_metric=evaluation_metrics['score'],
+                                                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                                              held_out_fold=True, pretty_name="Channel Selection",
+                                                              version_experiments=None)
+    for c in [new_config, old_config]:
+        c_path = get_path_config(c, c.get_name())
+        if os.path.exists(c_path):
+            c.load_config(c_path, c.get_name())
+        else:
+            print(f"Config not found for {c.get_name()}, downloading...")
+            download_remote_configs([c], local_base_dir=c.save_dir)
+            c.load_config(c_path, c.get_name())
+
+    folds = list(new_config.folds.keys())
+    for fold_i in folds:
+        new_path_segments_train = get_paths_segments_train(new_config, new_config.get_name(), fold_i)
+        with open(new_path_segments_train, 'rb') as inp:
+            new_train_segments = pickle.load(inp)
+
+        old_path_segments_train = get_paths_segments_train(old_config, old_config.get_name(), fold_i)
+        with open(old_path_segments_train, 'rb') as inp:
+            old_train_segments = pickle.load(inp)
+
+        assert sorted(new_train_segments) == sorted(old_train_segments), f"Train segments differ in fold {fold_i}"
+
+        new_path_segments_val = get_paths_segments_val(new_config, new_config.get_name(), fold_i)
+        with open(new_path_segments_val, 'rb') as inp:
+            new_val_segments = pickle.load(inp)
+        old_path_segments_val = get_paths_segments_val(old_config, old_config.get_name(), fold_i)
+        with open(old_path_segments_val, 'rb') as inp:
+            old_val_segments = pickle.load(inp)
+        assert sorted(new_val_segments) == sorted(old_val_segments), f"Validation segments differ in fold {fold_i}"
+
+    print("All segments in all folds are identical.")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
     # inspect_channels()
-    negative_dimensions()
+    # negative_dimensions()
     # ts_reshape_error()
+    # changed_channels_rereferencing()
+    same_cross_validation_split()
