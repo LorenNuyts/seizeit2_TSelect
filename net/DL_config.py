@@ -41,6 +41,7 @@ class Config():
                  dropoutRate=0, nb_epochs=50, class_weights = {0:1, 1:1}, cross_validation=Keys.stratified, save_dir='savedir',
                  held_out_fold = False, version_experiments=1):
 
+        self.random_seed = 0
         self.data_path = data_path
         self.model = model
         self.dataset = dataset

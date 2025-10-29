@@ -329,8 +329,9 @@ def generate_data_keys_subsample(config, recs_list):
                     seg_start = np.arange(0, n_segs)*config.stride + ev[1]
                     seg_stop = seg_start + config.frame
                     segments_NS.extend(np.column_stack(([idx]*n_segs, seg_start, seg_stop, np.zeros(n_segs))))
-        
-    segments_S.extend(random.sample(segments_NS, config.factor*len(segments_S)))
+
+    random.seed(config.random_seed if hasattr(config, 'random_seed') else 0)
+    segments_S.extend(random.sample(segments_NS, config.factor*len(segments_S), ))
     random.shuffle(segments_S)
 
     return segments_S

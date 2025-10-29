@@ -219,12 +219,35 @@ if __name__ == '__main__':
 
     # if metric_ not in allowed_metrics:
     #     raise ValueError(f"Metric {metric_} is not allowed. Choose from {allowed_metrics}")
+    configs_stratified_old = [
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
+                        held_out_fold=True, pretty_name="Baseline (old)",
+                        version_experiments=None),
+        # get_base_config(base_dir, unique_locations, suffix="rerun", CV=Keys.stratified,
+        #                 held_out_fold=True, pretty_name="Baseline"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (old)",
+                                     version_experiments=None),
+    ]
+
 
     configs_stratified = [
-        # get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
+                        held_out_fold=True, pretty_name="Baseline (all channels)"),
+
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified, included_channels="no_wearables",
+                        held_out_fold=True, pretty_name="Baseline (full-scalp EEG)"),
+
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
+                        included_channels="CROSStop",
+                        held_out_fold=True, pretty_name="Baseline (CROSStop SD)"),
+        # get_base_config(base_dir, unique_locations, suffix="rerun", CV=Keys.stratified,
         #                 held_out_fold=True, pretty_name="Baseline"),
-        get_base_config(base_dir, unique_locations, suffix="rerun", CV=Keys.stratified,
-                        held_out_fold=True, pretty_name="Baseline"),
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
@@ -265,7 +288,7 @@ if __name__ == '__main__':
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    configs_ = configs_stratified + configs_stratified_final_model
+    configs_ = configs_stratified
     # configs_ = configs_stratified_final_model
     # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [

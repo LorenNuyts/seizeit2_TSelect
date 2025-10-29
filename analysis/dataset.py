@@ -1,7 +1,10 @@
 import argparse
 import os
+import warnings
+from collections import defaultdict
 from typing import List
 
+import numpy as np
 import pandas as pd
 import pyedflib
 
@@ -290,13 +293,154 @@ def find_subjects_without_channels(data_path: str, channels:List[str], locations
     return subjects_without_channels
 
 
+def find_ref_channel(data_path, locations: List[str] = None):
+    threshold = 0.5
+    if locations is None:
+        locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,
+                     Locations.leuven_adult, Locations.leuven_pediatric]
+    locations = [Locations.leuven_adult]
+
+    ref_channels = defaultdict(set)
+    for location in locations:
+        print(f"Processing location: {location}")
+        location_path = os.path.join(data_path, location)
+        if not os.path.isdir(location_path):
+            print(f"Location {location} does not exist in the dataset.")
+            continue
+        subjects = os.listdir(location_path)
+        subjects_done = {'SUBJ-1a-006', "SUBJ-1a-006",  "SUBJ-1a-066", "SUBJ-1a-027", "SUBJ-1a-036", "SUBJ-1a-048",
+                        "SUBJ-1a-014",  "SUBJ-1a-068", "SUBJ-1a-015",  "SUBJ-1a-076", "SUBJ-1a-080", "SUBJ-1a-055",
+                         "SUBJ-1a-082", "SUBJ-1a-039",  "SUBJ-1a-087", "SUBJ-1a-115",
+                        "SUBJ-1a-044"}
+        # subjects = ['SUBJ-4-097']
+        for subject in subjects:
+            if subject in subjects_done:
+                continue
+            print("     | Processing subject:", subject)
+            found_reference = None
+            subject_path = os.path.join(location_path, subject)
+            recordings = [f for f in os.listdir(subject_path) if f.endswith('.edf')]
+            for recording in recordings:
+                print(f"        | Processing recording: {recording}")
+                edf_file = os.path.join(subject_path, recording)
+                with pyedflib.EdfReader(edf_file) as edf:
+                    channels = edf.getSignalLabels()
+                    for ix, ch in enumerate(channels):
+                        if "ACC" in ch or "GYR" in ch or "ECG" in ch or "EMG" in ch:
+                            continue
+                        data = edf.readSignal(ix)
+                        if np.count_nonzero(data == 0) / len(data) >= threshold:
+                            if found_reference is not None and found_reference != ch:
+                                print(f"Warning: Multiple potential reference channels found for subject {subject} in location {location}: {found_reference} and {ch}")
+                            print(f"            Found a reference channel {ch} for subject {subject} in location {location}")
+                            found_reference = ch
+                            ref_channels[ch].add(subject)
+
+    print("Reference channels:")
+    print(ref_channels)
+    return ref_channels
+
+
+def dataset_content(data_path: str, locations: List[str] = None):
+    columns = ['Subject ID', 'Hospital', 'Duration Recordings (hours)', 'SD Configuration', 'Affected Lobe', 'FA',
+                                  'FIA',
+                'FBTC', 'Focal', 'Subclinical', 'Unknown'
+               ]
+    table = []
+    seizure_durations_adult = []
+    seizure_durations_pediatric = []
+    lateralizations = []
+
+    if locations is None:
+        locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,
+                     Locations.leuven_adult, Locations.leuven_pediatric]
+    # locations = [Locations.coimbra]
+
+    for location in locations:
+        print(f"Processing location: {location}")
+        location_path = os.path.join(data_path, location)
+        if not os.path.isdir(location_path):
+            print(f"Location {location} does not exist in the dataset.")
+            continue
+        subjects = os.listdir(location_path)
+        for subject in subjects:
+            print("     | Processing subject:", subject)
+            table_subject = {'Subject ID': subject, 'Hospital': Locations.to_acronym(location), 'Duration Recordings (hours)': 0,
+                             'SD Configuration': None, 'Affected Lobe': None, 'FA': 0, 'FIA': 0,
+                              'FBTC': 0, 'Focal': 0, 'Subclinical': 0, 'Unknown': 0
+                             }
+            subject_path = os.path.join(location_path, subject)
+            recordings = [f for f in os.listdir(subject_path) if f.endswith('.edf')]
+            for recording in recordings:
+                # print(f"        | Processing recording: {recording}")
+                edf_file = os.path.join(subject_path, recording)
+                with pyedflib.EdfReader(edf_file) as edf:
+                    table_subject['Duration Recordings (hours)'] += edf.getFileDuration() / 3600  # in hours
+                    channels = edf.getSignalLabels()
+                    if Nodes.BTEleft in channels and Nodes.CROSStop in channels:
+                        table_subject['SD Configuration'] = 'Left'
+                    elif Nodes.BTEright in channels and Nodes.CROSStop in channels:
+                        table_subject['SD Configuration'] = 'Right'
+                    elif Nodes.BTEleft in channels and Nodes.BTEright in channels:
+                        table_subject['SD Configuration'] = 'Generalized'
+                    else:
+                        print(f"!!! Warning: Unable to determine SD Configuration for subject {subject} in location {location} !!!")
+
+
+            tsv_files = [f for f in os.listdir(subject_path) if f.endswith('.tsv')]
+            for tsv_file in tsv_files:
+                # print(f"        | Processing TSV file: {tsv_file}")
+                tsv_path = os.path.join(subject_path, tsv_file)
+                df = pd.read_csv(tsv_path, delimiter="\t", skiprows=4)
+                for i_row, row in df.iterrows():
+                    if row['class'] == 'seizure':
+                        seizure_duration = row['stop'] - row['start']
+                        if 'pediatric' in location.lower():
+                            seizure_durations_pediatric.append(seizure_duration)
+                        else:
+                            seizure_durations_adult.append(seizure_duration)
+
+                        table_subject['Affected Lobe'] = row['localization'].title()
+                        if row['type'].lower() == 'fa':
+                            table_subject['FA'] += 1
+                        elif row['type'].lower() == 'fia':
+                            table_subject['FIA'] += 1
+                        elif row['type'].lower() == 'fbtc':
+                            table_subject['FBTC'] += 1
+                        elif row['type'].lower() == 'subclinical':
+                            table_subject['Subclinical'] += 1
+                        elif row['type'].lower() == 'focal':
+                            table_subject['Focal'] += 1
+                        elif row['type'].lower() == 'unknown':
+                            table_subject['Unknown'] += 1
+                        else:
+                            print(f"!!! Warning: Unknown seizure type {row['type']} for subject {subject} in location {location} !!!")
+
+                        lateralizations.append(row['lateralization'])
+
+            table.append(table_subject)
+    table = pd.DataFrame(table, columns=columns)
+    table.to_csv(os.path.join(base_dir, "results", "dataset_content.csv"), index=False)
+    print("Dataset content saved to dataset_content.csv")
+
+    print(f"Seizure durations (adult): {np.mean(seizure_durations_adult)} ± {np.std(seizure_durations_adult)} seconds")
+    print(f"Seizure durations (pediatric): {np.mean(seizure_durations_pediatric)} ± {np.std(seizure_durations_pediatric)} seconds")
+    print(f"Seizure durations (all): {np.mean(seizure_durations_adult + seizure_durations_pediatric)} ± {np.std(seizure_durations_adult + seizure_durations_pediatric)} seconds")
+    print(f"Seizure range (all): {min(seizure_durations_adult + seizure_durations_pediatric)} to {max(seizure_durations_adult + seizure_durations_pediatric)} seconds")
+    print(f"Lateralizations: {lateralizations.count('left')} left and {lateralizations.count('right')} right. Total: {len(lateralizations)}")
+    print(f"Average recording duration: {table['Duration Recordings (hours)'].mean()} ± {table['Duration Recordings (hours)'].std()} hours")
+    print(f"Focal aware seizures: {table['FA'].sum()}")
+    print(f"Focal impaired awareness seizures: {table['FIA'].sum()}")
+    print(f"Affected lobes: {table['Affected Lobe'].value_counts().to_dict()}")
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str, choices=["channel_names", "subjects_with_seizures",
                                                    "channel_differences", "rank_locations", "average_memory_size",
                                                    "seizure_segments", "hours_of_data", "compute_dataset_stats",
-                                                   "subjects_wo_channels"],)
+                                                   "subjects_wo_channels", "find_ref_channel", "dataset_content"],)
     parser.add_argument("--locations", type=str, nargs="?", default="all")
     args = parser.parse_args()
 
@@ -337,5 +481,9 @@ if __name__ == '__main__':
         find_subjects_without_channels(data_path_,
                                        channels=Nodes.baseline_eeg_nodes + Nodes.optional_F_nodes + Nodes.optional_P_nodes + ['T9', 'T10'],
                                        locations=locations_)
+    elif args.task == "find_ref_channel":
+        find_ref_channel(data_path_, locations=locations_)
+    elif args.task == 'dataset_content':
+        dataset_content(data_path_, locations=locations_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")

@@ -20,3 +20,5 @@ analysis/figures/
 net/generators/
 
 analysis/results/
+
+dataset_content.csv
