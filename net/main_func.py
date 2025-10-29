@@ -529,7 +529,8 @@ def evaluate(config: Config, results: Results):
         for file in tqdm(pred_files):
             file_path = os.path.join(pred_path, file)
 
-            metrics_th = get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds)
+            metrics_th = get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds,
+                                              rmsa_filtering=results.rmsa_filtering)
 
             for m in metrics.keys():
                 metrics_fold[m].append(metrics_th[m])
@@ -573,6 +574,8 @@ def evaluate(config: Config, results: Results):
 
     # Save the results
     results_save_path = get_path_results(config, name)
+    if not results.rmsa_filtering:
+        results_save_path = results_save_path.replace('.pkl', '_noRMSA.pkl')
     results.config = config
     results.save_results(results_save_path)
 
@@ -602,7 +605,7 @@ def evaluate(config: Config, results: Results):
 
 
 
-def get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds):
+def get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds, rmsa_filtering=True):
     with h5py.File(file_path, 'r') as f:
         y_pred = list(f['y_pred'])
         y_true = list(f['y_true'])
@@ -612,19 +615,20 @@ def get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds):
     channels = config.selected_channels[fold_i] if config.channel_selection else config.included_channels
     rec_data = Data.loadData(config.data_path, rec, included_channels=channels)
     rec_data.apply_preprocess(config.fs, data_path=config.data_path, store_preprocessed=True, recording=rec)
-    rmsa = None
-    for ch in range(len(rec_data.channels)):
-        ch_data = rec_data.data[ch]
-        rmsa_ch = [np.sqrt(np.mean(ch_data[start:start + 2 * config.fs] ** 2)) for start in
-                   range(0, len(ch_data) - 2 * config.fs + 1, 1 * config.fs)]
-        rmsa_ch = [1 if 13 < rms < 150 else 0 for rms in rmsa_ch]
-        if rmsa is None:
-            rmsa = rmsa_ch
-        else:
-            rmsa = rmsa and rmsa_ch
-    if len(y_pred) != len(rmsa):
-        rmsa = rmsa[:len(y_pred)]
-    y_pred = np.where(np.array(rmsa) == 0, 0, y_pred)
+    if rmsa_filtering:
+        rmsa = None
+        for ch in range(len(rec_data.channels)):
+            ch_data = rec_data.data[ch]
+            rmsa_ch = [np.sqrt(np.mean(ch_data[start:start + 2 * config.fs] ** 2)) for start in
+                       range(0, len(ch_data) - 2 * config.fs + 1, 1 * config.fs)]
+            rmsa_ch = [1 if 13 < rms < 150 else 0 for rms in rmsa_ch]
+            if rmsa is None:
+                rmsa = rmsa_ch
+            else:
+                rmsa = rmsa and rmsa_ch
+        if len(y_pred) != len(rmsa):
+            rmsa = rmsa[:len(y_pred)]
+        y_pred = np.where(np.array(rmsa) == 0, 0, y_pred)
     for th in thresholds:
         sens_ovlp_rec, prec_ovlp_rec, FA_ovlp_rec, f1_ovlp_rec, sens_epoch_rec, spec_epoch_rec, prec_epoch_rec, FA_epoch_rec, f1_epoch_rec = get_metrics_scoring(
             y_pred, y_true, pred_fs, th)

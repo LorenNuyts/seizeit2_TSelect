@@ -24,6 +24,7 @@ class Results:
         # self.rocauc: List[list] = []
         self.score: List[list] = []
         self.thresholds: list = []
+        self.rmsa_filtering: bool = True
 
     @property
     def total_time(self) -> Dict[int, float]:

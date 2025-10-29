@@ -51,6 +51,7 @@ parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
                     help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
 parser.add_argument("--held_out_fold", action='store_true')
 parser.add_argument("--fold", type=int, nargs="?", default=None)
+parser.add_argument("--no_rmsa", action='store_true', help="If set, do not use filter based on RMSA.")
 
 args = parser.parse_args()
 
@@ -166,6 +167,15 @@ if not hasattr(config, 'channel_selector'):
 if not hasattr(config, "held_out_fold"):
     config.held_out_fold = False  # If the config does not have this attribute, set it to False
     config.held_out_subjects = None
+
+if not hasattr(config, "random_seed"):
+    config.random_seed = 0  # If the config does not have this attribute, set it to 0
+
+if not hasattr(results, "rmsa_filtering"):
+    results.rmsa_filtering = True  # If the config does not have this attribute, set it to True
+
+if args.no_rmsa:
+    results.rmsa_filtering = False
 
 ###########################################
 ###########################################
