@@ -298,7 +298,7 @@ def find_ref_channel(data_path, locations: List[str] = None):
     if locations is None:
         locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,
                      Locations.leuven_adult, Locations.leuven_pediatric]
-    locations = [Locations.leuven_adult]
+    # locations = [Locations.coimbra]
 
     ref_channels = defaultdict(set)
     for location in locations:
@@ -326,7 +326,7 @@ def find_ref_channel(data_path, locations: List[str] = None):
                 with pyedflib.EdfReader(edf_file) as edf:
                     channels = edf.getSignalLabels()
                     for ix, ch in enumerate(channels):
-                        if "ACC" in ch or "GYR" in ch or "ECG" in ch or "EMG" in ch:
+                        if "ACC" in ch or "GYR" in ch or "ECG" in ch or "EMG" in ch or "SD" in ch:
                             continue
                         data = edf.readSignal(ix)
                         if np.count_nonzero(data == 0) / len(data) >= threshold:
@@ -344,12 +344,15 @@ def find_ref_channel(data_path, locations: List[str] = None):
 def dataset_content(data_path: str, locations: List[str] = None):
     columns = ['Subject ID', 'Hospital', 'Duration Recordings (hours)', 'SD Configuration', 'Affected Lobe', 'FA',
                                   'FIA',
-                'FBTC', 'Focal', 'Subclinical', 'Unknown'
+                'FBTC', 'Focal',
+               # 'Subclinical',
+               'Unknown'
                ]
     table = []
     seizure_durations_adult = []
     seizure_durations_pediatric = []
     lateralizations = []
+    awareness = []
 
     if locations is None:
         locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,
@@ -366,8 +369,10 @@ def dataset_content(data_path: str, locations: List[str] = None):
         for subject in subjects:
             print("     | Processing subject:", subject)
             table_subject = {'Subject ID': subject, 'Hospital': Locations.to_acronym(location), 'Duration Recordings (hours)': 0,
-                             'SD Configuration': None, 'Affected Lobe': None, 'FA': 0, 'FIA': 0,
-                              'FBTC': 0, 'Focal': 0, 'Subclinical': 0, 'Unknown': 0
+                             'SD Configuration': None, 'Affected Lobe': [], 'FA': 0, 'FIA': 0,
+                              'FBTC': 0, 'Focal': 0,
+                             # 'Subclinical': 0,
+                             'Unknown': 0
                              }
             subject_path = os.path.join(location_path, subject)
             recordings = [f for f in os.listdir(subject_path) if f.endswith('.edf')]
@@ -400,15 +405,15 @@ def dataset_content(data_path: str, locations: List[str] = None):
                         else:
                             seizure_durations_adult.append(seizure_duration)
 
-                        table_subject['Affected Lobe'] = row['localization'].title()
+                        table_subject['Affected Lobe'].append(row['localization'].title())
                         if row['type'].lower() == 'fa':
                             table_subject['FA'] += 1
                         elif row['type'].lower() == 'fia':
                             table_subject['FIA'] += 1
                         elif row['type'].lower() == 'fbtc':
                             table_subject['FBTC'] += 1
-                        elif row['type'].lower() == 'subclinical':
-                            table_subject['Subclinical'] += 1
+                        # elif row['type'].lower() == 'subclinical':
+                        #     table_subject['Subclinical'] += 1
                         elif row['type'].lower() == 'focal':
                             table_subject['Focal'] += 1
                         elif row['type'].lower() == 'unknown':
@@ -416,7 +421,8 @@ def dataset_content(data_path: str, locations: List[str] = None):
                         else:
                             print(f"!!! Warning: Unknown seizure type {row['type']} for subject {subject} in location {location} !!!")
 
-                        lateralizations.append(row['lateralization'])
+                        lateralizations.append(row['lateralization'].lower())
+                        awareness.append(str(row['awareness']).lower() if not pd.isna(row['awareness']) else 'unknown')
 
             table.append(table_subject)
     table = pd.DataFrame(table, columns=columns)
@@ -427,12 +433,36 @@ def dataset_content(data_path: str, locations: List[str] = None):
     print(f"Seizure durations (pediatric): {np.mean(seizure_durations_pediatric)} ± {np.std(seizure_durations_pediatric)} seconds")
     print(f"Seizure durations (all): {np.mean(seizure_durations_adult + seizure_durations_pediatric)} ± {np.std(seizure_durations_adult + seizure_durations_pediatric)} seconds")
     print(f"Seizure range (all): {min(seizure_durations_adult + seizure_durations_pediatric)} to {max(seizure_durations_adult + seizure_durations_pediatric)} seconds")
-    print(f"Lateralizations: {lateralizations.count('left')} left and {lateralizations.count('right')} right. Total: {len(lateralizations)}")
+    print(f"Lateralizations: {lateralizations.count('left')} left, {lateralizations.count('right')} right, "
+          f"{lateralizations.count('bilateral')} bilateral, and {lateralizations.count('unknown')} unknown. Total: {len(lateralizations)}")
     print(f"Average recording duration: {table['Duration Recordings (hours)'].mean()} ± {table['Duration Recordings (hours)'].std()} hours")
     print(f"Focal aware seizures: {table['FA'].sum()}")
     print(f"Focal impaired awareness seizures: {table['FIA'].sum()}")
-    print(f"Affected lobes: {table['Affected Lobe'].value_counts().to_dict()}")
+    print(f"Focal to bilateral tonic-clonic seizures: {table['FBTC'].sum()}")
+    print(f"Focal seizures: {table['Focal'].sum()}")
+    print(f"Unknown seizures: {table['Unknown'].sum()}")
+    print(f"Affected lobes (all subjects): {table['Affected Lobe'].explode().value_counts().to_dict()}")
+    # print(f"Affected lobes: {table['Affected Lobe'].value_counts().to_dict()}")
 
+
+def print_dataset_content_table():
+    df = pd.read_csv(os.path.join(base_dir, "results", "dataset_content.csv"))
+
+    # Process Affected Lobe to make it more readable
+    def process_affected_lobe(x):
+        if pd.isna(x) or x == '[]':
+            return ''
+        x: list = eval(x)
+        counts = {l: x.count(l) for l in set(x)}
+        # Sort dict by value
+        counts = dict(sorted(counts.items(), key=lambda item: item[1], reverse=True))
+        return ', '.join([f"{l} ({counts[l]})" for l in counts])
+    df['Affected Lobe'] = df['Affected Lobe'].apply(process_affected_lobe)
+
+    # Convert to Latex table
+    latex_table = df.to_latex(index=False, longtable=True, caption="Dataset Content", label="tab:dataset_content",
+                              float_format="%.1f")
+    print(latex_table)
 
 
 if __name__ == '__main__':
@@ -484,6 +514,7 @@ if __name__ == '__main__':
     elif args.task == "find_ref_channel":
         find_ref_channel(data_path_, locations=locations_)
     elif args.task == 'dataset_content':
-        dataset_content(data_path_, locations=locations_)
+        # dataset_content(data_path_, locations=locations_)
+        print_dataset_content_table()
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")

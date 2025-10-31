@@ -31,7 +31,7 @@ def download_remote_configs(configs, local_base_dir=None, remote_base_dir=None, 
         config.save_dir = original_save_dir
 
 
-def download_remote_results(configs, local_base_dir=None, remote_base_dir=None, host=None):
+def download_remote_results(configs, local_base_dir=None, remote_base_dir=None, host=None, rmsa_filtering=True):
     """
     Downloads remote results files to the local base directory.
 
@@ -54,9 +54,14 @@ def download_remote_results(configs, local_base_dir=None, remote_base_dir=None, 
         original_save_dir = config.save_dir
         if local_base_dir is not None:
             config.save_dir = local_base_dir
-        local_path = os.path.dirname(get_path_results(config, config.get_name()))
+        results_path = get_path_results(config, config.get_name())
+        if not rmsa_filtering:
+            results_path = results_path.replace('.pkl', '_noRMSA.pkl')
+        local_path = os.path.dirname(results_path)
         config.save_dir = remote_base_dir
         remote_path = get_path_results(config, config.get_name())
+        if not rmsa_filtering:
+            remote_path = remote_path.replace('.pkl', '_noRMSA.pkl')
         os.makedirs(local_path, exist_ok=True)
         os.system(f'scp {host}:{remote_path} {local_path} ')
         config.save_dir = original_save_dir

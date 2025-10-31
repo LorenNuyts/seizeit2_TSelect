@@ -26,13 +26,19 @@ if __name__ == '__main__':
     locations_ = sorted(list(dict.fromkeys(args.locations)))
     suffix_ = args.suffix
     configs_ = [
-        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection"),
+
         get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+                                     held_out_fold=True, pretty_name="Channel Selection",
+                                     version_experiments=None),
         # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),

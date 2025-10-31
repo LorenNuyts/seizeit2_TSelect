@@ -234,7 +234,7 @@ class Data:
             segment.__segment = (start_time, stop_time)
             return segment
 
-    def apply_preprocess(self, fs, store_preprocessed=False, data_path=None, recording=None, rereference_channel=True) -> None:
+    def apply_preprocess(self, fs, store_preprocessed=False, data_path=None, recording=None, rereference_channel=False) -> None:
         """
         Apply preprocessing to the data object.
 

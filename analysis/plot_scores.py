@@ -88,7 +88,7 @@ def violin_plot(configs: list, metric: str, threshold: float, output_path: str):
 
             plt.close()
 
-def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_path: str):
+def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_path: str, rmsa_filtering: bool = True):
     # included_folds = [1,3,4,5,7,8,9]
     full_to_short_names = get_unique_config_names(configs)
 
@@ -101,6 +101,8 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
     for metric in metrics:
         for config in configs:
             results_path = os.path.join(base_dir, "..", get_path_results(config, config.get_name()))
+            if not rmsa_filtering:
+                results_path = results_path.replace('.pkl', '_noRMSA.pkl')
             results = Results(config)
             print("Now handling: ", results_path)
             if os.path.exists(results_path):
@@ -108,7 +110,7 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
             else:
                 print(f"Results not found for {config.get_name()}, downloading...")
                 download_remote_configs([config], local_base_dir=config.save_dir)
-                download_remote_results([config], local_base_dir=config.save_dir)
+                download_remote_results([config], local_base_dir=config.save_dir, rmsa_filtering=rmsa_filtering)
                 results.load_results(results_path)
 
             # included_values = [v for i, v in enumerate(getattr(results, metric)) if i in included_folds]
@@ -183,6 +185,8 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
 
         if output_path:
             suffix = configs[0].cross_validation
+            if not rmsa_filtering:
+                suffix += "_noRMSA"
             # suffix = configs[0].cross_validation + "_no_heldout"
             # suffix = configs[0].cross_validation + "_heldout_only"
             plot_path = os.path.splitext(output_path)[0] + f"_{metric.replace('.', '_')}_{suffix}.png"
@@ -210,6 +214,7 @@ if __name__ == '__main__':
     )
     parser.add_argument("--threshold", type=float, default=0.5, nargs="?")
     parser.add_argument("--suffix", type=str, nargs="?", default="")
+    parser.add_argument("--no_rmsa", action="store_true")
     args = parser.parse_args()
     task = args.task
     metric_ = args.metric
@@ -317,7 +322,7 @@ if __name__ == '__main__':
         else:
             metrics_ = [metric_]
         output_path_ = os.path.join(output_path_base, "varying_thresholds")
-        plot_varying_thresholds(configs_, metrics=metrics_, output_path=output_path_)
+        plot_varying_thresholds(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa)
 
     if os.path.exists("net/"):
         shutil.rmtree("net/")
