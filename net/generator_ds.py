@@ -517,7 +517,7 @@ def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, 
             try:
                 create_single_tfrecord(config, recs, s)
             except Exception as e:
-                print(f"Error creating TFRecord for segment {s} from recording {recs[s[0]]}: {e}")
+                print(f"Error creating TFRecord for segment {s} from recording {recs[int(s[0])]}: {e}")
                 raise e
 
     dataset = tf.data.TFRecordDataset(tfrecord_files, num_parallel_reads=tf.data.AUTOTUNE)
