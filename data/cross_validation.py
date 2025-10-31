@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from analysis.dataset import dataset_stats
-from utility.constants import SEED, subjects_with_seizures, excluded_subjects, Locations, Keys
+from utility.constants import SEED, subjects_Fz_reference, excluded_subjects, Locations, Keys, subjects_with_seizures
 
 
 def leave_one_person_out(root_dir: str, included_locations: list[str] = None, validation_set: Optional[float] = None,
@@ -176,6 +176,7 @@ def get_CV_generator(config):
     held_out_subjects = []
 
     if config.cross_validation == Keys.leave_one_person_out:
+        raise NotImplementedError("Leave one person out cross-validation is outdated.")
         if config.held_out_fold:
             raise NotImplementedError("Leave one person out cross-validation with held out fold is not implemented yet.")
         CV_generator = leave_one_person_out(config.data_path, included_locations=config.locations,
@@ -185,6 +186,10 @@ def get_CV_generator(config):
         info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"),
                                        config.locations)
         test_size = 1 - (config.train_percentage + config.validation_percentage)
+        if config.Fz_reference:
+            info_per_group = info_per_group[info_per_group['subject'].isin(subjects_Fz_reference)]
+        else:
+            info_per_group = info_per_group[~info_per_group['subject'].isin(subjects_Fz_reference)]
         if config.held_out_fold:
             gen = multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
                                                                     id_column='subject',
@@ -207,6 +212,10 @@ def get_CV_generator(config):
     elif config.cross_validation == Keys.leave_one_hospital_out:
         info_per_group = dataset_stats(config.data_path, os.path.join(config.save_dir, "dataset_stats"),
                                        config.locations)
+        if config.Fz_reference:
+            info_per_group = info_per_group[info_per_group['subject'].isin(subjects_Fz_reference)]
+        else:
+            info_per_group = info_per_group[~info_per_group['subject'].isin(subjects_Fz_reference)]
         if config.held_out_fold:
             test_size = 1 - (config.train_percentage + config.validation_percentage)
             df = info_per_group.copy()

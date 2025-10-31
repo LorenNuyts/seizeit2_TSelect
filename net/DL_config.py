@@ -8,6 +8,7 @@ import os
 from TSelect.tselect.tselect.utils.metrics import auroc_score
 from utility.constants import Locations, Nodes, Paths, Keys, evaluation_metrics
 
+CURRENT_VERSION = 2
 
 class Config():
     """ Class to create and store an experiment configuration object with the architecture hyper-parameters, input and sampling types.
@@ -39,7 +40,7 @@ class Config():
     def __init__(self, data_path=None, model='ChronoNet', dataset='SZ2', fs=None, CH=None, frame=2, stride=1,
                  stride_s=0.5, boundary=0.5, batch_size=64, sample_type='subsample', factor=5, l2=0, lr=0.01,
                  dropoutRate=0, nb_epochs=50, class_weights = {0:1, 1:1}, cross_validation=Keys.stratified, save_dir='savedir',
-                 held_out_fold = False, version_experiments=1):
+                 held_out_fold = False, Fz_reference=False, version_experiments=CURRENT_VERSION):
 
         self.random_seed = 0
         self.data_path = data_path
@@ -69,6 +70,7 @@ class Config():
         self.held_out_fold = held_out_fold
         self.held_out_subjects = None
         self.version_experiments = version_experiments
+        self.Fz_reference = Fz_reference
 
         # models parameters
         self.data_format = tf.keras.backend.image_data_format
@@ -110,6 +112,8 @@ class Config():
             base_name += '_' + locations_str
         # if set(self.included_channels).intersection(set(Nodes.wearable_nodes)) == 0:
         #     base_name += '_no_wearables'
+        if self.Fz_reference:
+            base_name += '_Fz_ref'
         if hasattr(self, 'add_to_name') and self.add_to_name != "":
             base_name = base_name + '_' + self.add_to_name
         if self.version_experiments is not None:
@@ -119,7 +123,8 @@ class Config():
 
 def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
                     included_channels=None, CV=Keys.stratified, held_out_fold=False, pretty_name=None,
-                    version_experiments=1, suffix=""):
+                    Fz_reference=False,
+                    version_experiments=CURRENT_VERSION, suffix=""):
     """
     Function to get the base configuration for the model. The function sets the parameters for the model, including
     the data path, save directory, sampling frequency, number of channels, batch size, window size, stride, balancing
@@ -164,7 +169,7 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
                          f"'Cross_T7' or 'T7'.")
 
     config = Config(model=model, batch_size=batch_size, cross_validation=CV, held_out_fold=held_out_fold,
-                    version_experiments=version_experiments)
+                    version_experiments=version_experiments, Fz_reference=Fz_reference)
     if pretty_name:
         config.pretty_name = pretty_name
     if 'dtai' in base_dir:
@@ -230,11 +235,11 @@ def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_s
                                  irrelevant_selector_percentage=0.6,
                                  corr_threshold=0.5, irrelevant_selector_threshold=-100, CV=Keys.stratified,
                                  held_out_fold=False,
-                                 pretty_name=None,
-                                version_experiments=1, suffix="") -> Config:
+                                 pretty_name=None, Fz_reference=False,
+                                version_experiments=CURRENT_VERSION, suffix="") -> Config:
     config = get_base_config(base_dir, locations, model=model, included_channels=included_channels,
                              pretty_name=pretty_name, batch_size=batch_size, CV=CV, held_out_fold=held_out_fold,
-                             version_experiments=version_experiments,
+                             version_experiments=version_experiments, Fz_reference=Fz_reference,
                              suffix=suffix)
     config.channel_selection = True
     config.selected_channels = None

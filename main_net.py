@@ -52,6 +52,8 @@ parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
 parser.add_argument("--held_out_fold", action='store_true')
 parser.add_argument("--fold", type=int, nargs="?", default=None)
 parser.add_argument("--no_rmsa", action='store_true', help="If set, do not use filter based on RMSA.")
+parser.add_argument("--Fz_reference", action='store_true',
+                    help="If set, only use subjects that have Fz as reference channel.")
 
 args = parser.parse_args()
 
@@ -98,10 +100,11 @@ if args.channel_selection:
                                           irrelevant_selector_threshold=args.irr_th,
                                           irrelevant_selector_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
                                           suffix=suffix_, included_channels=args.nodes, batch_size=args.batch_size,
-                                          held_out_fold=args.held_out_fold)
+                                          held_out_fold=args.held_out_fold, Fz_reference=args.Fz_reference)
 else:
     config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
-                             batch_size=args.batch_size, CV= args.CV, held_out_fold=args.held_out_fold)
+                             batch_size=args.batch_size, CV= args.CV, held_out_fold=args.held_out_fold,
+                             Fz_reference=args.Fz_reference)
 
 ###########################################
 ###########################################

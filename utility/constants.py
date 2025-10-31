@@ -16,6 +16,12 @@ subjects_with_seizures = {'SUBJ-1a-159', 'SUBJ-7-376', 'SUBJ-4-259', 'SUBJ-1a-35
                           'SUBJ-4-230', 'SUBJ-4-466', 'SUBJ-6-256', 'SUBJ-7-449', 'SUBJ-6-275', 'SUBJ-4-139',
                           'SUBJ-6-311', 'SUBJ-6-393', 'SUBJ-1a-353', 'SUBJ-4-254', 'SUBJ-7-331', 'SUBJ-7-441'}
 
+subjects_Fz_reference = {'SUBJ-1a-006', "SUBJ-1a-014", "SUBJ-1a-015", "SUBJ-1a-027", "SUBJ-1a-036", "SUBJ-1a-039",
+                         "SUBJ-1a-044", "SUBJ-1a-048", "SUBJ-1a-055",  "SUBJ-1a-066", "SUBJ-1a-068",  "SUBJ-1a-076",
+                         "SUBJ-1a-080", "SUBJ-1a-082" ,"SUBJ-1a-087", "SUBJ-1a-094",  "SUBJ-1a-098", "SUBJ-1a-102",
+                         "SUBJ-1a-109", "SUBJ-1a-115", "SUBJ-1a-118", "SUBJ-1a-147", "SUBJ-1a-152", "SUBJ-1a-153",
+                         "SUBJ-1a-155", "SUBJ-1a-159", "SUBJ-1a-160", }
+
 # excluded_subjects = {'SUBJ-1b-315'}
 excluded_subjects = {}
 
