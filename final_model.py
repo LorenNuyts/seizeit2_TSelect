@@ -50,6 +50,9 @@ parser.add_argument("--CV", type=str, nargs="?", default=Keys.stratified,
                     choices=["leave_one_person_out", "stratified", "leave_one_hospital_out"],
                     help="Cross-validation method to use. Defaults to 'leave_one_person_out'.")
 parser.add_argument("--fold", type=int, nargs="?", default=None)
+parser.add_argument("--no_rmsa", action='store_true', help="If set, do not use filter based on RMSA.")
+parser.add_argument("--Fz_reference", action='store_true',
+                    help="If set, only use subjects that have Fz as reference channel.")
 
 args = parser.parse_args()
 
@@ -85,13 +88,18 @@ print("Model:", args.model)
 
 config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_ + "_final_model_" + args.nodes,
                          included_channels=args.nodes,
-                             batch_size=args.batch_size)
-dual_config = get_channel_selection_config(base_, unique_locations, model=args.model,
-                                          evaluation_metric=evaluation_metrics[args.evaluation_metric],
-                                          irrelevant_selector_threshold=args.irr_th,
-                                          irrelevant_selector_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
-                                          suffix=suffix_, included_channels='all', batch_size=args.batch_size,
-                                          held_out_fold=True)
+                             batch_size=args.batch_size, Fz_reference=args.Fz_reference)
+if args.nodes in ['all', 'no_wearables', 'CROSStop']:
+    dual_config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
+                             batch_size=args.batch_size, CV= args.CV, held_out_fold=args.held_out_fold,
+                             Fz_reference=args.Fz_reference)
+else:
+    dual_config = get_channel_selection_config(base_, unique_locations, model=args.model,
+                                              evaluation_metric=evaluation_metrics[args.evaluation_metric],
+                                              irrelevant_selector_threshold=args.irr_th,
+                                              irrelevant_selector_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
+                                              suffix=suffix_, included_channels='all', batch_size=args.batch_size,
+                                              held_out_fold=True, Fz_reference=args.Fz_reference)
 
 ###########################################
 ###########################################
@@ -145,10 +153,16 @@ if os.path.exists(results_path):
     if not os.path.exists(config_path):
         config = results.config # If the config file is not there (because I didn't download it), load the config from the results file
 
+if not hasattr(results, "rmsa_filtering"):
+    results.rmsa_filtering = True  # If the config does not have this attribute, set it to True
+
+if args.no_rmsa:
+    results.rmsa_filtering = False
+
 config.held_out_subjects = dual_config.held_out_subjects
 config.folds = dual_config.folds
 config.held_out_fold = True
-config.nb_folds = 1
+# config.nb_folds = 1
 
 # Ask terminal confirmation before training the final model
 proceed = input(f"About to train the final model using all channels ({config.get_name()}). Proceed? (y/n): ")

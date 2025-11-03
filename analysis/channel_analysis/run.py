@@ -34,11 +34,17 @@ if __name__ == '__main__':
         #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection"),
 
+        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection",
+        #                              version_experiments=None),
+
         get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0.5, CV=Keys.stratified,
                                      held_out_fold=True, pretty_name="Channel Selection",
-                                     version_experiments=None),
+                                     Fz_reference=True),
         # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
