@@ -150,6 +150,12 @@ config.folds = dual_config.folds
 config.held_out_fold = True
 config.nb_folds = 1
 
+# Ask terminal confirmation before training the final model
+proceed = input(f"About to train the final model using all channels ({config.get_name()}). Proceed? (y/n): ")
+if proceed.lower() not in ['y', 'yes']:
+    print("Aborting.")
+    exit()
+
 ###########################################
 ###########################################
 main_func.train_final_model(config, dual_config, results, fold=args.fold)

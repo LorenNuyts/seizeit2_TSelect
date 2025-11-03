@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 from analysis.channel_analysis.file_management import download_remote_configs, download_remote_results
+from analysis.utils import find_longest_common_substring
 from utility.constants import evaluation_metrics, parse_location, Locations, Keys
 from net.DL_config import get_base_config, get_channel_selection_config, Config
 from utility.paths import get_path_results
@@ -261,6 +262,27 @@ if __name__ == '__main__':
                                      irrelevant_selector_threshold=0.5, CV=Keys.stratified,
                                      held_out_fold=True, pretty_name="Channel Selection"),
         ]
+    configs_stratified_Fz_reference = [
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
+                        held_out_fold=True, pretty_name="Baseline (all channels)", Fz_reference=True),
+
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
+                        included_channels="no_wearables",
+                        held_out_fold=True, pretty_name="Baseline (full-scalp EEG)", Fz_reference=True),
+
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
+                        included_channels="CROSStop",
+                        held_out_fold=True, pretty_name="Baseline (CROSStop SD)", Fz_reference=True),
+        # get_base_config(base_dir, unique_locations, suffix="rerun", CV=Keys.stratified,
+        #                 held_out_fold=True, pretty_name="Baseline"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection", Fz_reference=True),
+    ]
     configs_stratified_final_model_reuse = [
         get_base_config(base_dir, unique_locations, suffix="_final_model_reuse_base", included_channels="all",
                         held_out_fold=True, pretty_name="Baseline (held-out fold)"),
@@ -293,7 +315,7 @@ if __name__ == '__main__':
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    configs_ = configs_stratified
+    configs_ = configs_stratified_Fz_reference
     # configs_ = configs_stratified_final_model
     # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [
@@ -321,7 +343,8 @@ if __name__ == '__main__':
             metrics_ = ['f1_ovlp', 'fah_ovlp', 'fah_epoch', 'prec_ovlp', 'sens_ovlp', 'score']
         else:
             metrics_ = [metric_]
-        output_path_ = os.path.join(output_path_base, "varying_thresholds")
+        common_name = find_longest_common_substring([config.get_name() for config in configs_])
+        output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
         plot_varying_thresholds(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa)
 
     if os.path.exists("net/"):
