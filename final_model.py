@@ -186,7 +186,7 @@ if args.nodes in ['all', 'no_wearables', 'CROSStop']:
         reference_model_weights_path = get_path_model_weights(reference_model_save_path, dual_config.get_name())
         if not os.path.exists(new_model_weights_path):
             os.makedirs(os.path.dirname(new_model_weights_path), exist_ok=True)
-            print(f'Copying model from {reference_model_weights_path} to {new_model_weights_path}')
+            # print(f'Copying model from {reference_model_weights_path} to {new_model_weights_path}')
             shutil.copyfile(reference_model_weights_path, new_model_weights_path)
 
         # # Make sure the correct held-out fold is set as the test set

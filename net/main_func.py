@@ -81,8 +81,9 @@ def train(config, results, load_segments, save_segments, fold=None):
         K.clear_session()
         gc.collect()
         model_save_path = get_path_model(config, name, fold_i)
-        path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
-        if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
+        model_save_path_weights = get_path_model_weights(model_save_path, name)
+        # path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
+        if os.path.exists(model_save_path) and os.path.exists(model_save_path_weights):
             print('    | Model of fold {} already exists'.format(fold_i))
             continue
         elif config.model.lower() == Keys.minirocketLR.lower() and os.path.exists(os.path.join(model_save_path, 'MiniRocketLR_model.joblib')):
@@ -270,8 +271,9 @@ def train_final_model(config, dual_config, results, fold):
         K.clear_session()
         gc.collect()
         model_save_path = get_path_model(config, name, fold_i)
-        path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
-        if os.path.exists(model_save_path) and os.path.exists(path_last_epoch_callback):
+        model_save_path_weights = get_path_model_weights(model_save_path, name)
+        # path_last_epoch_callback = os.path.join(model_save_path, 'Callbacks', name + f'_{config.nb_epochs:02d}.weights.h5')
+        if os.path.exists(model_save_path) and os.path.exists(model_save_path_weights):
             print('    | Model of fold {} already exists'.format(fold_i))
             continue
         # if fold_i in config.channel_selector.keys():

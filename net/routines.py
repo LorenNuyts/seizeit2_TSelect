@@ -12,6 +12,8 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, CSVLogger
 from tensorflow.keras.metrics import AUC
 from tensorflow.keras.callbacks import LearningRateScheduler
 
+from utility.paths import get_path_model_weights
+
 
 def get_num_workers(fraction=0.5, min_workers=1, max_workers=None):
     """
@@ -120,7 +122,7 @@ def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path, s
     # serialize weights to HDF5
     best_model = model
     best_model.load_weights(cb_model.format(epoch=np.argmax(hist.history['val_score'])+1))
-    best_model.save_weights(os.path.join(model_save_path, 'Weights', name + ".weights.h5"))
+    best_model.save_weights(get_path_model_weights(model_save_path, name))
 
     print("Saved model to disk")
 
