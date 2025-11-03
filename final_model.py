@@ -170,6 +170,29 @@ config.save_config(save_path=config_path)
 results.config = config
 results.save_results(save_path=results_path)
 
+###########################################
+###########################################
+# If models don't exist yet, copy them
+if args.nodes in ['all', 'no_wearables', 'CROSStop']:
+    print("Copying models from dual config...")
+    if os.path.exists(dual_config_path):
+        dual_config_path.load_config(dual_config_path, dual_config_path.get_name())
+    else:
+        raise ValueError(f'Config file for model {dual_config.get_name()} not found at {dual_config_path}. Please run the original experiment first.')
+    for fold_i in dual_config.folds.keys():
+        new_model_save_path = get_path_model(config, config.get_name(), fold_i)
+        new_model_weights_path = get_path_model_weights(new_model_save_path, config.get_name())
+        reference_model_save_path = get_path_model(dual_config, dual_config.get_name(), fold_i)
+        reference_model_weights_path = get_path_model_weights(reference_model_save_path, dual_config.get_name())
+        if not os.path.exists(new_model_weights_path):
+            os.makedirs(os.path.dirname(new_model_weights_path), exist_ok=True)
+            print(f'Copying model from {reference_model_weights_path} to {new_model_weights_path}')
+            shutil.copyfile(reference_model_weights_path, new_model_weights_path)
+
+        # # Make sure the correct held-out fold is set as the test set
+        # config.folds[fold_i] = config_model.folds[fold_i]
+        # config.folds[fold_i]['test'] = config_model.held_out_subjects
+
 # Ask terminal confirmation before training the final model
 proceed = input(f"About to train the final model ({config.get_name()}). Proceed? (y/n): ")
 if proceed.lower() not in ['y', 'yes']:
