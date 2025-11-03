@@ -164,6 +164,12 @@ config.folds = dual_config.folds
 config.held_out_fold = True
 # config.nb_folds = 1
 
+
+os.makedirs(config_path, exist_ok=True)
+config.save_config(save_path=config_path)
+results.config = config
+results.save_results(save_path=results_path)
+
 # Ask terminal confirmation before training the final model
 proceed = input(f"About to train the final model using all channels ({config.get_name()}). Proceed? (y/n): ")
 if proceed.lower() not in ['y', 'yes']:
