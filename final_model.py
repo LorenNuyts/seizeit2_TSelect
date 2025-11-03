@@ -176,7 +176,7 @@ results.save_results(save_path=results_path)
 if args.nodes in ['all', 'no_wearables', 'CROSStop']:
     print("Copying models from dual config...")
     if os.path.exists(dual_config_path):
-        dual_config.load_config(dual_config_path, dual_config_path.get_name())
+        dual_config.load_config(dual_config_path, dual_config.get_name())
     else:
         raise ValueError(f'Config file for model {dual_config.get_name()} not found at {dual_config_path}. Please run the original experiment first.')
     for fold_i in dual_config.folds.keys():
