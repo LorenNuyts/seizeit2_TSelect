@@ -91,7 +91,7 @@ config = get_base_config(base_, unique_locations, model=args.model, suffix=suffi
                              batch_size=args.batch_size, Fz_reference=args.Fz_reference)
 if args.nodes in ['all', 'no_wearables', 'CROSStop']:
     dual_config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
-                             batch_size=args.batch_size, CV= args.CV, held_out_fold=args.held_out_fold,
+                             batch_size=args.batch_size, CV= args.CV, held_out_fold=True,
                              Fz_reference=args.Fz_reference)
 else:
     dual_config = get_channel_selection_config(base_, unique_locations, model=args.model,
