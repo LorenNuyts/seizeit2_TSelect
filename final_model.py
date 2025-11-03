@@ -87,7 +87,7 @@ print("Model:", args.model)
 ###########################################
 
 config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_ + "_final_model_" + args.nodes,
-                         included_channels=args.nodes,
+                         included_channels=args.nodes, held_out_fold=True,
                              batch_size=args.batch_size, Fz_reference=args.Fz_reference)
 if args.nodes in ['all', 'no_wearables', 'CROSStop']:
     dual_config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
@@ -171,7 +171,7 @@ results.config = config
 results.save_results(save_path=results_path)
 
 # Ask terminal confirmation before training the final model
-proceed = input(f"About to train the final model using all channels ({config.get_name()}). Proceed? (y/n): ")
+proceed = input(f"About to train the final model ({config.get_name()}). Proceed? (y/n): ")
 if proceed.lower() not in ['y', 'yes']:
     print("Aborting.")
     exit()
