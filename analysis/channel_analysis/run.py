@@ -11,7 +11,7 @@ base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__fi
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("task", type=str,
-                        choices=["frequent_channels", "count_channels", "interchangeable_channels"],)
+                        choices=["frequent_channels", "count_channels", "interchangeable_channels", "analyze_channels"],)
     parser.add_argument("--suffix", type=str, nargs="?", default="")
     parser.add_argument(
         '--locations',
@@ -29,10 +29,14 @@ if __name__ == '__main__':
         # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
-        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-        #                              evaluation_metric=evaluation_metrics['score'],
-        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-        #                              held_out_fold=True, pretty_name="Channel Selection"),
+        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection"),
+        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection"),
 
         # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'],
@@ -40,11 +44,11 @@ if __name__ == '__main__':
         #                              held_out_fold=True, pretty_name="Channel Selection",
         #                              version_experiments=None),
 
-        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection",
-                                     Fz_reference=True),
+        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection",
+        #                              Fz_reference=True),
         # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
@@ -80,9 +84,13 @@ if __name__ == '__main__':
     elif args.task == "count_channels":
         count_selected_channels_across_folds(base_dir, configs_, output_path=output_path_)
     elif args.task == "interchangeable_channels":
-        if args.download:
-            download_remote_results(configs_, local_base_dir=configs_[0].save_dir)
 
+        find_interchangeable_channels(base_dir, configs_, output_path_)
+    elif args.task == 'analyze_channels':
+        configs_save_dirs = [c.save_dir for c in configs_]
+        mine_frequent_channels(base_dir, configs_, output_path=output_path_, min_support=0.2)
+        for c_ix in range(len(configs_)):
+            configs_[c_ix].save_dir = configs_save_dirs[c_ix]
         find_interchangeable_channels(base_dir, configs_, output_path_)
     else:
         raise ValueError(f"Unknown task: {args.task}. Choose from 'frequent_channels' or 'count_channels'.")
