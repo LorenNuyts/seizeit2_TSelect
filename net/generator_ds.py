@@ -525,7 +525,8 @@ def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, 
                     pass
             except Exception as e:
                 print(f"TFRecord file {path} is corrupted. Recreating...")
-                create_single_tfrecord(config, recs, s)
+                create_single_tfrecord(config, recs, s, force=True)
+
 
 
     dataset = tf.data.TFRecordDataset(tfrecord_files, num_parallel_reads=tf.data.AUTOTUNE)

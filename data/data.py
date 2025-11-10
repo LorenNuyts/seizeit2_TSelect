@@ -343,12 +343,12 @@ def serialize_example(segment_data, label):
     return example_proto.SerializeToString()
 
 
-def create_single_tfrecord(config, recs, segment):
+def create_single_tfrecord(config, recs, segment, force=False):
     rec_index, start_time, stop_time, label_val = segment
     recording = recs[int(rec_index)]
     tfrecord_path = get_path_tfrecord(config.data_path, recording, start_time, stop_time)
 
-    if os.path.exists(tfrecord_path):
+    if os.path.exists(tfrecord_path) and not force:
         return
 
     # Load the preprocessed segment
