@@ -519,13 +519,13 @@ def build_tfrecord_dataset(config, recs, segments, batch_size=32, shuffle=True, 
             except Exception as e:
                 print(f"Error creating TFRecord for segment {s} from recording {recs[int(s[0])]}: {e}")
                 raise e
-        # else:
-        #     try:
-        #         for _ in tf.data.TFRecordDataset(path):
-        #             pass
-        #     except Exception as e:
-        #         print(f"TFRecord file {path} is corrupted. Recreating...")
-        #         create_single_tfrecord(config, recs, s, force=True)
+        else:
+            try:
+                for _ in tf.data.TFRecordDataset(path):
+                    pass
+            except Exception as e:
+                print(f"TFRecord file {path} is corrupted. Recreating...")
+                create_single_tfrecord(config, recs, s, force=True)
 
 
 
