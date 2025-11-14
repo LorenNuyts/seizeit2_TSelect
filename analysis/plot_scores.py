@@ -89,7 +89,8 @@ def violin_plot(configs: list, metric: str, threshold: float, output_path: str):
 
             plt.close()
 
-def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_path: str, rmsa_filtering: bool = True):
+def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_path: str, rmsa_filtering: bool = True,
+                            split_on_seizure_location: bool = False):
     # included_folds = [1,3,4,5,7,8,9]
     full_to_short_names = get_unique_config_names(configs)
 
@@ -315,7 +316,7 @@ if __name__ == '__main__':
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    configs_ = configs_stratified_Fz_reference
+    configs_ = configs_stratified
     # configs_ = configs_stratified_final_model
     # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [

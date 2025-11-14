@@ -1,3 +1,4 @@
+import copy
 import itertools
 import os
 from collections import defaultdict
@@ -9,8 +10,10 @@ from matplotlib import pyplot as plt
 from openpyxl.styles import Font, Alignment
 from openpyxl.utils import get_column_letter
 
-from net.DL_config import Config
-from utility.paths import get_path_config
+from analysis.channel_analysis.file_management import download_remote_configs, download_remote_results
+from net.DL_config import Config, get_base_config
+from utility.paths import get_path_config, get_path_results
+from utility.stats import Results
 
 
 def count_selected_channels_across_folds(base_dir, configs: List[Config], output_path: str = None):
@@ -334,103 +337,96 @@ def process_co_occurrence_matrix(co_occurrence: np.ndarray, minimal_support=0.5)
 
     return list_to_tree(groups)
 
-    # def add_to_partial_result(to_add):
-    #     added_at_least_once = False
-    #     maximal_possibilities = []
-    #     results_of = [for g in groups if add_to_result_of in g]
-    #     for result_i in index_structure[add_to_result_of]:
-    #         maximal_possibility = groups[result_i].copy()
-    #         can_add = True
-    #         for elem in groups[result_i]:
-    #             if elem == to_add or elem == add_to_result_of:
-    #                 continue
-    #             # if np.isnan(co_occurrence[elem, to_add]) or co_occurrence[elem, to_add] < minimal_support:
-    #             if co_occurrence[elem, to_add] < minimal_support:
-    #                 can_add = False
-    #                 maximal_possibility.remove(elem)
-    #         if can_add:
-    #             groups[result_i].add(to_add)
-    #             added_at_least_once = True
-    #         else:
-    #             maximal_possibilities.append(maximal_possibility)
-    #     return added_at_least_once, maximal_possibilities
-    #
-    # groups: List[Set] = []
-    #
-    # for i in range(co_occurrence.shape[0]):
-    #     for j in range(i, co_occurrence.shape[1]):
-    #         if co_occurrence[i, j] >= minimal_support:
-    #             added_i, possibilities_i = add_to_partial_result(i, j)
-    #             added_j, possibilities_j = add_to_partial_result(j, i)
-    #             if not added_i and not added_j:
-    #                 if len(possibilities_i) == 0 and len(possibilities_j) == 0:
-    #                     groups.append({i, j})
-    #                 else:
-    #                     for p in possibilities_i:
-    #                         p.add(i)
-    #                         if p not in groups:
-    #                             groups.append(p)
-    #                     for p in possibilities_j:
-    #                         p.add(j)
-    #                         if p not in groups:
-    #                             groups.append(p)
-    #
-    #
-    #
-    # # groups = retain_maximal_sets(groups) # TODO adapt indexing structure!
-    # # result = []
-    # # for i, indices in index_structure.items():
-    # #     if len(indices) > 1:
-    # #         results_i = [groups[idx] for idx in indices]
-    # #         tree = sets_to_tree(results_i)
-    # #     else:
-    # #         result.append(groups[indices.pop()])
-    #
-    # return groups
+def construct_set_selected_channels(base_dir, configs: List[Config], output_path: str, minimal_support: float = 0.2,
+                                    threshold_metric: float = 0.5, metric:str = 'score'):
+    assert 0 <= minimal_support <= 1
+    for i, config in enumerate(configs):
+        config_save_dir = config.save_dir
+        config_path = os.path.join(base_dir, "..", "..", get_path_config(config, config.get_name()))
+        results_path = os.path.join(base_dir, "..", "..", get_path_results(config, config.get_name()))
+        base_config = copy.deepcopy(config)
+        base_config.channel_selection = False
+        base_config.add_to_name = ""
+        base_config_path = os.path.join(base_dir, "..", "..", get_path_config(base_config, base_config.get_name()))
+        base_results_path = os.path.join(base_dir, "..", "..", get_path_results(base_config, base_config.get_name()))
+        if os.path.exists(config_path):
+            config.load_config(config_path, config.get_name())
+        else:
+            print(f"Config not found for {config.get_name()}")
+            continue
 
-# def retain_maximal_sets(sets):
-#     # Sort sets by length in descending order
-#     sorted_sets = sorted(sets, key=len, reverse=True)
-#     result = []
-#
-#     for s in sorted_sets:
-#         # Add the set to the result only if it is not a subset of any set already in the result
-#         if not any(s < other for other in result):
-#             result.append(s)
-#
-#     return result
-#
-# def sets_to_tree(sets_):
-#     from collections import defaultdict
-#
-#     def build_tree(sets):
-#         if not sets:
-#             return None
-#
-#         # Convert sets to sorted lists for consistent processing
-#         sorted_lists = [sorted(s) for s in sets]
-#
-#         # Find the common elements
-#         common_elements = set.intersection(*sets) if sets else set()
-#
-#         # Remove the common elements from all sets
-#         children = defaultdict(list)
-#         for s in sets:
-#             remaining = s - common_elements
-#             if remaining:
-#                 children[frozenset(remaining)].append(remaining)
-#
-#         # Recursively build the tree for each child
-#         return {
-#             "value": list(common_elements),
-#             "children": [build_tree([set(c) for c in child]) for child in children.values()]
-#         }
-#
-#     return build_tree(sets_)
+        if os.path.exists(base_config_path):
+            base_config.load_config(base_config_path, base_config.get_name())
+        else:
+            download_remote_configs([base_config], local_base_dir=config_save_dir)
+            if os.path.exists(base_config_path):
+                base_config.load_config(base_config_path, base_config.get_name())
+            else:
+                print(f"Base config not found for {base_config.get_name()}")
+                continue
 
-# def co_occurrence_matrix2tree(co_occur)
+        config.nb_folds = len(config.folds)
+        results = Results(config)
+        if os.path.exists(results_path):
+            results.load_results(results_path)
+        else:
+            print(f"Results not found for {config.get_name()}")
+            continue
 
+        base_results = Results(base_config)
+        if os.path.exists(base_results_path):
+            base_results.load_results(base_results_path)
+        else:
+            download_remote_results([base_config], local_base_dir=config_save_dir)
+            if os.path.exists(base_results_path):
+                base_results.load_results(base_results_path)
+            else:
+                print(f"Base results not found for {base_config.get_name()}")
+                continue
 
+        selected_channels = [config.selected_channels[fold_i] for fold_i in range(config.nb_folds)]
+        selected_channels_counts = defaultdict(int)
+        for fold_i in range(config.nb_folds):
+            for ch in config.selected_channels[fold_i]:
+                selected_channels_counts[ch] += 1
+        all_selected_channels = set(selected_channels_counts.keys())
+        channel_combinations = []
+        for r in range(1, len(all_selected_channels) + 1):
+            combinations_r = itertools.combinations(all_selected_channels, r)
+            channel_combinations.extend(combinations_r)
 
+        th_ix = results.thresholds.index(threshold_metric)
+        metrics = getattr(results, metric)
+        metric_per_fold = [metrics[fold_i][th_ix] for fold_i in range(len(metrics))]
 
+        base_metrics = getattr(base_results, metric)
+        base_metric_per_fold = [base_metrics[fold_i][th_ix] for fold_i in range(len(base_metrics))]
+
+        difference_per_fold = [metric_per_fold[fold_i] - base_metric_per_fold[fold_i]
+                               for fold_i in range(len(metric_per_fold))]
+
+        score_combinations = {}
+        for combination in channel_combinations:
+            combination_set = set(combination)
+            folds_with_combination = [fold_i for fold_i in range(config.nb_folds)
+                                     if combination_set.issubset(set(selected_channels[fold_i]))]
+            if len(folds_with_combination) / config.nb_folds >= minimal_support:
+                scores_with_combination = [difference_per_fold[fold_i] for fold_i in folds_with_combination]
+                if not scores_with_combination:
+                    score_with_combination = 0
+                else:
+                    score_with_combination = np.mean(scores_with_combination)
+                scores_without_combination = [difference_per_fold[fold_i] for fold_i in range(config.nb_folds)
+                                                if fold_i not in folds_with_combination]
+                if not scores_without_combination:
+                    score_without_combination = 0
+                else:
+                    score_without_combination = np.mean(scores_without_combination)
+                score_combinations[combination] = score_with_combination - score_without_combination
+
+        sorted_score_combinations = sorted(score_combinations.items(), key=lambda x: x[1], reverse=True)
+        print(f"Differences per fold for {config.get_name()}: {difference_per_fold}")
+        print(f"Channel combinations for {config.get_name()}:")
+        for combination, score in sorted_score_combinations:
+            print(f"Channels: {combination}, Score difference: {score}")
 

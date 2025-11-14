@@ -201,4 +201,5 @@ main_func.predict(config, fold=args.fold)
 
 if args.fold is None:
     print('Getting evaluation metrics...')
-    main_func.evaluate(config, results)
+    # main_func.evaluate(config, results)
+    main_func.evaluate_per_lateralization(config, results)
