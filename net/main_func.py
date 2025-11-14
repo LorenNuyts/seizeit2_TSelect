@@ -706,7 +706,7 @@ def evaluate_per_lateralization(config: Config, results: Results):
                 metrics[lat][m].append(np.nanmean(metrics_fold[lat][m], axis=0))
 
             # to_cut = np.arg`max(fah_ovlp_th)
-            to_cut = np.argmax(metrics[Metrics.fah_ovlp][-1])
+            to_cut = np.argmax(metrics[lat][Metrics.fah_ovlp][-1])
             fah_ovlp_plot_rec = metrics[lat][Metrics.fah_ovlp][-1][to_cut:]
             sens_ovlp_plot_rec = metrics[lat][Metrics.sens_ovlp][-1][to_cut:]
             prec_ovlp_plot_rec = metrics[lat][Metrics.prec_ovlp][-1][to_cut:]
