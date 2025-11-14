@@ -678,6 +678,8 @@ def evaluate_per_lateralization(config: Config, results: Results):
             df = pd.read_csv(tsv_path, delimiter="\t", skiprows=4)
             lateralizations = []
             for i_row, row in df.iterrows():
+                if pd.isna(row['lateralization']):
+                    continue
                 lateralizations.append(row['lateralization'].lower())
 
             if all(['left' in lat for lat in lateralizations]):
