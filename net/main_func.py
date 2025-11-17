@@ -719,6 +719,8 @@ def evaluate_per_lateralization(config: Config, results: Results):
             except IndexError as e:
                 print(f"To cut: {to_cut}")
                 print(f"Fah ovlp: {metrics[lat][Metrics.fah_ovlp][-1]}")
+                print(f"Lateralization: {lat}")
+                print(f"Nb folds in lateralization: {len(metrics[lat][Metrics.fah_ovlp])}")
                 raise e
 
             score_05 = [x[25] for x in metrics[lat][Metrics.score]]
