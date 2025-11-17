@@ -707,14 +707,19 @@ def evaluate_per_lateralization(config: Config, results: Results):
 
             # to_cut = np.arg`max(fah_ovlp_th)
             to_cut = np.argmax(metrics[lat][Metrics.fah_ovlp][-1])
-            fah_ovlp_plot_rec = metrics[lat][Metrics.fah_ovlp][-1][to_cut:]
-            sens_ovlp_plot_rec = metrics[lat][Metrics.sens_ovlp][-1][to_cut:]
-            prec_ovlp_plot_rec = metrics[lat][Metrics.prec_ovlp][-1][to_cut:]
+            try:
+                fah_ovlp_plot_rec = metrics[lat][Metrics.fah_ovlp][-1][to_cut:]
+                sens_ovlp_plot_rec = metrics[lat][Metrics.sens_ovlp][-1][to_cut:]
+                prec_ovlp_plot_rec = metrics[lat][Metrics.prec_ovlp][-1][to_cut:]
+                y_plot = np.interp(x_plot, fah_ovlp_plot_rec[::-1], sens_ovlp_plot_rec[::-1])
+                sens_ovlp_plots[lat].append(y_plot)
+                y_plot = np.interp(x_plot, sens_ovlp_plot_rec[::-1], prec_ovlp_plot_rec[::-1])
+                prec_ovlp_plots[lat].append(y_plot)
 
-            y_plot = np.interp(x_plot, fah_ovlp_plot_rec[::-1], sens_ovlp_plot_rec[::-1])
-            sens_ovlp_plots[lat].append(y_plot)
-            y_plot = np.interp(x_plot, sens_ovlp_plot_rec[::-1], prec_ovlp_plot_rec[::-1])
-            prec_ovlp_plots[lat].append(y_plot)
+            except IndexError as e:
+                print(f"To cut: {to_cut}")
+                print(f"Fah ovlp: {metrics[lat][Metrics.fah_ovlp][-1]}")
+                raise e
 
             score_05 = [x[25] for x in metrics[lat][Metrics.score]]
 
