@@ -629,37 +629,19 @@ def evaluate_per_lateralization(config: Config, results: Results):
     if not os.path.exists(os.path.join(config.save_dir, 'results')):
         os.makedirs(os.path.join(config.save_dir, 'results'))
 
-    name_left = name + '_left'
-    name_right = name + '_right'
-    name_unknown = name + '_unknown'
-    name_no_seizures = name + '_no_seizures'
+    # name_left = name + '_left'
+    # name_right = name + '_right'
+    # name_unknown = name + '_unknown'
+    # name_no_seizures = name + '_no_seizures'
+    # name_bilateral = name + '_bilateral'
     # name_mixed = name + '_mixed'
+    all_lateralizations = ['left', 'right', 'unknown', 'no_seizures', 'bilateral']  # , 'mixed']
 
-    result_files = {'left': os.path.join(config.save_dir, 'results', name_left + '.h5'),
-                    'right': os.path.join(config.save_dir, 'results', name_right + '.h5'),
-                    'unknown': os.path.join(config.save_dir, 'results', name_unknown + '.h5'),
-                     'no_seizures': os.path.join(config.save_dir, 'results', name_no_seizures + '.h5'),
-                    # 'mixed': os.path.join(config.save_dir, 'results', name_mixed + '.h5'),
-                    }
+    result_files = {lat: os.path.join(config.save_dir, 'results', name + lat + '.h5') for lat in all_lateralizations}
 
-    metrics = {'left': {Metrics.get(m): [] for m in Metrics.all_keys()},
-                'right': {Metrics.get(m): [] for m in Metrics.all_keys()},
-                'unknown': {Metrics.get(m): [] for m in Metrics.all_keys()},
-               'no_seizures': {Metrics.get(m): [] for m in Metrics.all_keys()},
-                # 'mixed': {Metrics.get(m): [] for m in Metrics.all_keys()},
-                }
-    sens_ovlp_plots = {'left': [],
-                        'right': [],
-                        'unknown': [],
-                          'no_seizures': [],
-                       # 'mixed': []
-                       }
-    prec_ovlp_plots = {'left': [],
-                        'right': [],
-                        'unknown': [],
-                       'no_seizures': [],
-                       # 'mixed': []
-                       }
+    metrics = {lat: {Metrics.get(m): [] for m in Metrics.all_keys()} for lat in all_lateralizations}
+    sens_ovlp_plots = {lat: [] for lat in all_lateralizations}
+    prec_ovlp_plots = {lat: [] for lat in all_lateralizations}
 
     for fold_i in config.folds.keys():
         K.clear_session()
@@ -669,13 +651,7 @@ def evaluate_per_lateralization(config: Config, results: Results):
         pred_files = [x for x in os.listdir(pred_path)]
         pred_files.sort()
 
-        metrics_fold = {'left': {m: [] for m in metrics['left'].keys()},
-                        'right': {m: [] for m in metrics['right'].keys()},
-                        'unknown': {m: [] for m in metrics['unknown'].keys()},
-                        'no_seizures': {m: [] for m in metrics['no_seizures'].keys()},
-                        # 'mixed': {m: [] for m in metrics['mixed'].keys()}
-                        }
-
+        metrics_fold = {lat: {m: [] for m in metrics[lat].keys()} for lat in all_lateralizations}
 
         for file in tqdm(pred_files):
             splitted_file = file.split('__')
@@ -718,9 +694,9 @@ def evaluate_per_lateralization(config: Config, results: Results):
         for lat in metrics.keys():
             for m in metrics[lat].keys():
                 metrics[lat][m].append(np.nanmean(metrics_fold[lat][m], axis=0))
-                if lat == 'right':
-                    print(f"mean: {np.nanmean(metrics_fold[lat][m], axis=0)}")
-                    print(f"Nb folds in lateralization {lat}: {len(metrics_fold[lat][m])}")
+                # if lat == 'right':
+                #     print(f"mean: {np.nanmean(metrics_fold[lat][m], axis=0)}")
+                #     print(f"Nb folds in lateralization {lat}: {len(metrics_fold[lat][m])}")
 
             # to_cut = np.arg`max(fah_ovlp_th)
             to_cut = np.argmax(metrics[lat][Metrics.fah_ovlp][-1])
