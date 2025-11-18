@@ -694,9 +694,10 @@ def evaluate_per_lateralization(config: Config, results: Results):
         for lat in metrics.keys():
             for m in metrics[lat].keys():
                 metrics[lat][m].append(np.nanmean(metrics_fold[lat][m], axis=0))
-                # if lat == 'right':
-                #     print(f"mean: {np.nanmean(metrics_fold[lat][m], axis=0)}")
-                #     print(f"Nb folds in lateralization {lat}: {len(metrics_fold[lat][m])}")
+                if lat == 'bilateral':
+                    print(f"mean: {np.nanmean(metrics_fold[lat][m], axis=0)}")
+                    print(f"Nb folds in lateralization {lat}: {len(metrics_fold[lat][m])}")
+                    print(f"Metrics folds in lateralization {lat}: {metrics_fold[lat][m]}")
 
             # to_cut = np.arg`max(fah_ovlp_th)
             to_cut = np.argmax(metrics[lat][Metrics.fah_ovlp][-1])
@@ -713,7 +714,7 @@ def evaluate_per_lateralization(config: Config, results: Results):
                 print(f"To cut: {to_cut}")
                 print(f"Fah ovlp: {metrics[lat][Metrics.fah_ovlp][-1]}")
                 print(f"Lateralization: {lat}")
-                print(f"Nb folds in lateralization: {len(metrics[lat][Metrics.fah_ovlp])}")
+                print(f"Nb thresholds in lateralization: {len(metrics[lat][Metrics.fah_ovlp])}")
                 raise e
 
 
