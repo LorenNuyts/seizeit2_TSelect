@@ -692,6 +692,9 @@ def evaluate_per_lateralization(config: Config, results: Results):
                 metrics_fold[lateralization][m].append(metrics_th[m])
 
         for lat in metrics.keys():
+            if len(metrics_fold[lat][Metrics.fah_ovlp]) == 0:
+                print(f"No recordings for lateralization {lat} in fold {fold_i}. Skipping...")
+                continue
             for m in metrics[lat].keys():
                 metrics[lat][m].append(np.nanmean(metrics_fold[lat][m], axis=0))
                 if lat == 'bilateral':
