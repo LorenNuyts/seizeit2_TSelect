@@ -632,26 +632,32 @@ def evaluate_per_lateralization(config: Config, results: Results):
     name_left = name + '_left'
     name_right = name + '_right'
     name_unknown = name + '_unknown'
+    name_no_seizures = name + '_no_seizures'
     # name_mixed = name + '_mixed'
 
     result_files = {'left': os.path.join(config.save_dir, 'results', name_left + '.h5'),
                     'right': os.path.join(config.save_dir, 'results', name_right + '.h5'),
                     'unknown': os.path.join(config.save_dir, 'results', name_unknown + '.h5'),
+                     'no_seizures': os.path.join(config.save_dir, 'results', name_no_seizures + '.h5'),
                     # 'mixed': os.path.join(config.save_dir, 'results', name_mixed + '.h5'),
                     }
 
     metrics = {'left': {Metrics.get(m): [] for m in Metrics.all_keys()},
                 'right': {Metrics.get(m): [] for m in Metrics.all_keys()},
                 'unknown': {Metrics.get(m): [] for m in Metrics.all_keys()},
+               'no_seizures': {Metrics.get(m): [] for m in Metrics.all_keys()},
                 # 'mixed': {Metrics.get(m): [] for m in Metrics.all_keys()},
                 }
     sens_ovlp_plots = {'left': [],
                         'right': [],
                         'unknown': [],
-                       'mixed': []}
+                          'no_seizures': [],
+                       # 'mixed': []
+                       }
     prec_ovlp_plots = {'left': [],
                         'right': [],
                         'unknown': [],
+                       'no_seizures': [],
                        # 'mixed': []
                        }
 
@@ -666,6 +672,7 @@ def evaluate_per_lateralization(config: Config, results: Results):
         metrics_fold = {'left': {m: [] for m in metrics['left'].keys()},
                         'right': {m: [] for m in metrics['right'].keys()},
                         'unknown': {m: [] for m in metrics['unknown'].keys()},
+                        'no_seizures': {m: [] for m in metrics['no_seizures'].keys()},
                         # 'mixed': {m: [] for m in metrics['mixed'].keys()}
                         }
 
@@ -685,8 +692,11 @@ def evaluate_per_lateralization(config: Config, results: Results):
                     continue
                 lateralizations.append(row['lateralization'].lower())
 
-            lat_counts = Counter(lateralizations)
-            lateralization, _ = lat_counts.most_common()[0]
+            if len(lateralizations) == 0:
+                lateralization = 'no_seizures'
+            else:
+                lat_counts = Counter(lateralizations)
+                lateralization, _ = lat_counts.most_common()[0]
             # if all(['left' in lat for lat in lateralizations]):
             #     lateralization = 'left'
             # elif all(['right' in lat for lat in lateralizations]):
