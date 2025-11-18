@@ -276,9 +276,10 @@ if __name__ == '__main__':
                         held_out_fold=True, pretty_name="Baseline (CROSStop SD)", Fz_reference=True),
         # get_base_config(base_dir, unique_locations, suffix="rerun", CV=Keys.stratified,
         #                 held_out_fold=True, pretty_name="Baseline"),
-        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
-        #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
+                                     irrelevant_selector_threshold=0,
+                                     held_out_fold=True, pretty_name="Channel Selection (th=0)"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0.5, CV=Keys.stratified,
@@ -316,7 +317,8 @@ if __name__ == '__main__':
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    configs_ = configs_stratified
+    # configs_ = configs_stratified
+    configs_ = configs_stratified_Fz_reference
     # configs_ = configs_stratified_final_model
     # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [

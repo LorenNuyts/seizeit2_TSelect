@@ -4,6 +4,7 @@ import gc
 
 import time
 import warnings
+from collections import Counter
 
 import h5py
 import pickle
@@ -631,18 +632,18 @@ def evaluate_per_lateralization(config: Config, results: Results):
     name_left = name + '_left'
     name_right = name + '_right'
     name_unknown = name + '_unknown'
-    name_mixed = name + '_mixed'
+    # name_mixed = name + '_mixed'
 
     result_files = {'left': os.path.join(config.save_dir, 'results', name_left + '.h5'),
                     'right': os.path.join(config.save_dir, 'results', name_right + '.h5'),
                     'unknown': os.path.join(config.save_dir, 'results', name_unknown + '.h5'),
-                    'mixed': os.path.join(config.save_dir, 'results', name_mixed + '.h5'),
+                    # 'mixed': os.path.join(config.save_dir, 'results', name_mixed + '.h5'),
                     }
 
     metrics = {'left': {Metrics.get(m): [] for m in Metrics.all_keys()},
                 'right': {Metrics.get(m): [] for m in Metrics.all_keys()},
                 'unknown': {Metrics.get(m): [] for m in Metrics.all_keys()},
-                'mixed': {Metrics.get(m): [] for m in Metrics.all_keys()},
+                # 'mixed': {Metrics.get(m): [] for m in Metrics.all_keys()},
                 }
     sens_ovlp_plots = {'left': [],
                         'right': [],
@@ -651,7 +652,8 @@ def evaluate_per_lateralization(config: Config, results: Results):
     prec_ovlp_plots = {'left': [],
                         'right': [],
                         'unknown': [],
-                       'mixed': []}
+                       # 'mixed': []
+                       }
 
     for fold_i in config.folds.keys():
         K.clear_session()
@@ -664,7 +666,8 @@ def evaluate_per_lateralization(config: Config, results: Results):
         metrics_fold = {'left': {m: [] for m in metrics['left'].keys()},
                         'right': {m: [] for m in metrics['right'].keys()},
                         'unknown': {m: [] for m in metrics['unknown'].keys()},
-                        'mixed': {m: [] for m in metrics['mixed'].keys()}}
+                        # 'mixed': {m: [] for m in metrics['mixed'].keys()}
+                        }
 
 
         for file in tqdm(pred_files):
@@ -682,15 +685,17 @@ def evaluate_per_lateralization(config: Config, results: Results):
                     continue
                 lateralizations.append(row['lateralization'].lower())
 
-            if all(['left' in lat for lat in lateralizations]):
-                lateralization = 'left'
-            elif all(['right' in lat for lat in lateralizations]):
-                lateralization = 'right'
-            elif all(['unknown' in lat for lat in lateralizations]):
-                lateralization = 'unknown'
-            else:
-                warnings.warn("Mixed lateralization found for file {}. Assigning to 'mixed' category.".format(file))
-                lateralization = 'mixed'
+            lat_counts = Counter(lateralizations)
+            lateralization, _ = lat_counts.most_common()[0]
+            # if all(['left' in lat for lat in lateralizations]):
+            #     lateralization = 'left'
+            # elif all(['right' in lat for lat in lateralizations]):
+            #     lateralization = 'right'
+            # elif all(['unknown' in lat for lat in lateralizations]):
+            #     lateralization = 'unknown'
+            # else:
+            #     warnings.warn("Mixed lateralization found for file {}. Assigning to 'mixed' category.".format(file))
+            #     lateralization = 'mixed'
 
             file_path = os.path.join(pred_path, file)
 
@@ -701,9 +706,11 @@ def evaluate_per_lateralization(config: Config, results: Results):
                 metrics_fold[lateralization][m].append(metrics_th[m])
 
         for lat in metrics.keys():
-            results_lat = copy.deepcopy(results)
             for m in metrics[lat].keys():
                 metrics[lat][m].append(np.nanmean(metrics_fold[lat][m], axis=0))
+                if lat == 'right':
+                    print(f"mean: {np.nanmean(metrics_fold[lat][m], axis=0)}")
+                    print(f"Nb folds in lateralization {lat}: {len(metrics_fold[lat][m])}")
 
             # to_cut = np.arg`max(fah_ovlp_th)
             to_cut = np.argmax(metrics[lat][Metrics.fah_ovlp][-1])
@@ -723,49 +730,52 @@ def evaluate_per_lateralization(config: Config, results: Results):
                 print(f"Nb folds in lateralization: {len(metrics[lat][Metrics.fah_ovlp])}")
                 raise e
 
-            score_05 = [x[25] for x in metrics[lat][Metrics.score]]
 
-            print('Score: ' + "%.2f" % np.nanmean(score_05))
+    for lat in metrics.keys():
+        results_lat = copy.deepcopy(results)
+        score_05 = [x[25] for x in metrics[lat][Metrics.score]]
 
-            with h5py.File(result_files[lat], 'w') as f:
-                for m in metrics[lat].keys():
-                    f.create_dataset(m, data=metrics[lat][m])
+        print('Score: ' + "%.2f" % np.nanmean(score_05))
 
-                f.create_dataset('sens_ovlp_plot', data=sens_ovlp_plots[lat])
-                f.create_dataset('prec_ovlp_plot', data=prec_ovlp_plots[lat])
-                f.create_dataset('x_plot', data=x_plot)
+        with h5py.File(result_files[lat], 'w') as f:
+            for m in metrics[lat].keys():
+                f.create_dataset(m, data=metrics[lat][m])
 
-            results_lat.sens_ovlp = metrics[lat][Metrics.sens_ovlp]
-            results_lat.prec_ovlp = metrics[lat][Metrics.prec_ovlp]
-            results_lat.fah_ovlp = metrics[lat][Metrics.fah_ovlp]
-            results_lat.f1_ovlp = metrics[lat][Metrics.f1_ovlp]
-            results_lat.sens_epoch = metrics[lat][Metrics.sens_epoch]
-            results_lat.spec_epoch = metrics[lat][Metrics.spec_epoch]
-            results_lat.prec_epoch = metrics[lat][Metrics.prec_epoch]
-            results_lat.fah_epoch = metrics[lat][Metrics.fah_epoch]
-            results_lat.score = metrics[lat][Metrics.score]
-            results_lat.thresholds = thresholds
+            f.create_dataset('sens_ovlp_plot', data=sens_ovlp_plots[lat])
+            f.create_dataset('prec_ovlp_plot', data=prec_ovlp_plots[lat])
+            f.create_dataset('x_plot', data=x_plot)
 
-            # Save the results
-            results_save_path = get_path_results(config, name + '_' + lat)
-            if not results_lat.rmsa_filtering:
-                results_save_path = results_save_path.replace('.pkl', '_noRMSA.pkl')
-            results_lat.config = config
-            results_lat.save_results(results_save_path)
+        results_lat.sens_ovlp = metrics[lat][Metrics.sens_ovlp]
+        results_lat.prec_ovlp = metrics[lat][Metrics.prec_ovlp]
+        results_lat.fah_ovlp = metrics[lat][Metrics.fah_ovlp]
+        results_lat.f1_ovlp = metrics[lat][Metrics.f1_ovlp]
+        results_lat.sens_epoch = metrics[lat][Metrics.sens_epoch]
+        results_lat.spec_epoch = metrics[lat][Metrics.spec_epoch]
+        results_lat.prec_epoch = metrics[lat][Metrics.prec_epoch]
+        results_lat.fah_epoch = metrics[lat][Metrics.fah_epoch]
+        results_lat.score = metrics[lat][Metrics.score]
+        results_lat.thresholds = thresholds
 
-            # Print some metrics
-            average_nb_channels = np.mean([len(chs) for chs in config.selected_channels.values()]) if config.channel_selection else config.CH
+        # Save the results
+        results_save_path = get_path_results(config, name + '_' + lat)
+        if not results_lat.rmsa_filtering:
+            results_save_path = results_save_path.replace('.pkl', '_noRMSA.pkl')
+        results_lat.config = config
+        results_lat.save_results(results_save_path)
 
-            print(f"Average score at threshold 0.5: {'%.2f' % results_lat.average_score_th05}")
-            print(f"Average F1 at threshold 0.5: {'%.2f' % results_lat.average_f1_ovlp_th05}")
-            print(f"Average FAH at threshold 0.5: {'%.2f' % results_lat.average_fah_ovlp_th05}")
-            print(f"Average Sens at threshold 0.5: {'%.2f' % results_lat.average_sens_ovlp_th05}")
-            print(f"Average Prec at threshold 0.5: {'%.2f' % results_lat.average_prec_ovlp_th05}")
+        # Print some metrics
+        average_nb_channels = np.mean([len(chs) for chs in config.selected_channels.values()]) if config.channel_selection else config.CH
 
-            print("####################################################")
-            print("Average selection time: " + "%.2f" % results_lat.average_selection_time)
-            print("Total time: " + "%.2f" % results_lat.average_total_time)
-            print("Average number of cha`nnels: " + "%.2f" % average_nb_channels)
+        print(f"Average score at threshold 0.5: {'%.2f' % results_lat.average_score_th05}")
+        print(f"Average F1 at threshold 0.5: {'%.2f' % results_lat.average_f1_ovlp_th05}")
+        print(f"Average FAH at threshold 0.5: {'%.2f' % results_lat.average_fah_ovlp_th05}")
+        print(f"Average Sens at threshold 0.5: {'%.2f' % results_lat.average_sens_ovlp_th05}")
+        print(f"Average Prec at threshold 0.5: {'%.2f' % results_lat.average_prec_ovlp_th05}")
+
+        print("####################################################")
+        print("Average selection time: " + "%.2f" % results_lat.average_selection_time)
+        print("Total time: " + "%.2f" % results_lat.average_total_time)
+        print("Average number of channels: " + "%.2f" % average_nb_channels)
 
 
 
