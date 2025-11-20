@@ -47,7 +47,7 @@ if __name__ == '__main__':
         #                              Fz_reference=True),
         get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
+                                     irrelevant_selector_threshold=-1, CV=Keys.stratified,
                                      held_out_fold=True, pretty_name="Channel Selection",
                                      Fz_reference=True),
         # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
