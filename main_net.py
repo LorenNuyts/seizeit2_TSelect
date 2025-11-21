@@ -127,10 +127,10 @@ if args.reset:
     predictions_path = os.path.join(config.save_dir, 'predictions', config.get_name())
     if os.path.exists(predictions_path):
         shutil.rmtree(predictions_path)
-    # print("Deleting precomputed segments folder...")
-    # segments_path = os.path.join(config.save_dir, 'segments', config.get_name())
-    # if os.path.exists(segments_path):
-    #     shutil.rmtree(segments_path)
+    print("Deleting precomputed segments folder...")
+    segments_path = os.path.join(config.save_dir, 'segments', config.get_name())
+    if os.path.exists(segments_path):
+        shutil.rmtree(segments_path)
 
 if os.path.exists(config_path):
     config.load_config(config_path, config.get_name())
@@ -197,5 +197,5 @@ main_func.predict(config, fold=args.fold)
 
 if args.fold is None:
     print('Getting evaluation metrics...')
-    # main_func.evaluate(config, results)
+    main_func.evaluate(config, results)
     main_func.evaluate_per_lateralization(config, results)
