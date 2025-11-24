@@ -55,12 +55,12 @@ def download_remote_results(configs, local_base_dir=None, remote_base_dir=None, 
         original_save_dir = config.save_dir
         if local_base_dir is not None:
             config.save_dir = local_base_dir
-        results_path = get_path_results(config, config.get_name() + f"_{lateralization}" if lateralization else "")
+        results_path = get_path_results(config, config.get_name() + (f"_{lateralization}" if lateralization else ""))
         if not rmsa_filtering:
             results_path = results_path.replace('.pkl', '_noRMSA.pkl')
         local_path = os.path.dirname(results_path)
         config.save_dir = remote_base_dir
-        remote_path = get_path_results(config, config.get_name() + f"_{lateralization}" if lateralization else "")
+        remote_path = get_path_results(config, config.get_name() + (f"_{lateralization}" if lateralization else ""))
         if not rmsa_filtering:
             remote_path = remote_path.replace('.pkl', '_noRMSA.pkl')
         os.makedirs(local_path, exist_ok=True)

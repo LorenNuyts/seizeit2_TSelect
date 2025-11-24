@@ -108,7 +108,7 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
         thresholds = None
         for metric in metrics:
             for config in configs:
-                results_path = os.path.join(base_dir, "..", get_path_results(config, config.get_name() + f"_{lat}" if lat else ""))
+                results_path = os.path.join(base_dir, "..", get_path_results(config, config.get_name() + (f"_{lat}" if lat else "")))
                 if not rmsa_filtering:
                     results_path = results_path.replace('.pkl', '_noRMSA.pkl')
                 results = Results(config)
@@ -269,14 +269,14 @@ if __name__ == '__main__':
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
-        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-        #                              evaluation_metric=evaluation_metrics['score'],
-        #                              irrelevant_selector_threshold=0, CV=Keys.stratified,
-        #                              held_out_fold=True, pretty_name="Channel Selection (th=0)"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
         ]
     configs_stratified_Fz_reference = [
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
@@ -294,11 +294,11 @@ if __name__ == '__main__':
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
                                      irrelevant_selector_threshold=0, Fz_reference=True,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=0)"),
-        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection", Fz_reference=True),
+                                     held_out_fold=True, pretty_name="Channel Selection"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (th=0.5)", Fz_reference=True),
     ]
     configs_stratified_final_model_reuse = [
         get_base_config(base_dir, unique_locations, suffix="_final_model_reuse_base", included_channels="all",
