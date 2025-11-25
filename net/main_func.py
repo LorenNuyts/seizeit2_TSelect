@@ -752,6 +752,8 @@ def evaluate_per_lateralization(config: Config, results: Results):
         # Print some metrics
         average_nb_channels = np.mean([len(chs) for chs in config.selected_channels.values()]) if config.channel_selection else config.CH
 
+        print(f"Len scores: {len(results_lat.average_score_all_thresholds)}")
+        print(f"Shape scores: {len(results_lat.score), len(results_lat.score[0])}")
         print(f"Average score at threshold 0.5: {'%.2f' % results_lat.average_score_th05}")
         print(f"Average F1 at threshold 0.5: {'%.2f' % results_lat.average_f1_ovlp_th05}")
         print(f"Average FAH at threshold 0.5: {'%.2f' % results_lat.average_fah_ovlp_th05}")
