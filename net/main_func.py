@@ -667,7 +667,7 @@ def evaluate_per_lateralization(config: Config, results: Results):
                 if pd.isna(row['lateralization']):
                     continue
                 lateralizations.append(row['lateralization'].lower())
-
+            print(f"Lateralizations: {lateralizations} for file {file}")
             if len(lateralizations) == 0:
                 lateralization = 'no_seizures'
             else:
