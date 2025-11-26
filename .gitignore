@@ -22,3 +22,5 @@ net/generators/
 analysis/results/
 
 dataset_content.csv
+
+analysis/results_backup/
