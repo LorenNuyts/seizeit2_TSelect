@@ -374,7 +374,7 @@ if __name__ == '__main__':
         common_name = find_longest_common_substring([config.get_name() for config in configs_])
         output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
         plot_varying_thresholds(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
-                                split_localization=True)
+                                split_localization=False)
 
     if os.path.exists("net/"):
         shutil.rmtree("net/")
