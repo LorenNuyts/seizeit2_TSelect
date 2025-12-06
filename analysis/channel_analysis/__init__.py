@@ -24,7 +24,7 @@ def count_selected_channels_across_folds(base_dir, configs: List[Config], output
         else:
             print(f"Config not found for {config.get_name()}")
             continue
-        nb_folds = config.nb_folds
+        nb_folds = config.n_folds
         channels = config.selected_channels
         channel_count = {}
         for fold in channels:
@@ -96,6 +96,7 @@ def mine_frequent_channels(base_dir, configs: List[Config], output_path: str = N
 def find_interchangeable_channels(base_dir, configs: List[Config], output_path:str, minimal_support: float = 0.5):
     assert 0 <= minimal_support <= 1
     for i, config in enumerate(configs):
+        # config_save_dir = config.save_dir
         config_path = os.path.join(base_dir, "..", "..", get_path_config(config, config.get_name()))
         if os.path.exists(config_path):
             config.load_config(config_path, config.get_name())
@@ -103,7 +104,23 @@ def find_interchangeable_channels(base_dir, configs: List[Config], output_path:s
             print(f"Config not found for {config.get_name()}")
             continue
 
-        config.nb_folds = len(config.folds)
+        # base_config = copy.deepcopy(config)
+        # base_config.channel_selection = False
+        # base_config.add_to_name = ""
+        # base_config_path = os.path.join(base_dir, "..", "..", get_path_config(base_config, base_config.get_name()))
+        # base_results_path = os.path.join(base_dir, "..", "..", get_path_results(base_config, base_config.get_name()))
+        #
+        # if os.path.exists(base_config_path):
+        #     base_config.load_config(base_config_path, base_config.get_name())
+        # else:
+        #     download_remote_configs([base_config], local_base_dir=config_save_dir)
+        #     if os.path.exists(base_config_path):
+        #         base_config.load_config(base_config_path, base_config.get_name())
+        #     else:
+        #         print(f"Base config not found for {base_config.get_name()}")
+        #         continue
+
+        config.n_folds = len(config.folds)
         # results = []
         # results_path = os.path.join(base_dir, "..", "..", get_path_results(config, config.get_name()))
         # results.append(Results(config))
@@ -116,8 +133,8 @@ def find_interchangeable_channels(base_dir, configs: List[Config], output_path:s
         # result = results[i]
         included_channels = sorted(config.included_channels)
         # TODO: possibly change these two lines
-        selected_channels = [config.selected_channels[fold_i] for fold_i in range(config.nb_folds)]
-        clusters = [config.channel_selector[fold_i].clusters for fold_i in range(config.nb_folds)]
+        selected_channels = [config.selected_channels[fold_i] for fold_i in range(config.n_folds)]
+        clusters = [config.channel_selector[fold_i].clusters for fold_i in range(config.n_folds)]
         # Count how many times two channels appears in the same cluster
         co_occurrence_matrix = np.zeros((len(included_channels), len(included_channels)))
         nb_folds_channel_selected = np.zeros((len(included_channels), len(included_channels)), dtype=int)
@@ -149,13 +166,13 @@ def find_interchangeable_channels(base_dir, configs: List[Config], output_path:s
         # Average the evaluation metric for channel selection across the folds to get an indication of how relevant
         # the channel is
         average_relevance_channels = {ch: 0 for ch in range(len(included_channels))}
-        for fold_i in range(config.nb_folds):
+        for fold_i in range(config.n_folds):
             evaluation_metrics = config.channel_selector[fold_i].evaluation_metric_per_channel
             evaluation_metrics.update(config.channel_selector[fold_i].removed_series_too_low_metric)
             for ch, metric in evaluation_metrics.items():
                 average_relevance_channels[ch] += metric
         # Average the relevance across folds
-        average_relevance_channels = {ch: metric / config.nb_folds for ch, metric in average_relevance_channels.items()}
+        average_relevance_channels = {ch: metric / config.n_folds for ch, metric in average_relevance_channels.items()}
 
         # Select all channels that have a co-occurrence above a certain threshold
         processed_co_occurrence = process_co_occurrence_matrix(co_occurrence_matrix, minimal_support)
@@ -205,8 +222,21 @@ def find_interchangeable_channels(base_dir, configs: List[Config], output_path:s
 
             selected_channels_df = pd.DataFrame(
                 selected_channels,
-                index=[f"Fold {i}" for i in config.selected_channels.keys()]
+                index=[(f"Fold {i}", ", ".join(channels)) for i, channels in config.selected_channels.items()]
             )
+            # metrics = getattr(results, metric)
+            # metric_per_fold = [metrics[fold_i][th_ix] for fold_i in range(len(metrics))]
+            #
+            # base_metrics = getattr(base_results, metric)
+            # base_metric_per_fold = [base_metrics[fold_i][th_ix] for fold_i in range(len(base_metrics))]
+            #
+            # difference_per_fold = [metric_per_fold[fold_i] - base_metric_per_fold[fold_i]
+            #                        for fold_i in range(len(metric_per_fold))]
+            # selected_channels_df['Score Baseline (all channels)'] = pass
+            # selected_channels_df['Score Channel Selection'] = pass
+            #
+            # selected_channels_df['Difference'] = selected_channels_df['Score Channel Selection'] - selected_channels_df['Score Baseline (all channels)']
+
             selected_channels_df.to_excel(writer, sheet_name="Interchangeable Channels", startrow=2)
 
             # Adjust column widths for selected channels
@@ -365,7 +395,6 @@ def construct_set_selected_channels(base_dir, configs: List[Config], output_path
                 print(f"Base config not found for {base_config.get_name()}")
                 continue
 
-        config.nb_folds = len(config.folds)
         results = Results(config)
         if os.path.exists(results_path):
             results.load_results(results_path)
@@ -384,9 +413,9 @@ def construct_set_selected_channels(base_dir, configs: List[Config], output_path
                 print(f"Base results not found for {base_config.get_name()}")
                 continue
 
-        selected_channels = [config.selected_channels[fold_i] for fold_i in range(config.nb_folds)]
+        selected_channels = [config.selected_channels[fold_i] for fold_i in range(config.n_folds)]
         selected_channels_counts = defaultdict(int)
-        for fold_i in range(config.nb_folds):
+        for fold_i in range(config.n_folds):
             for ch in config.selected_channels[fold_i]:
                 selected_channels_counts[ch] += 1
         all_selected_channels = set(selected_channels_counts.keys())
@@ -408,15 +437,15 @@ def construct_set_selected_channels(base_dir, configs: List[Config], output_path
         score_combinations = {}
         for combination in channel_combinations:
             combination_set = set(combination)
-            folds_with_combination = [fold_i for fold_i in range(config.nb_folds)
+            folds_with_combination = [fold_i for fold_i in range(config.n_folds)
                                      if combination_set.issubset(set(selected_channels[fold_i]))]
-            if len(folds_with_combination) / config.nb_folds >= minimal_support:
-                scores_with_combination = [difference_per_fold[fold_i] for fold_i in folds_with_combination]
+            if len(folds_with_combination) / config.n_folds >= minimal_support:
+                scores_with_combination = [difference_per_fold[fold_i]*(len(combination)/len(config.selected_channels[fold_i])) for fold_i in folds_with_combination]
                 if not scores_with_combination:
                     score_with_combination = 0
                 else:
                     score_with_combination = np.mean(scores_with_combination)
-                scores_without_combination = [difference_per_fold[fold_i] for fold_i in range(config.nb_folds)
+                scores_without_combination = [difference_per_fold[fold_i]*(len(combination)/len(config.selected_channels[fold_i])) for fold_i in range(config.n_folds)
                                                 if fold_i not in folds_with_combination]
                 if not scores_without_combination:
                     score_without_combination = 0
@@ -425,8 +454,25 @@ def construct_set_selected_channels(base_dir, configs: List[Config], output_path
                 score_combinations[combination] = score_with_combination - score_without_combination
 
         sorted_score_combinations = sorted(score_combinations.items(), key=lambda x: x[1], reverse=True)
-        print(f"Differences per fold for {config.get_name()}: {difference_per_fold}")
+        df_folds = pd.DataFrame({
+            'Fold': list(range(config.n_folds)),
+            'Selected Channels': [", ".join(channels) for channels in config.selected_channels.values()],
+            'Score all channels': map(lambda x: round(x), base_metric_per_fold),
+            'Score selected channels': map(lambda x: round(x), metric_per_fold),
+            'Difference': map(lambda x: round(x), difference_per_fold),
+        })
+        # print(f"Differences per fold for {config.get_name()}: {difference_per_fold}")
         print(f"Channel combinations for {config.get_name()}:")
-        for combination, score in sorted_score_combinations:
-            print(f"Channels: {combination}, Score difference: {score}")
+        sorted_score_combinations = [(", ".join(list(k)), round(v)) for k, v in sorted_score_combinations]
+        # To dataframe
+        df = pd.DataFrame(sorted_score_combinations, columns=["Channel Combination", "Score Difference"])
+        print(df)
+        output_file = os.path.join(output_path, f"{config.get_name()}_channel_combinations.xlsx")
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        # Print both dataframes to different sheets in the same excel file
+        with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
+            df_folds.to_excel(writer, sheet_name="Fold Scores", index=False)
+            df.to_excel(writer, sheet_name="Channel Combinations", index=False)
+        # for combination, score in sorted_score_combinations:
+        #     print(f"Channels: {combination}, Score difference: {score}")
 

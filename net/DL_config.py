@@ -66,7 +66,7 @@ class Config():
         self.channel_selector = defaultdict()  # dictionary to store the channel selector for each fold
         self.pretty_name = None
         self.folds = {}  # dictionary to store the folds
-        self.nb_folds = 10  # number of folds for cross-validation
+        self.n_folds = 10  # number of folds for cross-validation
         self.held_out_fold = held_out_fold
         self.held_out_subjects = None
         self.version_experiments = version_experiments

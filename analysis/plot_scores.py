@@ -269,24 +269,60 @@ if __name__ == '__main__':
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
-        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-        #                              evaluation_metric=evaluation_metrics['score'],
-        #                              irrelevant_selector_threshold=0, CV=Keys.stratified,
-        #                              held_out_fold=True, pretty_name="Channel Selection (60%)"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (60%)"),
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'],
         #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.5,
         #                              CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (50%)"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.4,
+        #                              CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (40%)"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.3,
+        #                              CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (30%)"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.2,
+        #                              CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (20%)"),
+        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+        ]
+    configs_stratified_channel_selection = [
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (60%)"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.5,
+                                     CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (50%)"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.4,
                                      CV=Keys.stratified,
                                      held_out_fold=True, pretty_name="Channel Selection (40%)"),
-        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-        #                              evaluation_metric=evaluation_metrics['score'],
-        #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-        #                              held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.3,
+                                     CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (30%)"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.2,
+                                     CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (20%)"),
         ]
     configs_stratified_Fz_reference = [
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
@@ -342,7 +378,8 @@ if __name__ == '__main__':
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    configs_ = configs_stratified
+    # configs_ = configs_stratified
+    configs_ = configs_stratified_channel_selection
     # configs_ = configs_stratified_Fz_reference
     # configs_ = configs_stratified_final_model
     # configs_ = configs_loho + configs_loho_final_model_reuse
@@ -374,7 +411,7 @@ if __name__ == '__main__':
         common_name = find_longest_common_substring([config.get_name() for config in configs_])
         output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
         plot_varying_thresholds(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
-                                split_localization=False)
+                                split_localization=True)
 
     if os.path.exists("net/"):
         shutil.rmtree("net/")

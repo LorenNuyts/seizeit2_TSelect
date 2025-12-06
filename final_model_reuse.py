@@ -145,9 +145,9 @@ if os.path.exists(results_path):
 
 config.held_out_fold = True
 if args.nodes == 'all':
-    config.nb_folds = len(set.union(*[set(x) for x in dual_configs[(Nodes.CROSStop, "T7")].values()]))
+    config.n_folds = len(set.union(*[set(x) for x in dual_configs[(Nodes.CROSStop, "T7")].values()]))
 else:
-    config.nb_folds = len(set.union(*[set(x) for x in dual_configs[tuple(config.included_channels)].values()]))
+    config.n_folds = len(set.union(*[set(x) for x in dual_configs[tuple(config.included_channels)].values()]))
 
 # # Check that the train, validation, test and held-out sets are disjoint
 # for config_to_check in {c for d in dual_configs.values() for c in [config_base, *d]}:
