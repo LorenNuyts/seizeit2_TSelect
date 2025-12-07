@@ -164,6 +164,17 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
     elif included_channels == "CROSStop":
         included_channels = [Nodes.CROSStop]
         suffix = "CROSStop" + ("__" if len(suffix) != 0 else "") + suffix
+    elif included_channels.startswith("[") and included_channels.endswith("]"):
+        # Parse the string representation of the list
+        included_channels_str = included_channels[1:-1].replace(",", "_")
+        included_channels = included_channels.strip("[]").split(",")
+        included_channels = [ch.strip().strip("'").strip('"') for ch in included_channels]
+        
+        # Replace CROSStop, BTEleft, BTEright with their respective names
+        included_channels = [Nodes.CROSStop if ch == "CROSStop" else ch for ch in included_channels]
+        included_channels = [Nodes.BTEleft if ch == "BTEleft" else ch for ch in included_channels]
+        included_channels = [Nodes.BTEright if ch == "BTEright" else ch for ch in included_channels]
+        suffix = included_channels_str + ("__" if len(suffix) != 0 else "") + suffix
     else:
         raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all', 'wearables',"
                          f"'Cross_T7' or 'T7'.")

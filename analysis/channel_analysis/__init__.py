@@ -451,7 +451,7 @@ def construct_set_selected_channels(base_dir, configs: List[Config], output_path
                     score_without_combination = 0
                 else:
                     score_without_combination = np.mean(scores_without_combination)
-                score_combinations[combination] = score_with_combination - score_without_combination
+                score_combinations[combination] = score_with_combination *len(scores_with_combination) / config.n_folds#- score_without_combination
 
         sorted_score_combinations = sorted(score_combinations.items(), key=lambda x: x[1], reverse=True)
         df_folds = pd.DataFrame({
