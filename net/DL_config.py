@@ -174,6 +174,9 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         included_channels = [Nodes.CROSStop if ch == "CROSStop" else ch for ch in included_channels]
         included_channels = [Nodes.BTEleft if ch == "BTEleft" else ch for ch in included_channels]
         included_channels = [Nodes.BTEright if ch == "BTEright" else ch for ch in included_channels]
+        # assert all included channels are in Nodes.baseline_eeg_nodes
+        assert all(ch in Nodes.baseline_eeg_nodes for ch in included_channels), \
+            f"Invalid channel in included_channels: {included_channels}. Must be a subset of {Nodes.baseline_eeg_nodes}."
         suffix = included_channels_str + ("__" if len(suffix) != 0 else "") + suffix
     else:
         raise ValueError(f"Invalid argument for included_channels: {included_channels}. Options are None, 'all', 'wearables',"
