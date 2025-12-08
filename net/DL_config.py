@@ -166,10 +166,11 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         suffix = "CROSStop" + ("__" if len(suffix) != 0 else "") + suffix
     elif included_channels.startswith("[") and included_channels.endswith("]"):
         # Parse the string representation of the list
-        included_channels_str = included_channels[1:-1].replace(",", "_").replace(" ","")
+        # included_channels_str = included_channels[1:-1].replace(",", "_").replace(" ","")
         included_channels = included_channels.strip("[]").replace(" ","").split(",")
         included_channels = [ch.strip().strip("'").strip('"') for ch in included_channels]
 
+        included_channels_str = "_".join(sorted(included_channels))
         # Replace CROSStop, BTEleft, BTEright with their respective names
         included_channels = [Nodes.CROSStop if ch == "CROSStop" else ch for ch in included_channels]
         included_channels = [Nodes.BTEleft if ch == "BTEleft" else ch for ch in included_channels]
