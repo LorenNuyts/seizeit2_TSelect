@@ -139,7 +139,10 @@ if os.path.exists(config_path):
         config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
         config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
 
-dual_config.load_config(dual_config_path, dual_config.get_name())
+if not os.path.exists(dual_config_path):
+    raise ValueError(f'Config file for model {dual_config.get_name()} not found at {dual_config_path}. Please run the original experiment first.')
+else:
+    dual_config.load_config(dual_config_path, dual_config.get_name())
 
 ##### RESULTS:
 results = Results(config)
@@ -162,6 +165,8 @@ if args.no_rmsa:
 config.held_out_subjects = dual_config.held_out_subjects
 config.folds = dual_config.folds
 config.held_out_fold = True
+print("There are {} folds.".format(len(config.folds.keys())))
+print(f"Dual config folds: {dual_config.folds.keys()}")
 # config.nb_folds = 1
 
 
