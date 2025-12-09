@@ -575,6 +575,7 @@ def evaluate(config: Config, results: Results):
     results.spec_epoch = metrics[Metrics.spec_epoch]
     results.prec_epoch = metrics[Metrics.prec_epoch]
     results.fah_epoch = metrics[Metrics.fah_epoch]
+    results.f1_epoch = metrics[Metrics.f1_epoch]
     results.score = metrics[Metrics.score]
     results.thresholds = thresholds
 

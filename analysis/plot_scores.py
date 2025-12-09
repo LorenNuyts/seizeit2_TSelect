@@ -1,7 +1,6 @@
 import argparse
 import os
 import shutil
-from collections import defaultdict
 from typing import List
 
 import numpy as np
@@ -9,8 +8,9 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
 
-from analysis.channel_analysis.file_management import download_remote_configs, download_remote_results
-from analysis.utils import find_longest_common_substring
+from analysis.latex_plots import plot_varying_thresholds_latex
+from analysis.utils import find_longest_common_substring, extract_values_std_from_results, get_unique_config_names, \
+    pretty_print_metrics
 from utility.constants import evaluation_metrics, parse_location, Locations, Keys
 from net.DL_config import get_base_config, get_channel_selection_config, Config
 from utility.paths import get_path_results
@@ -18,21 +18,6 @@ from utility.stats import Results
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
-def get_unique_config_names(configs):
-    names = [config.get_name() for config in configs]
-    split_names = [name.split('_') for name in names]  # You can change the delimiter as needed
-    num_parts = max(len(parts) for parts in split_names)
-
-    unique_parts = []
-    for i in range(len(configs)):
-        unique = []
-        for j in range(num_parts):
-            parts_at_j = [split[j] if j < len(split) else "" for split in split_names]
-            if len(set(parts_at_j)) > 1:
-                if j < len(split_names[i]):
-                    unique.append(split_names[i][j])
-        unique_parts.append('_'.join(unique) if unique else names[i])
-    return dict(zip(names, unique_parts))
 
 def violin_plot(configs: list, metric: str, threshold: float, output_path: str):
     data = []
@@ -104,58 +89,8 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
         metrics.append("fah_epoch")
 
     for lat in all_lateralizations:
-        data = defaultdict(dict)
-        thresholds = None
-        for metric in metrics:
-            for config in configs:
-                results_path = os.path.join(base_dir, "..", get_path_results(config, config.get_name() + (f"_{lat}" if lat else "")))
-                if not rmsa_filtering:
-                    results_path = results_path.replace('.pkl', '_noRMSA.pkl')
-                results = Results(config)
-                print("Now handling: ", results_path)
-                if os.path.exists(results_path):
-                    results.load_results(results_path)
-                else:
-                    print(f"Results not found for {config.get_name()}, downloading...")
-                    download_remote_configs([config], local_base_dir=config.save_dir)
-                    download_remote_results([config], local_base_dir=config.save_dir, rmsa_filtering=rmsa_filtering,
-                                            lateralization=lat)
-                    results.load_results(results_path)
-
-                # included_values = [v for i, v in enumerate(getattr(results, metric)) if i in included_folds]
-                # setattr(results, metric, included_values)
-
-                average_values = getattr(results, f"average_{metric}_all_thresholds", None)
-                if average_values is None:
-                    raise ValueError(f"Metric {metric} not found in results for {config.get_name()}")
-
-                std_values = getattr(results, f"std_{metric}_all_thresholds", None)
-                if std_values is None:
-                    raise ValueError(f"Standard deviation for metric {metric} not found in results for {config.get_name()}")
-
-                if thresholds is None:
-                    thresholds = results.thresholds
-
-                label = config.pretty_name if config.pretty_name else full_to_short_names[config.get_name()]
-                data[metric][label] = {
-                    "average": average_values,
-                    "std": std_values
-                }
-
-        # Lower bound = highest threshold where everything is predicted as a seizure -> max fah
-        # Upper bound = lowest threshold where no seizure is predicted -> fah = 0
-        lower_bound = len(thresholds) - 1 # Last threshold because the lower bound should be the lowest one of all configurations
-        upper_bound = 0 # First threshold because the upper bound should be the highest one of all configurations
-        for label, values in data["fah_epoch"].items():
-            max_fah = max(values["average"])
-            lower_bound_i = len(thresholds) - 1 - values["average"][::-1].index(max_fah)
-            lower_bound = min(lower_bound, lower_bound_i)
-            upper_bound_i = values["average"].index(0.0)
-            if upper_bound_i is None:
-                upper_bound_i = len(thresholds) - 1
-            upper_bound = max(upper_bound, upper_bound_i)
-
-        thresholds = thresholds[lower_bound:upper_bound]
+        data, thresholds, lower_bound, upper_bound = extract_values_std_from_results(base_dir, configs, full_to_short_names, lat,
+                                                                                     metrics, rmsa_filtering)
 
         plt.rcParams['axes.spines.right'] = False
         plt.rcParams['axes.spines.top'] = False
@@ -214,11 +149,9 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
 if __name__ == '__main__':
     allowed_metrics = {'f1_ovlp', 'fah_ovlp', 'fah_epoch', 'prec_ovlp', 'sens_ovlp', 'score',
                        'nb_channels', 'selection_time', 'train_time', 'total_time', 'all'}
-    pretty_print_metrics = {'f1_ovlp': 'F1 (overlap)', 'fah_ovlp': 'False alarm rate (overlap)',
-                            'fah_epoch': 'False alarm rate (epoch)',
-                            'prec_ovlp': 'Precision (overlap)', 'sens_ovlp': 'Sensitivity (overlap)', 'score': 'Score',}
     parser = argparse.ArgumentParser()
-    parser.add_argument("task", type=str, choices={'violin', 'thresholds'},)
+    parser.add_argument("task", type=str, #choices={'violin', 'thresholds'},
+                        )
     parser.add_argument("metric", type=str, choices=allowed_metrics)
     parser.add_argument('--locations', nargs='+', type=parse_location,
                         default=[parse_location(l) for l in Locations.all_keys()],
@@ -256,16 +189,16 @@ if __name__ == '__main__':
 
     configs_stratified = [
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
-                        held_out_fold=True, pretty_name="Baseline (all channels)"),
+                        held_out_fold=True, pretty_name="Full-scalp + Wearables"),
 
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified, included_channels="no_wearables",
-                        held_out_fold=True, pretty_name="Baseline (full-scalp EEG)"),
+                        held_out_fold=True, pretty_name="Full-scalp"),
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified, included_channels="wearables",
-                        held_out_fold=True, pretty_name="Baseline (Wearables only)"),
+                        held_out_fold=True, pretty_name="Wearables"),
 
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
                         included_channels="CROSStop",
-                        held_out_fold=True, pretty_name="Baseline (CROSStop SD)"),
+                        held_out_fold=True, pretty_name="CROSStop SD"),
         # get_base_config(base_dir, unique_locations, suffix="rerun", CV=Keys.stratified,
         #                 held_out_fold=True, pretty_name="Baseline"),
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
@@ -413,6 +346,19 @@ if __name__ == '__main__':
         common_name = find_longest_common_substring([config.get_name() for config in configs_])
         output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
         plot_varying_thresholds(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
+                                split_localization=False)
+
+    elif task == "thresholds_latex":
+        if metric_ == 'all':
+            metrics_ = ['score', 'fah_epoch', 'fah_ovlp',
+                        'sens_epoch', 'sens_ovlp', 'f1_epoch',
+                        'f1_ovlp', 'prec_ovlp', 'prec_epoch',
+                        ]
+        else:
+            metrics_ = [metric_]
+        common_name = find_longest_common_substring([config.get_name() for config in configs_])
+        output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
+        plot_varying_thresholds_latex(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
                                 split_localization=False)
 
     if os.path.exists("net/"):
