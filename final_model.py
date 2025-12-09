@@ -178,7 +178,7 @@ results.save_results(save_path=results_path)
 ###########################################
 ###########################################
 # If models don't exist yet, copy them
-if args.nodes in ['all', 'no_wearables', 'CROSStop']:
+if args.nodes in ['all', 'no_wearables', 'CROSStop', 'wearables']:
     print("Copying models from dual config...")
     if os.path.exists(dual_config_path):
         dual_config.load_config(dual_config_path, dual_config.get_name())

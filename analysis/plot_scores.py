@@ -183,7 +183,7 @@ def plot_varying_thresholds(configs: List[Config], metrics: List[str], output_pa
                                  np.array(average_values) + np.array(std_values),
                                  alpha=0.2)
 
-            plt.xlabel("Threshold", fontsize=fontsize)
+            plt.xlabel("Decision Threshold", fontsize=fontsize)
             plt.xticks(fontsize=fontsize-2)
             plt.ylabel(pretty_print_metrics[metric], fontsize=fontsize)
             plt.yticks(fontsize=fontsize-2)
@@ -260,6 +260,8 @@ if __name__ == '__main__':
 
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified, included_channels="no_wearables",
                         held_out_fold=True, pretty_name="Baseline (full-scalp EEG)"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified, included_channels="wearables",
+                        held_out_fold=True, pretty_name="Baseline (Wearables only)"),
 
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
                         included_channels="CROSStop",
@@ -302,7 +304,7 @@ if __name__ == '__main__':
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (60%)"),
+                                     held_out_fold=True, pretty_name="Channel Selection (40%)"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.5,
@@ -312,17 +314,17 @@ if __name__ == '__main__':
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.4,
                                      CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (40%)"),
+                                     held_out_fold=True, pretty_name="Channel Selection (60%)"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.3,
                                      CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (30%)"),
+                                     held_out_fold=True, pretty_name="Channel Selection (70%)"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.2,
                                      CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (20%)"),
+                                     held_out_fold=True, pretty_name="Channel Selection (80%)"),
         ]
     configs_stratified_Fz_reference = [
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
@@ -378,8 +380,8 @@ if __name__ == '__main__':
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    # configs_ = configs_stratified
-    configs_ = configs_stratified_channel_selection
+    configs_ = configs_stratified
+    # configs_ = configs_stratified_channel_selection
     # configs_ = configs_stratified_Fz_reference
     # configs_ = configs_stratified_final_model
     # configs_ = configs_loho + configs_loho_final_model_reuse
@@ -411,7 +413,7 @@ if __name__ == '__main__':
         common_name = find_longest_common_substring([config.get_name() for config in configs_])
         output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
         plot_varying_thresholds(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
-                                split_localization=True)
+                                split_localization=False)
 
     if os.path.exists("net/"):
         shutil.rmtree("net/")
