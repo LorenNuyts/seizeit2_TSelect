@@ -167,6 +167,8 @@ config.folds = dual_config.folds
 config.held_out_fold = True
 print("There are {} folds.".format(len(config.folds.keys())))
 print(f"Dual config folds: {dual_config.folds.keys()}")
+if len(dual_config.folds.keys()) != 10:
+    print(f"Warning: the dual config {dual_config_path} does not have 10 folds.")
 # config.nb_folds = 1
 
 
