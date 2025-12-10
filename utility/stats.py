@@ -125,12 +125,28 @@ class Results:
         return [np.nanstd(prec) for prec in zip(*self.prec_ovlp)]
 
     @property
+    def average_prec_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(prec) for prec in zip(*self.prec_epoch)]
+
+    @property
+    def std_prec_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanstd(prec) for prec in zip(*self.prec_epoch)]
+
+    @property
     def average_sens_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmean(sens) for sens in zip(*self.sens_ovlp)]
 
     @property
     def std_sens_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanstd(sens) for sens in zip(*self.sens_ovlp)]
+
+    @property
+    def average_sens_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmean(sens) for sens in zip(*self.sens_epoch)]
+
+    @property
+    def std_sens_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanstd(sens) for sens in zip(*self.sens_epoch)]
 
     # @property
     # def average_rocauc_all_thresholds(self) -> List[np.float32]:
@@ -184,11 +200,25 @@ class Results:
         return best_value, self.thresholds[self.average_prec_ovlp_all_thresholds.index(best_value)]
 
     @property
+    def best_average_prec_epoch(self) -> (float, float):
+        best_value = max(self.average_prec_epoch_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
+        return best_value, self.thresholds[self.average_prec_epoch_all_thresholds.index(best_value)]
+
+    @property
     def best_average_sens_ovlp(self) -> (float, float):
         best_value = max(self.average_sens_ovlp_all_thresholds)
         if np.isnan(best_value):
             return np.nan, np.nan
         return best_value, self.thresholds[self.average_sens_ovlp_all_thresholds.index(best_value)]
+
+    @property
+    def best_average_sens_epoch(self) -> (float, float):
+        best_value = max(self.average_sens_epoch_all_thresholds)
+        if np.isnan(best_value):
+            return np.nan, np.nan
+        return best_value, self.thresholds[self.average_sens_epoch_all_thresholds.index(best_value)]
 
     # @property
     # def best_average_rocauc(self) -> (float, float):
@@ -247,12 +277,28 @@ class Results:
         return self.average_prec_ovlp_all_thresholds[index_best_threshold]
 
     @property
+    def average_prec_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_prec_epoch_all_thresholds[index_best_threshold]
+
+    @property
     def average_sens_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_average_score[1]
         if np.isnan(best_threshold):
             return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.average_sens_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def average_sens_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_average_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.average_sens_epoch_all_thresholds[index_best_threshold]
 
     # @property
     # def average_rocauc_best_threshold(self) -> np.float32:
@@ -306,11 +352,25 @@ class Results:
         return self.average_prec_ovlp_all_thresholds[index_th05]
 
     @property
+    def average_prec_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_prec_epoch_all_thresholds[index_th05]
+
+    @property
     def average_sens_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.average_sens_ovlp_all_thresholds[index_th05]
+
+    @property
+    def average_sens_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.average_sens_epoch_all_thresholds[index_th05]
 
     # @property
     # def average_rocauc_th05(self) -> np.float32:
@@ -367,12 +427,28 @@ class Results:
         return self.std_prec_ovlp_all_thresholds[index_best_threshold]
 
     @property
+    def std_prec_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.std_prec_epoch_all_thresholds[index_best_threshold]
+
+    @property
     def std_sens_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_median_score[1]
         if np.isnan(best_threshold):
             return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.std_sens_ovlp_all_thresholds[index_best_threshold]
+
+    @property
+    def std_sens_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.std_sens_epoch_all_thresholds[index_best_threshold]
 
     @property
     # def std_rocauc_best_threshold(self) -> np.float32:
@@ -426,11 +502,25 @@ class Results:
         return self.std_prec_ovlp_all_thresholds[index_th05]
 
     @property
+    def std_prec_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.std_prec_epoch_all_thresholds[index_th05]
+
+    @property
     def std_sens_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.std_sens_ovlp_all_thresholds[index_th05]
+
+    @property
+    def std_sens_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.std_sens_epoch_all_thresholds[index_th05]
 
     # @property
     # def std_rocauc_th05(self) -> np.float32:
@@ -467,8 +557,16 @@ class Results:
         return [np.nanmedian(prec) for prec in zip(*self.prec_ovlp)]
 
     @property
+    def median_prec_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(prec) for prec in zip(*self.prec_epoch)]
+
+    @property
     def median_sens_ovlp_all_thresholds(self) -> List[np.float32]:
         return [np.nanmedian(sens) for sens in zip(*self.sens_ovlp)]
+
+    @property
+    def median_sens_epoch_all_thresholds(self) -> List[np.float32]:
+        return [np.nanmedian(sens) for sens in zip(*self.sens_epoch)]
 
     # @property
     # def median_rocauc_all_thresholds(self) -> List[np.float32]:
@@ -528,12 +626,29 @@ class Results:
         return self.median_prec_ovlp_all_thresholds[index_best_threshold]
 
     @property
+    def median_prec_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_prec_epoch_all_thresholds[index_best_threshold]
+
+    @property
     def median_sens_ovlp_best_threshold(self) -> np.float32:
         best_threshold = self.best_median_score[1]
         if np.isnan(best_threshold):
             return np.float32(np.nan)
         index_best_threshold = self.thresholds.index(best_threshold)
         return self.median_sens_ovlp_all_thresholds[index_best_threshold]
+
+
+    @property
+    def median_sens_epoch_best_threshold(self) -> np.float32:
+        best_threshold = self.best_median_score[1]
+        if np.isnan(best_threshold):
+            return np.float32(np.nan)
+        index_best_threshold = self.thresholds.index(best_threshold)
+        return self.median_sens_epoch_all_thresholds[index_best_threshold]
 
     # @property
     # def median_rocauc_best_threshold(self) -> np.float32:
@@ -587,11 +702,26 @@ class Results:
         return self.median_prec_ovlp_all_thresholds[index_th05]
 
     @property
+    def median_prec_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_prec_epoch_all_thresholds[index_th05]
+
+    @property
     def median_sens_ovlp_th05(self) -> np.float32:
         if 0.5 not in self.thresholds:
             return np.float32(np.nan)
         index_th05 = self.thresholds.index(0.5)
         return self.median_sens_ovlp_all_thresholds[index_th05]
+
+
+    @property
+    def median_sens_epoch_th05(self) -> np.float32:
+        if 0.5 not in self.thresholds:
+            return np.float32(np.nan)
+        index_th05 = self.thresholds.index(0.5)
+        return self.median_sens_epoch_all_thresholds[index_th05]
 
     # @property
     # def median_rocauc_th05(self) -> np.float32:

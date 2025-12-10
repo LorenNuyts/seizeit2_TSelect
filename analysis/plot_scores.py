@@ -207,7 +207,7 @@ if __name__ == '__main__':
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (60%)"),
+                                     held_out_fold=True, pretty_name="Channel Selection (40%)"),
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'],
         #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.5,
@@ -351,7 +351,7 @@ if __name__ == '__main__':
     elif task == "thresholds_latex":
         if metric_ == 'all':
             metrics_ = ['score', 'fah_epoch', 'fah_ovlp',
-                        'sens_epoch', 'sens_ovlp', 'f1_epoch',
+                        'sens_epoch', 'sens_ovlp', #'f1_epoch',
                         'f1_ovlp', 'prec_ovlp', 'prec_epoch',
                         ]
         else:
