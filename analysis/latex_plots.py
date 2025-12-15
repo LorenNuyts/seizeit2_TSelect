@@ -4,7 +4,8 @@ from typing import List
 
 import numpy as np
 
-from analysis.utils import extract_values_std_from_results, get_unique_config_names, pretty_print_metrics
+from analysis.utils import extract_values_std_from_results, get_unique_config_names, pretty_print_metrics, \
+    pretty_print_lateralizations
 from net.DL_config import Config
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -26,13 +27,13 @@ def plot_varying_thresholds_latex(
         output_path: str,
         rmsa_filtering: bool = True,
         split_localization: bool = False,
-        plots_per_row: int = 3
+        plots_per_row: int = 2
     ):
 
     full_to_short_names = get_unique_config_names(configs)
 
     if split_localization:
-        all_lateralizations = ['left', 'right', 'unknown', 'no_seizures', 'bilateral']
+        all_lateralizations = ['left', 'right', 'bilateral', 'unknown', 'no_seizures']
     else:
         all_lateralizations = [None]
 
@@ -59,7 +60,7 @@ def plot_varying_thresholds_latex(
 
 % ================= START GROUPPLOT =================
 \begin{{groupplot}}[
-    group style={{group size={plots_per_row} by {rows}, horizontal sep=1.5cm, vertical sep=2cm,
+    group style={{group size={plots_per_row} by {rows}, horizontal sep=1.5cm, vertical sep=1.5cm,
                       group name=myplot,}},
     width=\textwidth/{plots_per_row},
     xticklabel style={{font=\small}},
@@ -84,7 +85,7 @@ def plot_varying_thresholds_latex(
                 std = values["std"][lower_bound:upper_bound]
                 parts.append(generate_tikz_block(label, thresholds, avg, std, i, add_label=(nb_metric == 0)))
 
-            metric_title = pretty_print_metrics[metric].replace('%', '\%')
+            metric_title = pretty_print_metrics[metric].replace('%', '\%') if 'score' not in metric else '\phantom{(} Score \phantom{)}'
             joined = "\n\n".join(parts)
             max_th = max(thresholds)
             min_th = min(thresholds)
@@ -96,11 +97,11 @@ def plot_varying_thresholds_latex(
 
             body += rf"""
 \nextgroupplot[
-    title={{\normalsize \textbf{metric_title}}},
+    title={{\normalsize \textbf{{{metric_title}}}}},
     {'xlabel=Decision threshold,' if nb_metric // plots_per_row == rows - 1 else ''} xtick={{{', '.join(map(str, xticks))}}},
 ]
 {joined}
-\draw[color=black, dashed, thick] (axis cs:0.5, {-max(2*abs(min_y_value), 2*abs(max_y_value))}) -- (axis cs:0.5, {max(2*abs(min_y_value), 2*abs(max_y_value))});"
+\draw[color=black, dashed, thick] (axis cs:0.5, {-max(2*abs(min_y_value), 2*abs(max_y_value))}) -- (axis cs:0.5, {max(2*abs(min_y_value), 2*abs(max_y_value))});
 """
 
         footer = r"""
@@ -115,8 +116,8 @@ def plot_varying_thresholds_latex(
     matrix of nodes,
     anchor=south,
     draw,
-    inner sep=0.3em,
-] at ([yshift=1ex]legendpos)
+    inner sep=0.2em,
+] at ([yshift=1ex, xshift=17ex]legendpos)
 {
 """
 
@@ -139,7 +140,134 @@ def plot_varying_thresholds_latex(
             f.write(final_tex)
 
         print(final_tex)
-        return
+        # Ask terminal confirmation before training the final model
+        proceed = input(f"This is {lat} lateralization. Continue to the next one. Proceed? (y/n): ")
+        if proceed.lower() not in ['y', 'yes']:
+            print("Aborting.")
+            exit()
+        else:
+            # Clear the console output for better readability
+            os.system('cls' if os.name == 'nt' else 'clear')
+    return
+
+
+def plot_varying_thresholds_latex_per_metric(
+        configs: List[Config],
+        metrics: List[str],
+        output_path: str,
+        rmsa_filtering: bool = True,
+        plots_per_row: int = 2
+    ):
+
+    full_to_short_names = get_unique_config_names(configs)
+
+    all_lateralizations = [None, 'left', 'right', 'bilateral', 'unknown']
+
+    fah_epoch_included = "fah_epoch" in metrics
+    if not fah_epoch_included:
+        metrics.append("fah_epoch")
+
+    effective_metrics = [
+        m for m in metrics if not (m == "fah_epoch" and not fah_epoch_included)
+    ]
+    for nb_metric, metric in enumerate(effective_metrics):
+        total_plots = len(all_lateralizations)
+        rows = math.ceil(total_plots / plots_per_row)
+
+        # Begin groupplot (legend will go ABOVE!)
+        header = rf"\begin{{tikzpicture}}"
+        header += rf"""
+
+% ================= START GROUPPLOT =================
+\begin{{groupplot}}[
+    group style={{group size={plots_per_row} by {rows}, horizontal sep=1.5cm, vertical sep=1.5cm,
+                      group name=myplot,}},
+    width=\textwidth/{plots_per_row},
+    xticklabel style={{font=\small}},
+    yticklabel style={{font=\small}},
+]
+"""
+        # ------------- BUILD SUBPLOTS -------------
+        body = ""
+        all_labels = []
+        for nb_lat, lat in enumerate(all_lateralizations):
+            data, thresholds, lower_bound, upper_bound = extract_values_std_from_results(
+                base_dir, configs, full_to_short_names, lat, [metric], rmsa_filtering
+            )
+            parts = []
+
+            max_y_value = 0.0
+            min_y_value = 0.0
+            for i, (label, values) in enumerate(data[metric].items()):
+                avg = values["average"][lower_bound:upper_bound]
+                if max(avg) > max_y_value:
+                    max_y_value = max(avg)
+                if min(avg) < min_y_value:
+                    min_y_value = min(avg)
+                std = values["std"][lower_bound:upper_bound]
+                text, label_id = generate_tikz_block(label, thresholds, avg, std, i, add_label=(nb_lat == 0))
+                parts.append(text)
+                if label_id not in all_labels:
+                    all_labels.append(label_id)
+
+            metric_title = pretty_print_lateralizations[lat if lat is not None else 'all']
+            joined = "\n\n".join(parts)
+            max_th = max(thresholds)
+            min_th = min(thresholds)
+            nb_ticks_per_half = math.ceil(NB_XTICKS/2)
+            xticks = np.linspace(min_th, 0.5, nb_ticks_per_half, endpoint=False)
+            xticks = np.unique(np.append(xticks, np.linspace(0.5, max_th, nb_ticks_per_half)))
+            xticks = np.round(xticks, 1)
+
+
+            body += rf"""
+\nextgroupplot[
+    title={{\normalsize \textbf{{{metric_title}}}}},
+    {'xlabel=Decision threshold,' if nb_metric // plots_per_row == rows - 1 else ''} xtick={{{', '.join(map(str, xticks))}}},
+]
+{joined}
+\draw[color=black, dashed, thick] (axis cs:0.5, {-max(2*abs(min_y_value), 2*abs(max_y_value))}) -- (axis cs:0.5, {max(2*abs(min_y_value), 2*abs(max_y_value))});
+"""
+
+        footer = r"""
+\end{groupplot}
+
+% ================= BOXED LEGEND PLACED ABOVE FIGURE =================
+\path (current bounding box.south east) coordinate (legendpos);
+\matrix (legendmatrix) [
+    matrix of nodes,
+    anchor=south east,
+    draw,
+    inner sep=0.2em,
+    draw
+  ]at([yshift=7ex, xshift=-2ex]legendpos)
+{
+"""
+        for i, lbl in enumerate(all_labels):
+            label_id = lbl.replace(" ", "_").replace("%", "")
+            safe_label = lbl.replace("%", "\\%")
+
+            footer += rf"    \ref{{plots:{label_id}}} & {safe_label} & [5pt] \\" + "\n"
+
+        footer += r"""};
+        \end{tikzpicture}
+        """
+
+        final_tex = header + body + footer
+
+        # with open(output_path, "w", encoding="utf-8") as f:
+        #     f.write(final_tex)
+
+        print(final_tex)
+        # Ask terminal confirmation before training the final model
+        proceed = input(f"This is {metric}. Continue to the next one? (y/n): ")
+        if proceed.lower() not in ['y', 'yes']:
+            print("Aborting.")
+            exit()
+        else:
+            # Clear the console output for better readability
+            os.system('cls' if os.name == 'nt' else 'clear')
+    return
 
 
 def generate_tikz_block(label, thresholds, averages, stds, idx_label, add_label=False):
@@ -157,7 +285,7 @@ def generate_tikz_block(label, thresholds, averages, stds, idx_label, add_label=
     return "\n".join([
         rf"\addplot[name path={label_id}_top, draw=none] coordinates {{ {coords_top} }};",
         rf"\addplot[name path={label_id}_down, draw=none] coordinates {{ {coords_down} }};",
-        rf"\addplot[{color}, fill opacity=0.2] fill between[of={label_id}_top and {label_id}_down];",
-        rf"\addplot[{linestyle}, line width=1.2pt, {color}] coordinates {{ {coords_main} }};",
+        rf"\addplot[{color}, fill opacity=0.1] fill between[of={label_id}_top and {label_id}_down];",
+        rf"\addplot[{linestyle}, line width={2 if linestyle != 'solid' else 1.2}pt, {color}] coordinates {{ {coords_main} }};",
         rf"\label{{plots:{label_id}}}" if add_label else "",
-    ])
+    ]), label_id

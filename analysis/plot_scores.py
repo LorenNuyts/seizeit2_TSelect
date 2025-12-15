@@ -8,7 +8,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import seaborn as sns
 
-from analysis.latex_plots import plot_varying_thresholds_latex
+from analysis.latex_plots import plot_varying_thresholds_latex, plot_varying_thresholds_latex_per_metric
 from analysis.utils import find_longest_common_substring, extract_values_std_from_results, get_unique_config_names, \
     pretty_print_metrics
 from utility.constants import evaluation_metrics, parse_location, Locations, Keys
@@ -168,25 +168,6 @@ if __name__ == '__main__':
     suffix_ = args.suffix
     unique_locations = sorted(list(dict.fromkeys(args.locations)))
 
-    # if metric_ not in allowed_metrics:
-    #     raise ValueError(f"Metric {metric_} is not allowed. Choose from {allowed_metrics}")
-    configs_stratified_old = [
-        get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
-                        held_out_fold=True, pretty_name="Baseline (old)",
-                        version_experiments=None),
-        # get_base_config(base_dir, unique_locations, suffix="rerun", CV=Keys.stratified,
-        #                 held_out_fold=True, pretty_name="Baseline"),
-        # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-        #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
-        #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
-        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (old)",
-                                     version_experiments=None),
-    ]
-
-
     configs_stratified = [
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
                         held_out_fold=True, pretty_name="Full-scalp + Wearables"),
@@ -195,6 +176,10 @@ if __name__ == '__main__':
                         held_out_fold=True, pretty_name="Full-scalp"),
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified, included_channels="wearables",
                         held_out_fold=True, pretty_name="Wearables"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
+                                     evaluation_metric=evaluation_metrics['score'], irrelevant_selector_percentage=0.7,
+                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (30%)"),
 
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
                         included_channels="CROSStop",
@@ -204,10 +189,6 @@ if __name__ == '__main__':
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
-        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (40%)"),
         # get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'],
         #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.5,
@@ -281,19 +262,33 @@ if __name__ == '__main__':
         #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection (th=0.5)", Fz_reference=True),
     ]
-    configs_stratified_final_model_reuse = [
-        get_base_config(base_dir, unique_locations, suffix="_final_model_reuse_base", included_channels="all",
-                        held_out_fold=True, pretty_name="Baseline (held-out fold)"),
-        get_base_config(base_dir, unique_locations, suffix="_final_model_reuse", included_channels="Cross_T7",
-                        held_out_fold=True, pretty_name="CROSStop SD and T7 (held-out fold)"),
-        ]
+    # configs_stratified_final_model_reuse = [
+    #     get_base_config(base_dir, unique_locations, suffix="_final_model_reuse_base", included_channels="all",
+    #                     held_out_fold=True, pretty_name="Baseline (held-out fold)"),
+    #     get_base_config(base_dir, unique_locations, suffix="_final_model_reuse", included_channels="Cross_T7",
+    #                     held_out_fold=True, pretty_name="CROSStop SD and T7 (held-out fold)"),
+    #     ]
     configs_stratified_final_model = [
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_all", held_out_fold=True,
-                                 included_channels='all', pretty_name="Baseline (held-out fold)"),
-        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_Cross_T7", held_out_fold=True,
-                                 included_channels='Cross_T7', pretty_name="CROSStop SD and T7 (held-out fold)"),
+                                 included_channels='all', pretty_name="Full-scalp + Wearables"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_no_wearables", held_out_fold=True,
+                                 included_channels='no_wearables', pretty_name="Full-scalp"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_wearables", held_out_fold=True,
+                                 included_channels='wearables', pretty_name="Wearables"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
+                                 included_channels='[T7, F7]', pretty_name="F7, T7"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_CROSStop", held_out_fold=True,
-                                 included_channels='CROSStop', pretty_name="CROSStop SD (held-out fold)"),
+                                 included_channels='CROSStop', pretty_name="CROSStop SD"),
+    ]
+    configs_stratified_final_model_channel_selection = [
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
+                                 included_channels='[T7, F7]', pretty_name="F7, T7"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
+                                 included_channels='[T7, F7, CROSStop]', pretty_name=", CROSStop SD, F7, T7"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
+                                 included_channels='[T7, F7, T8]', pretty_name="F7, T7, T8"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_T7", held_out_fold=True,
+                                 included_channels='T7', pretty_name="T7"),
     ]
     configs_loho = [
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.leave_one_hospital_out,
@@ -313,10 +308,10 @@ if __name__ == '__main__':
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    configs_ = configs_stratified
+    # configs_ = configs_stratified
     # configs_ = configs_stratified_channel_selection
     # configs_ = configs_stratified_Fz_reference
-    # configs_ = configs_stratified_final_model
+    configs_ = configs_stratified_final_model
     # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [
     #     get_base_config(base_dir, suffix=suffix_, included_channels='wearables', pretty_name="Baseline"),
@@ -346,20 +341,25 @@ if __name__ == '__main__':
         common_name = find_longest_common_substring([config.get_name() for config in configs_])
         output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
         plot_varying_thresholds(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
-                                split_localization=False)
+                                split_localization=True)
 
-    elif task == "thresholds_latex":
+    elif task == "thresholds_latex" or task =="thresholds_latex_metric":
         if metric_ == 'all':
-            metrics_ = ['score', 'fah_epoch', 'fah_ovlp',
-                        'sens_epoch', 'sens_ovlp', #'f1_epoch',
+            metrics_ = [#'score',
+                        'fah_epoch', 'fah_ovlp',
+                        'sens_epoch', 'sens_ovlp', 'f1_epoch',
                         'f1_ovlp', 'prec_ovlp', 'prec_epoch',
                         ]
         else:
             metrics_ = [metric_]
         common_name = find_longest_common_substring([config.get_name() for config in configs_])
         output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
-        plot_varying_thresholds_latex(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
-                                split_localization=False)
+        if task == "thresholds_latex_metric":
+            plot_varying_thresholds_latex_per_metric(configs_, metrics=metrics_, output_path=output_path_,
+                                                     rmsa_filtering=not args.no_rmsa)
+        else:
+            plot_varying_thresholds_latex(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
+                                    split_localization=True)
 
     if os.path.exists("net/"):
         shutil.rmtree("net/")

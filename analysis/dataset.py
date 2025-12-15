@@ -9,7 +9,7 @@ import pandas as pd
 import pyedflib
 
 from data.data import switch_channels
-from utility.constants import Nodes, Paths, Locations
+from utility.constants import Nodes, Paths, Locations, subjects_Fz_reference
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -133,6 +133,8 @@ def rank_locations(root_dir, locations: List[str]):
         location_path = os.path.join(root_dir, location)
         location_counts[location][1] = len(os.listdir(location_path))
         for subject in os.listdir(location_path):
+            if subject in subjects_Fz_reference:
+                continue
             print("     | Processing subject:", subject)
             subject_path = os.path.join(location_path, subject)
             for recording in os.listdir(subject_path):
@@ -230,6 +232,8 @@ def dataset_stats(data_path: str, save_dir: str, locations: List[str] = None):
             continue
         subjects = os.listdir(location_path)
         for subject in subjects:
+            if subject in subjects_Fz_reference:
+                continue
             n_seizures = 0
             hours_of_data = 0
             subject_path = os.path.join(location_path, subject)
@@ -367,6 +371,8 @@ def dataset_content(data_path: str, locations: List[str] = None):
             continue
         subjects = os.listdir(location_path)
         for subject in subjects:
+            if subject in subjects_Fz_reference:
+                continue
             print("     | Processing subject:", subject)
             table_subject = {'Subject ID': subject, 'Hospital': Locations.to_acronym(location), 'Duration Recordings (hours)': 0,
                              'SD Configuration': None, 'Affected Lobe': [], 'FA': 0, 'FIA': 0,
@@ -514,7 +520,7 @@ if __name__ == '__main__':
     elif args.task == "find_ref_channel":
         find_ref_channel(data_path_, locations=locations_)
     elif args.task == 'dataset_content':
-        # dataset_content(data_path_, locations=locations_)
-        print_dataset_content_table()
+        dataset_content(data_path_, locations=locations_)
+        # print_dataset_content_table()
     else:
         raise ValueError(f"Unknown task: {args.task}. Use 'channel_names' or 'subjects_with_seizures'.")

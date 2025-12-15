@@ -100,6 +100,13 @@ def get_unique_config_names(configs):
     return dict(zip(names, unique_parts))
 
 
-pretty_print_metrics = {'f1_ovlp': 'F1 (overlap)', 'fah_ovlp': 'False alarm rate (overlap)',
-                        'fah_epoch': 'False alarm rate (epoch)',
-                        'prec_ovlp': 'Precision (overlap)', 'sens_ovlp': 'Sensitivity (overlap)', 'score': 'Score',}
+pretty_print_metrics = {'f1_ovlp': 'F1 (overlap)', 'f1_epoch': 'F1 (epoch)',
+                        'fah_ovlp': 'False alarm rate (overlap)', 'fah_epoch': 'False alarm rate (epoch)',
+                        'prec_ovlp': 'Precision (overlap)', 'prec_epoch': 'Precision (epoch)',
+                        'sens_ovlp': 'Sensitivity (overlap)', 'sens_epoch': 'Sensitivity (epoch)',
+                        'spec_epoch': 'Specificity (epoch)',
+                        'score': 'Score',}
+
+pretty_print_lateralizations = {'left': 'Left lateralization', 'right': 'Right lateralization',
+                                'bilateral': 'Bilateral lateralization', 'all': 'All lateralizations',
+                                'unknown': 'Unknown lateralization'}
