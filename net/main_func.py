@@ -718,7 +718,8 @@ def evaluate_per_lateralization(config: Config, results: Results):
 
 
     for lat in metrics.keys():
-        results_lat = copy.deepcopy(results)
+        results_lat = Results(results.config)
+        # results_lat = copy.deepcopy(results) # TODO: fix this
         score_05 = [x[25] for x in metrics[lat][Metrics.score]]
 
         print('Score: ' + "%.2f" % np.nanmean(score_05))
@@ -739,6 +740,7 @@ def evaluate_per_lateralization(config: Config, results: Results):
         results_lat.spec_epoch = metrics[lat][Metrics.spec_epoch]
         results_lat.prec_epoch = metrics[lat][Metrics.prec_epoch]
         results_lat.fah_epoch = metrics[lat][Metrics.fah_epoch]
+        results_lat.f1_epoch = metrics[lat][Metrics.f1_epoch]
         results_lat.score = metrics[lat][Metrics.score]
         results_lat.thresholds = thresholds
 

@@ -28,6 +28,10 @@ def extract_values_std_from_results(base_dir: str, configs: list[Config], full_t
     defaultdict[str, dict], list[float], int, int]:
     data = defaultdict(dict)
     thresholds = None
+    added_fah = False
+    if 'fah_epoch' not in metrics:
+        metrics.append('fah_epoch')
+        added_fah = True
     for metric in metrics:
         for config in configs:
             results_path = os.path.join(base_dir, "..",
@@ -80,6 +84,9 @@ def extract_values_std_from_results(base_dir: str, configs: list[Config], full_t
         upper_bound = max(upper_bound, upper_bound_i)
 
     thresholds = thresholds[lower_bound:upper_bound]
+    if added_fah:
+        metrics.remove('fah_epoch')
+        data.pop('fah_epoch', None)
     return data, thresholds, lower_bound, upper_bound
 
 
@@ -105,7 +112,7 @@ pretty_print_metrics = {'f1_ovlp': 'F1 (overlap)', 'f1_epoch': 'F1 (epoch)',
                         'prec_ovlp': 'Precision (overlap)', 'prec_epoch': 'Precision (epoch)',
                         'sens_ovlp': 'Sensitivity (overlap)', 'sens_epoch': 'Sensitivity (epoch)',
                         'spec_epoch': 'Specificity (epoch)',
-                        'score': 'Score',}
+                        'score': 'Score', 'sens_fah': 'Sensitivity-FAR', 'prec_recall': 'Precision-Sensitivity'}
 
 pretty_print_lateralizations = {'left': 'Left lateralization', 'right': 'Right lateralization',
                                 'bilateral': 'Bilateral lateralization', 'all': 'All lateralizations',

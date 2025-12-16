@@ -177,9 +177,9 @@ if __name__ == '__main__':
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified, included_channels="wearables",
                         held_out_fold=True, pretty_name="Wearables"),
         get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'], irrelevant_selector_percentage=0.7,
+                                     evaluation_metric=evaluation_metrics['score'], irrelevant_selector_percentage=0.3,
                                      irrelevant_selector_threshold=0, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (30%)"),
+                                     held_out_fold=True, pretty_name="Channel Selection (70%)"),
 
         get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.stratified,
                         included_channels="CROSStop",
@@ -279,14 +279,16 @@ if __name__ == '__main__':
                                  included_channels='[T7, F7]', pretty_name="F7, T7"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_CROSStop", held_out_fold=True,
                                  included_channels='CROSStop', pretty_name="CROSStop SD"),
+        # get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
+        #                          included_channels='[T7, F7, T8]', pretty_name="F7, T7, T8"),
     ]
     configs_stratified_final_model_channel_selection = [
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
                                  included_channels='[T7, F7]', pretty_name="F7, T7"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
-                                 included_channels='[T7, F7, CROSStop]', pretty_name=", CROSStop SD, F7, T7"),
-        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
                                  included_channels='[T7, F7, T8]', pretty_name="F7, T7, T8"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
+                                 included_channels='[T7, F7, CROSStop]', pretty_name="CROSStop SD, F7, T7"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_T7", held_out_fold=True,
                                  included_channels='T7', pretty_name="T7"),
     ]
@@ -312,6 +314,7 @@ if __name__ == '__main__':
     # configs_ = configs_stratified_channel_selection
     # configs_ = configs_stratified_Fz_reference
     configs_ = configs_stratified_final_model
+    # configs_ = configs_stratified_final_model_channel_selection
     # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [
     #     get_base_config(base_dir, suffix=suffix_, included_channels='wearables', pretty_name="Baseline"),
@@ -335,7 +338,8 @@ if __name__ == '__main__':
         #             threshold=threshold_)
     elif task == 'thresholds':
         if metric_ == 'all':
-            metrics_ = ['f1_ovlp', 'fah_ovlp', 'fah_epoch', 'prec_ovlp', 'sens_ovlp', 'score']
+            # metrics_ = ['f1_ovlp', 'fah_ovlp', 'fah_epoch', 'prec_ovlp', 'sens_ovlp', 'score']
+            metrics_ = ['f1_epoch', 'fah_epoch', 'prec_epoch', 'sens_epoch']
         else:
             metrics_ = [metric_]
         common_name = find_longest_common_substring([config.get_name() for config in configs_])
@@ -355,11 +359,14 @@ if __name__ == '__main__':
         common_name = find_longest_common_substring([config.get_name() for config in configs_])
         output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
         if task == "thresholds_latex_metric":
+            metrics_ = [#'score',
+                        # 'sens_fah', 'f1_epoch',
+                'prec_recall']
             plot_varying_thresholds_latex_per_metric(configs_, metrics=metrics_, output_path=output_path_,
                                                      rmsa_filtering=not args.no_rmsa)
         else:
             plot_varying_thresholds_latex(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
-                                    split_localization=True)
+                                    split_localization=False)
 
     if os.path.exists("net/"):
         shutil.rmtree("net/")

@@ -11,12 +11,12 @@ from net.DL_config import Config
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
 style_map = [ ("*", "solid"), ("square*", "dashed"), ("triangle*", "densely dotted"), ("star", "dashdotted"),
-     ("diamond*", "dashdotdotted"),
+     ("diamond*", "dashdotdotted"), ("x", "densely dashdotted"),
 ]
 
 # Example color map — replace with your actual RGB definitions
 # These should match the definitions in your document preamble.
-color_map = ["tabblue", "taborange","tabgreen", "tabred", "tabpurple",
+color_map = ["tabblue", "taborange","tabgreen", "tabred", "tabpurple", "tabbrown"
 ]
 
 NB_XTICKS = 4
@@ -183,6 +183,7 @@ def plot_varying_thresholds_latex_per_metric(
     group style={{group size={plots_per_row} by {rows}, horizontal sep=1.5cm, vertical sep=1.5cm,
                       group name=myplot,}},
     width=\textwidth/{plots_per_row},
+    height=5cm,
     xticklabel style={{font=\small}},
     yticklabel style={{font=\small}},
 ]
@@ -190,42 +191,74 @@ def plot_varying_thresholds_latex_per_metric(
         # ------------- BUILD SUBPLOTS -------------
         body = ""
         all_labels = []
+        if metric == 'sens_fah':
+            metrics_to_include = ['sens_ovlp', 'fah_ovlp']
+            metric_iter = 'sens_ovlp'
+        elif metric == 'prec_recall':
+            metrics_to_include = ['prec_epoch', 'sens_epoch']
+            metric_iter = 'prec_epoch'
+        else:
+            metrics_to_include = [metric]
+            metric_iter = metric
         for nb_lat, lat in enumerate(all_lateralizations):
             data, thresholds, lower_bound, upper_bound = extract_values_std_from_results(
-                base_dir, configs, full_to_short_names, lat, [metric], rmsa_filtering
+                base_dir, configs, full_to_short_names, lat, metrics_to_include, rmsa_filtering
             )
             parts = []
 
             max_y_value = 0.0
             min_y_value = 0.0
-            for i, (label, values) in enumerate(data[metric].items()):
+            for i, (label, values) in enumerate(data[metric_iter].items()):
                 avg = values["average"][lower_bound:upper_bound]
                 if max(avg) > max_y_value:
                     max_y_value = max(avg)
                 if min(avg) < min_y_value:
                     min_y_value = min(avg)
                 std = values["std"][lower_bound:upper_bound]
-                text, label_id = generate_tikz_block(label, thresholds, avg, std, i, add_label=(nb_lat == 0))
+                if metric == 'sens_fah':
+                    # For sens_fah, we plot sensitivity vs. fah_epoch
+                    metric_x = data['fah_ovlp'][label]["average"][lower_bound:upper_bound]
+                    metric_y = data['sens_ovlp'][label]["average"][lower_bound:upper_bound]
+                    text, label_id = generate_tikz_block_curve(label, metric_x, metric_y, i, add_label=(nb_lat == 0))
+                elif metric == 'prec_recall':
+                    # For prec_recall, we plot precision vs. sensitivity
+                    metric_x = data['sens_epoch'][label]["average"][lower_bound:upper_bound]
+                    metric_y = data['prec_epoch'][label]["average"][lower_bound:upper_bound]
+                    text, label_id = generate_tikz_block_curve(label, metric_x, metric_y, i, add_label=(nb_lat == 0))
+                else:
+                    text, label_id = generate_tikz_block(label, thresholds, avg, std, i, add_label=(nb_lat == 0))
                 parts.append(text)
                 if label_id not in all_labels:
                     all_labels.append(label_id)
 
             metric_title = pretty_print_lateralizations[lat if lat is not None else 'all']
             joined = "\n\n".join(parts)
-            max_th = max(thresholds)
-            min_th = min(thresholds)
-            nb_ticks_per_half = math.ceil(NB_XTICKS/2)
-            xticks = np.linspace(min_th, 0.5, nb_ticks_per_half, endpoint=False)
-            xticks = np.unique(np.append(xticks, np.linspace(0.5, max_th, nb_ticks_per_half)))
-            xticks = np.round(xticks, 1)
-
+            if metric in ['sens_fah', 'prec_recall']:
+                max_th = max(metric_x)
+                min_th = min(metric_x)
+                xticks = np.linspace(min_th, max_th, NB_XTICKS)
+                xlabel = 'FAR per hour' if metric == 'sens_fah' else 'Sensitivity'
+                ylabel = 'Sensitivity' if metric == 'sens_fah' else 'Precision'
+                xticks = np.round(xticks, 0 if metric == 'sens_fah' else 1)
+            else:
+                max_th = max(thresholds)
+                min_th = min(thresholds)
+                nb_ticks_per_half = math.ceil(NB_XTICKS/2)
+                xticks = np.linspace(min_th, 0.5, nb_ticks_per_half, endpoint=False)
+                xticks = np.unique(np.append(xticks, np.linspace(0.5, max_th, nb_ticks_per_half)))
+                xlabel = 'Decision threshold'
+                ylabel = pretty_print_metrics[metric]
+                xticks = np.round(xticks, 1)
 
             body += rf"""
 \nextgroupplot[
     title={{\normalsize \textbf{{{metric_title}}}}},
-    {'xlabel=Decision threshold,' if nb_metric // plots_per_row == rows - 1 else ''} xtick={{{', '.join(map(str, xticks))}}},
+    {f'xlabel={xlabel},' if math.ceil(nb_lat / plots_per_row) == rows - 1 else ''} xtick={{{', '.join(map(str, xticks))}}}, {f'ylabel={ylabel},' if nb_lat % plots_per_row == 0 else ''}
 ]
 {joined}
+"""
+            if metric not in ['sens_fah', 'prec_recall']:
+                body += rf"""
 \draw[color=black, dashed, thick] (axis cs:0.5, {-max(2*abs(min_y_value), 2*abs(max_y_value))}) -- (axis cs:0.5, {max(2*abs(min_y_value), 2*abs(max_y_value))});
 """
 
@@ -260,13 +293,14 @@ def plot_varying_thresholds_latex_per_metric(
 
         print(final_tex)
         # Ask terminal confirmation before training the final model
-        proceed = input(f"This is {metric}. Continue to the next one? (y/n): ")
-        if proceed.lower() not in ['y', 'yes']:
-            print("Aborting.")
-            exit()
-        else:
-            # Clear the console output for better readability
-            os.system('cls' if os.name == 'nt' else 'clear')
+        if nb_metric < len(effective_metrics) - 1:
+            proceed = input(f"This is {metric}. Continue to the next one? (y/n): ")
+            if proceed.lower() not in ['y', 'yes']:
+                print("Aborting.")
+                exit()
+            else:
+                # Clear the console output for better readability
+                os.system('cls' if os.name == 'nt' else 'clear')
     return
 
 
@@ -279,13 +313,29 @@ def generate_tikz_block(label, thresholds, averages, stds, idx_label, add_label=
     coords_top = " ".join(f"({t}, {a + s})" for t, a, s in zip(thresholds, averages, stds))
     coords_down = " ".join(f"({t}, {a - s})" for t, a, s in zip(thresholds, averages, stds))
 
-    label_id = label.replace(" ", "_").replace("%", "")
+    label_id = label.replace(" ", "_").replace("%", "").replace(",", "")
     safe_label = label.replace("%", "\\%")
 
     return "\n".join([
         rf"\addplot[name path={label_id}_top, draw=none] coordinates {{ {coords_top} }};",
         rf"\addplot[name path={label_id}_down, draw=none] coordinates {{ {coords_down} }};",
         rf"\addplot[{color}, fill opacity=0.1] fill between[of={label_id}_top and {label_id}_down];",
+        rf"\addplot[{linestyle}, line width={2 if linestyle != 'solid' else 1.2}pt, {color}] coordinates {{ {coords_main} }};",
+        rf"\label{{plots:{label_id}}}" if add_label else "",
+    ]), label_id
+
+
+def generate_tikz_block_curve(label, metric_x, metric_y, idx_label, add_label=False):
+
+    marker, linestyle = style_map[idx_label]
+    color = color_map[idx_label]
+
+    coords_main = " ".join(f"({t}, {a})" for t, a in zip(metric_x, metric_y))
+
+    label_id = label.replace(" ", "_").replace("%", "").replace(",", "")
+    safe_label = label.replace("%", "\\%")
+
+    return "\n".join([
         rf"\addplot[{linestyle}, line width={2 if linestyle != 'solid' else 1.2}pt, {color}] coordinates {{ {coords_main} }};",
         rf"\label{{plots:{label_id}}}" if add_label else "",
     ]), label_id
