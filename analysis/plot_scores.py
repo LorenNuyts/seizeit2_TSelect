@@ -310,10 +310,10 @@ if __name__ == '__main__':
                         held_out_fold=True, CV=Keys.leave_one_hospital_out,
                         pretty_name="CROSStop SD and T7 (held-out fold)"),
     ]
-    # configs_ = configs_stratified
+    configs_ = configs_stratified
     # configs_ = configs_stratified_channel_selection
     # configs_ = configs_stratified_Fz_reference
-    configs_ = configs_stratified_final_model
+    # configs_ = configs_stratified_final_model
     # configs_ = configs_stratified_final_model_channel_selection
     # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [
@@ -360,7 +360,7 @@ if __name__ == '__main__':
         output_path_ = os.path.join(output_path_base, f"varying_thresholds_{common_name}")
         if task == "thresholds_latex_metric":
             metrics_ = [#'score',
-                        # 'sens_fah', 'f1_epoch',
+                         'sens_fah', 'f1_epoch',
                 'prec_recall']
             plot_varying_thresholds_latex_per_metric(configs_, metrics=metrics_, output_path=output_path_,
                                                      rmsa_filtering=not args.no_rmsa)

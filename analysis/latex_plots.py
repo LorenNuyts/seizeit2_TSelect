@@ -219,14 +219,14 @@ def plot_varying_thresholds_latex_per_metric(
                     # For sens_fah, we plot sensitivity vs. fah_epoch
                     metric_x = data['fah_ovlp'][label]["average"][lower_bound:upper_bound]
                     metric_y = data['sens_ovlp'][label]["average"][lower_bound:upper_bound]
-                    text, label_id = generate_tikz_block_curve(label, metric_x, metric_y, i, add_label=(nb_lat == 0))
+                    text, label_id = generate_tikz_block_curve(label, metric_x, metric_y, i, add_label=(nb_lat == 0 and metric == 'score'))
                 elif metric == 'prec_recall':
                     # For prec_recall, we plot precision vs. sensitivity
                     metric_x = data['sens_epoch'][label]["average"][lower_bound:upper_bound]
                     metric_y = data['prec_epoch'][label]["average"][lower_bound:upper_bound]
-                    text, label_id = generate_tikz_block_curve(label, metric_x, metric_y, i, add_label=(nb_lat == 0))
+                    text, label_id = generate_tikz_block_curve(label, metric_x, metric_y, i, add_label=(nb_lat == 0 and metric == 'score'))
                 else:
-                    text, label_id = generate_tikz_block(label, thresholds, avg, std, i, add_label=(nb_lat == 0))
+                    text, label_id = generate_tikz_block(label, thresholds, avg, std, i, add_label=(nb_lat == 0 and metric == 'score'))
                 parts.append(text)
                 if label_id not in all_labels:
                     all_labels.append(label_id)
