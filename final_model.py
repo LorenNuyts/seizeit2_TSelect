@@ -86,9 +86,18 @@ print("Model:", args.model)
 ## Initialize standard config parameters ##
 ###########################################
 
-config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_ + "_final_model_" + (args.nodes if not args.nodes.startswith("[") else ""),
-                         included_channels=args.nodes, held_out_fold=True,
-                             batch_size=args.batch_size, Fz_reference=args.Fz_reference)
+if args.channels_selection:
+    config = get_channel_selection_config(base_, unique_locations, model=args.model,
+                                          evaluation_metric=evaluation_metrics[args.evaluation_metric],
+                                          irrelevant_selector_threshold=args.irr_th,
+                                          irrelevant_selector_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
+                                          suffix=suffix_ + "_final_model_",
+                                          included_channels='all', held_out_fold=True,
+                                          batch_size=args.batch_size, Fz_reference=args.Fz_reference)
+else:
+    config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_ + "_final_model_" + (args.nodes if not args.nodes.startswith("[") else ""),
+                             included_channels=args.nodes, held_out_fold=True,
+                                 batch_size=args.batch_size, Fz_reference=args.Fz_reference)
 if args.nodes in ['all', 'no_wearables', 'CROSStop', 'wearables']:
     dual_config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
                              batch_size=args.batch_size, CV= args.CV, held_out_fold=True,

@@ -367,7 +367,7 @@ def process_co_occurrence_matrix(co_occurrence: np.ndarray, minimal_support=0.5)
 
     return list_to_tree(groups)
 
-def construct_set_selected_channels(base_dir, configs: List[Config], output_path: str, minimal_support: float = 0.2,
+def construct_set_selected_channels(base_dir, configs: List[Config], output_path: str, minimal_support: float = 0.1,
                                     threshold_metric: float = 0.5, metric:str = 'score'):
     assert 0 <= minimal_support <= 1
     for i, config in enumerate(configs):
