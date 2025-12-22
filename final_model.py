@@ -98,7 +98,7 @@ else:
     config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_ + "_final_model_" + (args.nodes if not args.nodes.startswith("[") else ""),
                              included_channels=args.nodes, held_out_fold=True,
                                  batch_size=args.batch_size, Fz_reference=args.Fz_reference)
-if args.nodes in ['all', 'no_wearables', 'CROSStop', 'wearables']:
+if args.nodes in ['all', 'no_wearables', 'CROSStop', 'wearables'] and not args.channel_selection:
     dual_config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
                              batch_size=args.batch_size, CV= args.CV, held_out_fold=True,
                              Fz_reference=args.Fz_reference)
