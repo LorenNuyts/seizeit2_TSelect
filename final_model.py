@@ -180,6 +180,12 @@ if len(dual_config.folds.keys()) != 10:
     print(f"Warning: the dual config {dual_config_path} does not have 10 folds.")
 # config.nb_folds = 1
 
+if args.channel_selection:
+    config.selected_channels = dual_config.selected_channels
+    config.channel_selection_settings = dual_config.channel_selection_settings
+    config.channel_selector = dual_config.channel_selector
+
+
 
 os.makedirs(config_path, exist_ok=True)
 config.save_config(save_path=config_path)
