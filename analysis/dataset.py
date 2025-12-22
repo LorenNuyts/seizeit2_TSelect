@@ -9,7 +9,9 @@ import pandas as pd
 import pyedflib
 
 from data.data import switch_channels
-from utility.constants import Nodes, Paths, Locations, subjects_Fz_reference
+from net.DL_config import get_channel_selection_config
+from utility.constants import Nodes, Paths, Locations, subjects_Fz_reference, evaluation_metrics, Keys
+from utility.paths import get_path_config
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -357,6 +359,16 @@ def dataset_content(data_path: str, locations: List[str] = None):
     seizure_durations_pediatric = []
     lateralizations = []
     awareness = []
+
+    cs_config = get_channel_selection_config(base_dir, locations=locations,
+                                     evaluation_metric=evaluation_metrics['score'], irrelevant_selector_percentage=0.3,
+                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (70%)"),
+    config_path = get_path_config(cs_config, cs_config.get_name())
+    if os.path.exists(config_path):
+        config_path.load_config(config_path, cs_config.get_name())
+    else:
+        pass
 
     if locations is None:
         locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,

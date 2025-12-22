@@ -86,7 +86,7 @@ print("Model:", args.model)
 ## Initialize standard config parameters ##
 ###########################################
 
-if args.channels_selection:
+if args.channel_selection:
     config = get_channel_selection_config(base_, unique_locations, model=args.model,
                                           evaluation_metric=evaluation_metrics[args.evaluation_metric],
                                           irrelevant_selector_threshold=args.irr_th,
