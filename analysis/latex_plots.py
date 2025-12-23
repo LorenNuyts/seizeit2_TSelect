@@ -83,7 +83,8 @@ def plot_varying_thresholds_latex(
                 if min(avg) < min_y_value:
                     min_y_value = min(avg)
                 std = values["std"][lower_bound:upper_bound]
-                parts.append(generate_tikz_block(label, thresholds, avg, std, i, add_label=(nb_metric == 0)))
+                text, label_id = generate_tikz_block(label, thresholds, avg, std, i, add_label=(nb_metric == 0))
+                parts.append(text)
 
             metric_title = pretty_print_metrics[metric].replace('%', '\%') if 'score' not in metric else '\phantom{(} Score \phantom{)}'
             joined = "\n\n".join(parts)

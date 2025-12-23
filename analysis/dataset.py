@@ -9,7 +9,7 @@ import pandas as pd
 import pyedflib
 
 from data.data import switch_channels
-from net.DL_config import get_channel_selection_config
+from net.DL_config import get_channel_selection_config, Config
 from utility.constants import Nodes, Paths, Locations, subjects_Fz_reference, evaluation_metrics, Keys
 from utility.paths import get_path_config
 
@@ -354,21 +354,40 @@ def dataset_content(data_path: str, locations: List[str] = None):
                # 'Subclinical',
                'Unknown'
                ]
-    table = []
-    seizure_durations_adult = []
-    seizure_durations_pediatric = []
-    lateralizations = []
-    awareness = []
+    table_all = {'all': [],
+                'analysis': [],
+                'deployment': []}
+    seizure_durations_adult = {'all': [],
+                                'analysis': [],
+                                'deployment': []}
+    seizure_durations_pediatric = {'all': [],
+                'analysis': [],
+                'deployment': []}
+    lateralizations = {'all': [],
+                'analysis': [],
+                'deployment': []}
+    awareness = {'all': [],
+                'analysis': [],
+                'deployment': []}
 
-    cs_config = get_channel_selection_config(base_dir, locations=locations,
+    cs_config= get_channel_selection_config(base_dir, locations=sorted(locations),
                                      evaluation_metric=evaluation_metrics['score'], irrelevant_selector_percentage=0.3,
                                      irrelevant_selector_threshold=0, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (70%)"),
+                                     held_out_fold=True, pretty_name="Channel Selection (70%)")
     config_path = get_path_config(cs_config, cs_config.get_name())
     if os.path.exists(config_path):
-        config_path.load_config(config_path, cs_config.get_name())
+        cs_config.load_config(config_path, cs_config.get_name())
+        analysis_dataset = cs_config.folds[0]['train'] + cs_config.folds[0]['validation'] + cs_config.folds[0]['test']
+        deployment_dataset = cs_config.held_out_subjects
+        assert set(analysis_dataset).isdisjoint(set(deployment_dataset))
     else:
-        pass
+        answer = input("Could not load channel selection config to determine Analysis and Deployment set. Do you want to continue? (y/n)")
+        if answer.lower() not in ['y', 'yes']:
+            print("Aborting.")
+            return
+        analysis_dataset = None
+        deployment_dataset = None
+
 
     if locations is None:
         locations = [Locations.coimbra, Locations.freiburg, Locations.aachen, Locations.karolinska,
@@ -383,6 +402,7 @@ def dataset_content(data_path: str, locations: List[str] = None):
             continue
         subjects = os.listdir(location_path)
         for subject in subjects:
+            subject_label = 'analysis' if analysis_dataset is not None and subject in analysis_dataset else 'deployment'
             if subject in subjects_Fz_reference:
                 continue
             print("     | Processing subject:", subject)
@@ -419,9 +439,11 @@ def dataset_content(data_path: str, locations: List[str] = None):
                     if row['class'] == 'seizure':
                         seizure_duration = row['stop'] - row['start']
                         if 'pediatric' in location.lower():
-                            seizure_durations_pediatric.append(seizure_duration)
+                            seizure_durations_pediatric['all'].append(seizure_duration)
+                            seizure_durations_pediatric[subject_label].append(seizure_duration)
                         else:
-                            seizure_durations_adult.append(seizure_duration)
+                            seizure_durations_adult['all'].append(seizure_duration)
+                            seizure_durations_adult[subject_label].append(seizure_duration)
 
                         table_subject['Affected Lobe'].append(row['localization'].title())
                         if row['type'].lower() == 'fa':
@@ -439,28 +461,39 @@ def dataset_content(data_path: str, locations: List[str] = None):
                         else:
                             print(f"!!! Warning: Unknown seizure type {row['type']} for subject {subject} in location {location} !!!")
 
-                        lateralizations.append(row['lateralization'].lower())
-                        awareness.append(str(row['awareness']).lower() if not pd.isna(row['awareness']) else 'unknown')
+                        lateralizations['all'].append(row['lateralization'].lower())
+                        lateralizations[subject_label].append(row['lateralization'].lower())
+                        awareness['all'].append(str(row['awareness']).lower() if not pd.isna(row['awareness']) else 'unknown')
+                        awareness[subject_label].append(str(row['awareness']).lower() if not pd.isna(row['awareness']) else 'unknown')
 
-            table.append(table_subject)
-    table = pd.DataFrame(table, columns=columns)
-    table.to_csv(os.path.join(base_dir, "results", "dataset_content.csv"), index=False)
-    print("Dataset content saved to dataset_content.csv")
+            table_all['all'].append(table_subject)
+            table_all[subject_label].append(table_subject)
 
-    print(f"Seizure durations (adult): {np.mean(seizure_durations_adult)} ± {np.std(seizure_durations_adult)} seconds")
-    print(f"Seizure durations (pediatric): {np.mean(seizure_durations_pediatric)} ± {np.std(seizure_durations_pediatric)} seconds")
-    print(f"Seizure durations (all): {np.mean(seizure_durations_adult + seizure_durations_pediatric)} ± {np.std(seizure_durations_adult + seizure_durations_pediatric)} seconds")
-    print(f"Seizure range (all): {min(seizure_durations_adult + seizure_durations_pediatric)} to {max(seizure_durations_adult + seizure_durations_pediatric)} seconds")
-    print(f"Lateralizations: {lateralizations.count('left')} left, {lateralizations.count('right')} right, "
-          f"{lateralizations.count('bilateral')} bilateral, and {lateralizations.count('unknown')} unknown. Total: {len(lateralizations)}")
-    print(f"Average recording duration: {table['Duration Recordings (hours)'].mean()} ± {table['Duration Recordings (hours)'].std()} hours")
-    print(f"Focal aware seizures: {table['FA'].sum()}")
-    print(f"Focal impaired awareness seizures: {table['FIA'].sum()}")
-    print(f"Focal to bilateral tonic-clonic seizures: {table['FBTC'].sum()}")
-    print(f"Focal seizures: {table['Focal'].sum()}")
-    print(f"Unknown seizures: {table['Unknown'].sum()}")
-    print(f"Affected lobes (all subjects): {table['Affected Lobe'].explode().value_counts().to_dict()}")
-    # print(f"Affected lobes: {table['Affected Lobe'].value_counts().to_dict()}")
+    def print_table(table, seizure_adult, seizure_pediatric, lateralizations_subgroup, label=""):
+        table= pd.DataFrame(table, columns=columns)
+        table.to_csv(os.path.join(base_dir, "results", f"dataset_content_{label}.csv"), index=False)
+        print("Dataset content saved to dataset_content.csv")
+
+        print(f"Seizure durations (adult): {np.mean(seizure_adult)} ± {np.std(seizure_adult)} seconds")
+        print(f"Seizure durations (pediatric): {np.mean(seizure_pediatric)} ± {np.std(seizure_pediatric)} seconds")
+        print(f"Seizure durations (all): {np.mean(seizure_adult + seizure_pediatric)} ± {np.std(seizure_adult + seizure_pediatric)} seconds")
+        print(f"Seizure range (all): {min(seizure_adult + seizure_pediatric)} to {max(seizure_adult + seizure_pediatric)} seconds")
+        print(f"Lateralizations: {lateralizations_subgroup.count('left')} left, {lateralizations_subgroup.count('right')} right, "
+              f"{lateralizations_subgroup.count('bilateral')} bilateral, and {lateralizations_subgroup.count('unknown')} unknown. Total: {len(lateralizations_subgroup)}")
+        print(f"Average recording duration: {table['Duration Recordings (hours)'].mean()} ± {table['Duration Recordings (hours)'].std()} hours")
+        print(f"Focal aware seizures: {table['FA'].sum()}")
+        print(f"Focal impaired awareness seizures: {table['FIA'].sum()}")
+        print(f"Focal to bilateral tonic-clonic seizures: {table['FBTC'].sum()}")
+        print(f"Focal seizures: {table['Focal'].sum()}")
+        print(f"Unknown seizures: {table['Unknown'].sum()}")
+        print(f"Affected lobes (all subjects): {table['Affected Lobe'].explode().value_counts().to_dict()}")
+        # print(f"Affected lobes: {table['Affected Lobe'].value_counts().to_dict()}")
+    print("----- Full Dataset -----")
+    print_table(table_all['all'], seizure_durations_adult['all'], seizure_durations_pediatric['all'], lateralizations['all'], label='all')
+    print("----- Analysis Set -----")
+    print_table(table_all['analysis'], seizure_durations_adult['analysis'], seizure_durations_pediatric['analysis'], lateralizations['analysis'], label='analysis')
+    print("----- Deployment Set -----")
+    print_table(table_all['deployment'], seizure_durations_adult['deployment'], seizure_durations_pediatric['deployment'], lateralizations['deployment'], label='deployment')
 
 
 def print_dataset_content_table():

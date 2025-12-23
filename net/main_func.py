@@ -766,6 +766,166 @@ def evaluate_per_lateralization(config: Config, results: Results):
         print("Average number of channels: " + "%.2f" % average_nb_channels)
 
 
+def evaluate_per_affected_lobe(config: Config, results: Results):
+    name = config.get_name()
+    # config_path = get_path_config(config, name)
+    # config.load_config(config_path, name)
+
+    # Loading the results from barabas on my personal computer
+    if 'dtai' in results.config.save_dir and 'dtai' not in os.path.dirname(os.path.realpath(__file__)):
+        config.save_dir = config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
+        config.data_path = config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
+        results.config.save_dir = results.config.save_dir.replace(Paths.remote_save_dir, Paths.local_save_dir)
+        results.config.data_path = results.config.data_path.replace(Paths.remote_data_path, Paths.local_data_path)
+    pred_fs = 1
+
+    thresholds = list(np.around(np.linspace(0,1,51),2))
+
+    x_plot = np.linspace(0, 200, 200)
+
+    if not os.path.exists(os.path.join(config.save_dir, 'results')):
+        os.makedirs(os.path.join(config.save_dir, 'results'))
+
+    # name_left = name + '_left'
+    # name_right = name + '_right'
+    # name_unknown = name + '_unknown'
+    # name_no_seizures = name + '_no_seizures'
+    # name_bilateral = name + '_bilateral'
+    # name_mixed = name + '_mixed'
+    all_lateralizations = ['temporal', 'frontal', 'unknown', 'fronto-temporal', 'other']  # , 'mixed']
+
+    result_files = {lat: os.path.join(config.save_dir, 'results', name + lat + '.h5') for lat in all_lateralizations}
+
+    metrics = {lat: {Metrics.get(m): [] for m in Metrics.all_keys()} for lat in all_lateralizations}
+    sens_ovlp_plots = {lat: [] for lat in all_lateralizations}
+    prec_ovlp_plots = {lat: [] for lat in all_lateralizations}
+
+    for fold_i in config.folds.keys():
+        K.clear_session()
+        gc.collect()
+        pred_path = get_path_predictions_folder(config, name, fold_i)
+
+        pred_files = [x for x in os.listdir(pred_path)]
+        pred_files.sort()
+
+        metrics_fold = {lat: {m: [] for m in metrics[lat].keys()} for lat in all_lateralizations}
+
+        for file in tqdm(pred_files):
+            splitted_file = file.split('__')
+            hospital = splitted_file[0]
+            subject = splitted_file[1]
+            recording = splitted_file[2]
+            subject_path = os.path.join(config.data_path, hospital, subject)
+            tsv_file = [f for f in os.listdir(subject_path) if f.endswith('.tsv') and recording in f][0]
+            tsv_path = os.path.join(subject_path, tsv_file)
+            df = pd.read_csv(tsv_path, delimiter="\t", skiprows=4)
+            lateralizations = []
+            for i_row, row in df.iterrows():
+                if pd.isna(row['localization']):
+                    continue
+                l = row['localization'].lower()
+                if l in all_lateralizations:
+                    lateralizations.append(l)
+                else:
+                    lateralizations.append('other')
+            if len(lateralizations) == 0:
+                lateralization = 'no_seizures'
+            else:
+                lat_counts = Counter(lateralizations)
+                lateralization, _ = lat_counts.most_common()[0]
+            # if all(['left' in lat for lat in lateralizations]):
+            #     lateralization = 'left'
+            # elif all(['right' in lat for lat in lateralizations]):
+            #     lateralization = 'right'
+            # elif all(['unknown' in lat for lat in lateralizations]):
+            #     lateralization = 'unknown'
+            # else:
+            #     warnings.warn("Mixed lateralization found for file {}. Assigning to 'mixed' category.".format(file))
+            #     lateralization = 'mixed'
+
+            file_path = os.path.join(pred_path, file)
+
+            metrics_th = get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds,
+                                              rmsa_filtering=results.rmsa_filtering)
+
+            for m in metrics[lateralization].keys():
+                metrics_fold[lateralization][m].append(metrics_th[m])
+
+        for lat in metrics.keys():
+            if len(metrics_fold[lat][Metrics.fah_ovlp]) == 0:
+                print(f"No recordings for lateralization {lat} in fold {fold_i}. Skipping...")
+                continue
+            for m in metrics[lat].keys():
+                metrics[lat][m].append(np.nanmean(metrics_fold[lat][m], axis=0))
+
+            # to_cut = np.arg`max(fah_ovlp_th)
+            to_cut = np.argmax(metrics[lat][Metrics.fah_ovlp][-1])
+            try:
+                fah_ovlp_plot_rec = metrics[lat][Metrics.fah_ovlp][-1][to_cut:]
+                sens_ovlp_plot_rec = metrics[lat][Metrics.sens_ovlp][-1][to_cut:]
+                prec_ovlp_plot_rec = metrics[lat][Metrics.prec_ovlp][-1][to_cut:]
+                y_plot = np.interp(x_plot, fah_ovlp_plot_rec[::-1], sens_ovlp_plot_rec[::-1])
+                sens_ovlp_plots[lat].append(y_plot)
+                y_plot = np.interp(x_plot, sens_ovlp_plot_rec[::-1], prec_ovlp_plot_rec[::-1])
+                prec_ovlp_plots[lat].append(y_plot)
+
+            except IndexError as e:
+                print(f"To cut: {to_cut}")
+                print(f"Fah ovlp: {metrics[lat][Metrics.fah_ovlp][-1]}")
+                print(f"Localization: {lat}")
+                print(f"Nb thresholds in lateralization: {len(metrics[lat][Metrics.fah_ovlp])}")
+                raise e
+
+
+    for lat in metrics.keys():
+        results_lat = Results(results.config)
+        # results_lat = copy.deepcopy(results) # TODO: fix this
+        score_05 = [x[25] for x in metrics[lat][Metrics.score]]
+
+        print('Score: ' + "%.2f" % np.nanmean(score_05))
+
+        with h5py.File(result_files[lat], 'w') as f:
+            for m in metrics[lat].keys():
+                f.create_dataset(m, data=metrics[lat][m])
+
+            f.create_dataset('sens_ovlp_plot', data=sens_ovlp_plots[lat])
+            f.create_dataset('prec_ovlp_plot', data=prec_ovlp_plots[lat])
+            f.create_dataset('x_plot', data=x_plot)
+
+        results_lat.sens_ovlp = metrics[lat][Metrics.sens_ovlp]
+        results_lat.prec_ovlp = metrics[lat][Metrics.prec_ovlp]
+        results_lat.fah_ovlp = metrics[lat][Metrics.fah_ovlp]
+        results_lat.f1_ovlp = metrics[lat][Metrics.f1_ovlp]
+        results_lat.sens_epoch = metrics[lat][Metrics.sens_epoch]
+        results_lat.spec_epoch = metrics[lat][Metrics.spec_epoch]
+        results_lat.prec_epoch = metrics[lat][Metrics.prec_epoch]
+        results_lat.fah_epoch = metrics[lat][Metrics.fah_epoch]
+        results_lat.f1_epoch = metrics[lat][Metrics.f1_epoch]
+        results_lat.score = metrics[lat][Metrics.score]
+        results_lat.thresholds = thresholds
+
+        # Save the results
+        results_save_path = get_path_results(config, name + '_' + lat)
+        if not results_lat.rmsa_filtering:
+            results_save_path = results_save_path.replace('.pkl', '_noRMSA.pkl')
+        results_lat.config = config
+        results_lat.save_results(results_save_path)
+
+        # Print some metrics
+        average_nb_channels = np.mean([len(chs) for chs in config.selected_channels.values()]) if config.channel_selection else config.CH
+
+        print(f"Average score at threshold 0.5: {'%.2f' % results_lat.average_score_th05}")
+        print(f"Average F1 at threshold 0.5: {'%.2f' % results_lat.average_f1_ovlp_th05}")
+        print(f"Average FAH at threshold 0.5: {'%.2f' % results_lat.average_fah_ovlp_th05}")
+        print(f"Average Sens at threshold 0.5: {'%.2f' % results_lat.average_sens_ovlp_th05}")
+        print(f"Average Prec at threshold 0.5: {'%.2f' % results_lat.average_prec_ovlp_th05}")
+
+        print("####################################################")
+        print("Average selection time: " + "%.2f" % results_lat.average_selection_time)
+        print("Total time: " + "%.2f" % results_lat.average_total_time)
+        print("Average number of channels: " + "%.2f" % average_nb_channels)
+
+
 
 def get_results_rec_file(config, file, file_path, fold_i, pred_fs, thresholds, rmsa_filtering=True):
     with h5py.File(file_path, 'r') as f:

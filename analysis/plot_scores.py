@@ -283,12 +283,17 @@ if __name__ == '__main__':
         #                          included_channels='[T7, F7, T8]', pretty_name="F7, T7, T8"),
     ]
     configs_stratified_final_model_channel_selection = [
-        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
-                                 included_channels='[T7, F7]', pretty_name="F7, T7"),
+        get_channel_selection_config(base_dir, locations=unique_locations, suffix=suffix_ + "_final_model_",
+                                     evaluation_metric=evaluation_metrics['score'],
+                                     irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.3,
+                                     CV=Keys.stratified,
+                                     held_out_fold=True, pretty_name="Channel Selection (70%)"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
                                  included_channels='[T7, F7, F8]', pretty_name="F7, T7, F8"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
                                  included_channels='[T7, F7, CROSStop]', pretty_name="CROSStop SD, F7, T7"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
+                                 included_channels='[T7, F7]', pretty_name="F7, T7"),
         get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_T7", held_out_fold=True,
                                  included_channels='T7', pretty_name="T7"),
     ]
