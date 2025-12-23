@@ -792,7 +792,7 @@ def evaluate_per_affected_lobe(config: Config, results: Results):
     # name_no_seizures = name + '_no_seizures'
     # name_bilateral = name + '_bilateral'
     # name_mixed = name + '_mixed'
-    all_lateralizations = ['temporal', 'frontal', 'unknown', 'fronto-temporal', 'other']  # , 'mixed']
+    all_lateralizations = ['temporal', 'frontal', 'unknown', 'fronto-temporal', 'other', 'no_seizures']  # , 'mixed']
 
     result_files = {lat: os.path.join(config.save_dir, 'results', name + lat + '.h5') for lat in all_lateralizations}
 
