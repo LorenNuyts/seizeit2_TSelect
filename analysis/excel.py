@@ -71,6 +71,7 @@ if __name__ == '__main__':
 
     locations_ = sorted(list(dict.fromkeys(args.locations)))
     suffix_ = args.suffix
+    unique_locations = sorted(list(dict.fromkeys(args.locations)))
     configs_ = [
         # get_base_config(base_dir, locations=locations_, suffix=suffix_, CV=Keys.stratified,
         #                 held_out_fold=True, pretty_name="Base"),
@@ -83,13 +84,10 @@ if __name__ == '__main__':
         #                              held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
         # get_base_config(base_dir, unique_locations, suffix=suffix_, CV=Keys.leave_one_hospital_out,
         #                 held_out_fold=True, pretty_name="Baseline"),
-        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=-100)"),
-        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0.5, CV=Keys.leave_one_hospital_out,
-                                     held_out_fold=True, pretty_name="Channel Selection (th=0.5)"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_all", held_out_fold=True,
+                        included_channels='all', pretty_name="Full-scalp + Wearables"),
+        get_base_config(base_dir, unique_locations, suffix=suffix_ + "_final_model_", held_out_fold=True,
+                                 included_channels='[T7, F7]', pretty_name="F7, T7"),
         # get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_),
         # get_channel_selection_config(base_dir, locations=args.locations, suffix=suffix_,
         #                              included_channels='wearables'),
@@ -112,13 +110,16 @@ if __name__ == '__main__':
     #             get_channel_selection_config(base_dir, suffix=suffix_, included_channels='wearables'),
     #             get_channel_selection_config(base_dir, suffix=suffix_, evaluation_metric=evaluation_metrics['score'],
     #                                             included_channels='wearables'),]
-    metrics_ = ['average_nb_channels', 'average_selection_time', 'average_train_time', 'average_total_time',
+    metrics_ = [#'average_nb_channels', 'average_selection_time', 'average_train_time', 'average_total_time',
         # 'average_f1_ovlp_best_threshold', 'average_fah_ovlp_best_threshold', 'average_fah_epoch_best_threshold',
         #         'average_prec_ovlp_best_threshold',
         #         'average_sens_ovlp_best_threshold', 'average_rocauc_best_threshold', 'average_score_best_threshold',
 
-                # 'average_f1_ovlp_th05', 'average_fah_ovlp_th05', 'average_fah_epoch_th05',
-                # 'average_prec_ovlp_th05', 'average_sens_ovlp_th05', 'average_rocauc_th05', 'average_score_th05',
+                'average_f1_ovlp_th05', 'average_fah_ovlp_th05', 'average_fah_ovlp_th05',
+                'average_prec_ovlp_th05', 'average_sens_ovlp_th05', 'average_score_th05',
+
+            'average_f1_epoch_th05', 'average_fah_epoch_th05', 'average_fah_epoch_th05',
+            'average_prec_epoch_th05', 'average_sens_epoch_th05'
                 # 'median_f1_ovlp_best_threshold', 'median_fah_ovlp_best_threshold', 'median_fah_epoch_best_threshold',
                 # 'median_prec_ovlp_best_threshold',
                 # 'median_sens_ovlp_best_threshold', 'median_rocauc_best_threshold', 'median_score_best_threshold',

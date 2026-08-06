@@ -9,21 +9,30 @@ from utility.constants import Keys, Locations
 
 base_ = os.path.dirname(os.path.realpath(__file__))
 
-def dissimilarity_across_data_splits(config):
+def dissimilarity_across_data_splits(config, verbose: bool = True):
     """
-    splits: List of split dicts, where each dict has 'train', 'val', 'test' DataFrames with 'patient_id'
-    Returns: dict of dissimilarity matrices (one per subset), each as a 2D numpy array (NxN)
+    Computes how dissimilar the subsets (train, validation, test) are across the folds of the
+    cross-validation strategy of the given config.
+
+    Args:
+        config (cls): a config object determining the cross-validation strategy
+        verbose (bool): whether to print the mean dissimilarity per subset
+
+    Returns: dict mapping the subset index (0 = train, 1 = validation, 2 = test) to a symmetric
+        2D numpy array (n_splits x n_splits) with the pairwise Jaccard dissimilarity between the
+        folds. The diagonal is zero.
     """
-    splits = [x for x in get_CV_generator(config)]
-    n = len(splits)
-    n_folds = len(splits[0])
-    dissimilarities = {i: [] for i in range(n_folds)}
+    CV_generator, _ = get_CV_generator(config)
+    splits = list(CV_generator)
+    n_splits = len(splits)
+    n_subsets = len(splits[0])
+    dissimilarities = {s: np.zeros((n_splits, n_splits)) for s in range(n_subsets)}
 
-    for f in range(n_folds):
-        id_sets = [set(split[f]) for split in splits]
+    for s in range(n_subsets):
+        id_sets = [set(split[s]) for split in splits]
 
-        for i in range(n):
-            for j in range(i + 1, n):
+        for i in range(n_splits):
+            for j in range(i + 1, n_splits):
                 set_i = id_sets[i]
                 set_j = id_sets[j]
                 union = set_i | set_j
@@ -32,11 +41,20 @@ def dissimilarity_across_data_splits(config):
                 jaccard_sim = len(intersection) / len(union) if union else 1.0
                 dissim = 1 - jaccard_sim
 
-                dissimilarities[f].append(dissim)
+                dissimilarities[s][i, j] = dissim
+                dissimilarities[s][j, i] = dissim
 
-    for subset, dissim in dissimilarities.items():
-        print("Mean dissimilarity for subset {}: {:.4f}".format(subset, np.mean(dissim)))
-        print("###################################################")
+    if verbose:
+        for subset, dissim in dissimilarities.items():
+            if n_splits < 2:
+                print("Only one split, so no dissimilarity can be computed for subset {}".format(subset))
+            else:
+                # Only the pairs above the diagonal are distinct pairs
+                mean_dissim = dissim[np.triu_indices(n_splits, k=1)].mean()
+                print("Mean dissimilarity for subset {}: {:.4f}".format(subset, mean_dissim))
+            print("###################################################")
+
+    return dissimilarities
 
 
 if __name__ == '__main__':

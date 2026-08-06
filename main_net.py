@@ -181,7 +181,7 @@ if args.no_rmsa:
 load_segments = True                                          # Boolean to load generators from file
 save_segments = True                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
-main_func.train(config, results, load_segments, save_segments, fold=args.fold)
+# main_func.train(config, results, load_segments, save_segments, fold=args.fold)
 
 ############################################
 ##### Multiprocessing settings for the #####
@@ -193,10 +193,16 @@ main_func.train(config, results, load_segments, save_segments, fold=args.fold)
 ############################################
 
 print('Getting predictions on the test set...')
-main_func.predict(config, fold=args.fold)
+# main_func.predict(config, fold=args.fold)
 
 if args.fold is None:
     print('Getting evaluation metrics...')
-    main_func.evaluate_per_affected_lobe(config, results)
+    # main_func.evaluate_per_affected_lobe(config, results)
     # main_func.evaluate(config, results)
     # main_func.evaluate_per_lateralization(config, results)
+
+print(f"Average score at threshold 0.5: {'%.2f' % results.average_score_th05}")
+print(f"Average F1 epoch at threshold 0.5: {'%.2f' % results.average_f1_epoch_th05}")
+print(f"Average FAH at threshold 0.5: {'%.2f' % results.average_fah_ovlp_th05}")
+print(f"Average Sens epoch at threshold 0.5: {'%.2f' % results.average_sens_epoch_th05}")
+print(f"Average Prec epoch at threshold 0.5: {'%.2f' % results.average_prec_epoch_th05}")

@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 
 from analysis.utils import extract_values_std_from_results, get_unique_config_names, pretty_print_metrics, \
-    pretty_print_lateralizations
+    pretty_print_lateralizations, pretty_print_localizations
 from net.DL_config import Config
 
 base_dir = os.path.dirname(os.path.realpath(__file__))
@@ -157,12 +157,19 @@ def plot_varying_thresholds_latex_per_metric(
         metrics: List[str],
         output_path: str,
         rmsa_filtering: bool = True,
-        plots_per_row: int = 2
+        plots_per_row: int = 2,
+        split='localization',
     ):
 
     full_to_short_names = get_unique_config_names(configs)
 
-    all_lateralizations = [None, 'left', 'right', 'bilateral', 'unknown']
+    if split == 'localization':
+        all_lateralizations = [None, 'temporal', 'frontal', 'fronto-temporal', 'unknown', 'other']
+        pretty_print = pretty_print_localizations
+    else:
+        # all_lateralizations = [None, 'left', 'right', 'bilateral', 'unknown']
+        all_lateralizations = [None, 'left', 'right', 'unknown']
+        pretty_print = pretty_print_lateralizations
 
     fah_epoch_included = "fah_epoch" in metrics
     if not fah_epoch_included:
@@ -232,7 +239,7 @@ def plot_varying_thresholds_latex_per_metric(
                 if label_id not in all_labels:
                     all_labels.append(label_id)
 
-            metric_title = pretty_print_lateralizations[lat if lat is not None else 'all']
+            metric_title = pretty_print[lat if lat is not None else 'all']
             joined = "\n\n".join(parts)
             if metric in ['sens_fah', 'prec_recall']:
                 max_th = max(metric_x)

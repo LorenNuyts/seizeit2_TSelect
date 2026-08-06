@@ -318,8 +318,8 @@ if __name__ == '__main__':
     # configs_ = configs_stratified
     # configs_ = configs_stratified_channel_selection
     # configs_ = configs_stratified_Fz_reference
-    # configs_ = configs_stratified_final_model
-    configs_ = configs_stratified_final_model_channel_selection
+    configs_ = configs_stratified_final_model
+    # configs_ = configs_stratified_final_model_channel_selection
     # configs_ = configs_loho + configs_loho_final_model_reuse
     # configs_wearables = [
     #     get_base_config(base_dir, suffix=suffix_, included_channels='wearables', pretty_name="Baseline"),
@@ -368,7 +368,7 @@ if __name__ == '__main__':
                          'sens_fah', 'f1_epoch',
                 'prec_recall']
             plot_varying_thresholds_latex_per_metric(configs_, metrics=metrics_, output_path=output_path_,
-                                                     rmsa_filtering=not args.no_rmsa)
+                                                     rmsa_filtering=not args.no_rmsa, split='localization')
         else:
             plot_varying_thresholds_latex(configs_, metrics=metrics_, output_path=output_path_, rmsa_filtering=not args.no_rmsa,
                                     split_localization=False)

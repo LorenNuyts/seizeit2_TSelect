@@ -223,7 +223,7 @@ if proceed.lower() not in ['y', 'yes']:
 
 ###########################################
 ###########################################
-main_func.train_final_model(config, dual_config, results, fold=args.fold)
+# main_func.train_final_model(config, dual_config, results, fold=args.fold)
 
 ############################################
 ##### Multiprocessing settings for the #####
@@ -235,10 +235,17 @@ main_func.train_final_model(config, dual_config, results, fold=args.fold)
 ############################################
 
 print('Getting predictions on the test set...')
-main_func.predict(config, fold=args.fold)
+# main_func.predict(config, fold=args.fold)
 
 if args.fold is None:
     print('Getting evaluation metrics...')
-    main_func.evaluate_per_affected_lobe(config, results)
+    # main_func.evaluate_per_affected_lobe(config, results)
     # main_func.evaluate(config, results)
     # main_func.evaluate_per_lateralization(config, results)
+
+
+print(f"Average score at threshold 0.5: {'%.2f' % results.average_score_th05}")
+print(f"Average F1 epoch at threshold 0.5: {'%.2f' % results.average_f1_epoch_th05}")
+print(f"Average FAH at threshold 0.5: {'%.2f' % results.average_fah_ovlp_th05}")
+print(f"Average Sens epoch at threshold 0.5: {'%.2f' % results.average_sens_epoch_th05}")
+print(f"Average Prec epoch at threshold 0.5: {'%.2f' % results.average_prec_epoch_th05}")

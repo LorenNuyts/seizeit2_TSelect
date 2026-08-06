@@ -117,3 +117,8 @@ pretty_print_metrics = {'f1_ovlp': 'F1 (overlap)', 'f1_epoch': 'F1 (epoch)',
 pretty_print_lateralizations = {'left': 'Left lateralization', 'right': 'Right lateralization',
                                 'bilateral': 'Bilateral lateralization', 'all': 'All lateralizations',
                                 'unknown': 'Unknown lateralization'}
+
+pretty_print_localizations = {'frontal': 'Frontal localization', 'temporal': 'Temporal localization',
+                                'fronto-temporal': 'Fronto-temporal localization', 'all': 'All localizations',
+                                'other': 'Other localizations',
+                                'unknown': 'Unknown localization'}

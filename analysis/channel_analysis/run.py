@@ -29,30 +29,30 @@ if __name__ == '__main__':
         #                              evaluation_metric=evaluation_metrics['score'],
         #                              irrelevant_selector_threshold=0.5, CV=Keys.stratified,
         #                              held_out_fold=True, pretty_name="Channel Selection"),
-        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0, CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (60%)"),
-        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.5,
-                                     CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (50%)"),
-        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.4,
-                                     CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (40%)"),
+        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0, CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (60%)"),
+        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.5,
+        #                              CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (50%)"),
+        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.4,
+        #                              CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (40%)"),
         get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.3,
                                      CV=Keys.stratified,
                                      held_out_fold=True, pretty_name="Channel Selection (30%)"),
-        get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
-                                     evaluation_metric=evaluation_metrics['score'],
-                                     irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.2,
-                                     CV=Keys.stratified,
-                                     held_out_fold=True, pretty_name="Channel Selection (20%)"),
+        # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
+        #                              evaluation_metric=evaluation_metrics['score'],
+        #                              irrelevant_selector_threshold=0, irrelevant_selector_percentage=0.2,
+        #                              CV=Keys.stratified,
+        #                              held_out_fold=True, pretty_name="Channel Selection (20%)"),
 
         # get_channel_selection_config(base_dir, locations=locations_, suffix=suffix_,
         #                              evaluation_metric=evaluation_metrics['score'],
@@ -110,10 +110,11 @@ if __name__ == '__main__':
         find_interchangeable_channels(base_dir, configs_, output_path_)
     elif args.task == 'analyze_channels':
         configs_save_dirs = [c.save_dir for c in configs_]
-        mine_frequent_channels(base_dir, configs_, output_path=output_path_, min_support=0.2)
-        for c_ix in range(len(configs_)):
-            configs_[c_ix].save_dir = configs_save_dirs[c_ix]
-        find_interchangeable_channels(base_dir, configs_, output_path_)
+        find_cliques(base_dir, configs_, output_path=output_path_, threshold=1.0)
+        # mine_frequent_channels(base_dir, configs_, output_path=output_path_, min_support=0.2)
+        # for c_ix in range(len(configs_)):
+        #     configs_[c_ix].save_dir = configs_save_dirs[c_ix]
+        # find_interchangeable_channels(base_dir, configs_, output_path_)
     elif args.task == 'construct_set':
         construct_set_selected_channels(base_dir, configs_, output_path_)
     else:

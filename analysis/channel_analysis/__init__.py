@@ -4,6 +4,7 @@ import os
 from collections import defaultdict
 from typing import List, Set, Dict
 
+import networkx as nx
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -93,6 +94,77 @@ def mine_frequent_channels(base_dir, configs: List[Config], output_path: str = N
                 f.write('\n')
             rules.to_csv(output_file, index=False, mode='a')
 
+
+def find_cliques(base_dir, configs: List[Config], output_path:str, threshold: float = 0.5):
+    for i, config in enumerate(configs):
+        # config_save_dir = config.save_dir
+        config_path = os.path.join(base_dir, "..", "..", get_path_config(config, config.get_name()))
+        if os.path.exists(config_path):
+            config.load_config(config_path, config.get_name())
+        else:
+            print(f"Config not found for {config.get_name()}")
+            continue
+
+        config.n_folds = len(config.folds)
+        included_channels = sorted(config.included_channels)
+        # TODO: possibly change these two lines
+        selected_channels = [config.selected_channels[fold_i] for fold_i in range(config.n_folds)]
+        clusters = [config.channel_selector[fold_i].clusters for fold_i in range(config.n_folds)]
+        # Count how many times two channels appears in the same cluster
+        co_occurrence_matrix = np.zeros((len(included_channels), len(included_channels)))
+        nb_folds_channel_selected = np.zeros((len(included_channels), len(included_channels)), dtype=int)
+        for clustering_i in clusters:
+            for cluster in clustering_i:
+                for ch1, ch2 in itertools.combinations(cluster, 2):
+                    co_occurrence_matrix[ch1, ch2] += 1
+                    co_occurrence_matrix[ch2, ch1] += 1
+
+                for ch in cluster:
+                    co_occurrence_matrix[ch, ch] += 1
+                    nb_folds_channel_selected[ch, ch] += 1
+
+            channels_in_all_clusters = list(itertools.chain.from_iterable(clustering_i))
+            for ch1, ch2 in itertools.combinations(channels_in_all_clusters, 2):
+                nb_folds_channel_selected[ch1, ch2] += 1
+                nb_folds_channel_selected[ch2, ch1] += 1
+
+        # Normalize the co-occurrence matrix by the  number of folds each channel got past the irrelevant selector
+        for m in range(co_occurrence_matrix.shape[0]):
+            for n in range(m, co_occurrence_matrix.shape[1]):
+                co_occurrence_matrix[m, n] /= nb_folds_channel_selected[m, n]
+                if m != n:
+                    co_occurrence_matrix[n, m] /= nb_folds_channel_selected[m, n]
+                    assert co_occurrence_matrix[m, n] == co_occurrence_matrix[n, m] or \
+                    (np.isnan(co_occurrence_matrix[m, n]) and np.isnan(co_occurrence_matrix[n, m]))
+
+        # Treat empty cells/NaNs as 0 and apply threshold
+        # (Assumes co_occurence_matrix is your existing numpy array)
+        binarized = (np.nan_to_num(co_occurrence_matrix) >= threshold).astype(int)
+
+        # Optional: Remove the diagonal (self-connectivity) so it doesn't clutter the graph
+        np.fill_diagonal(binarized, 0)
+
+        # --- Step 2: Find and Print Cliques ---
+        # Create graph from binarized numpy array
+        G = nx.from_numpy_array(binarized)
+
+        # Map the index numbers (0, 1, 2...) to your channel names
+        mapping = {i: name for i, name in enumerate(config.included_channels)}
+        G = nx.relabel_nodes(G, mapping)
+
+        # Find maximal cliques
+        cliques = list(nx.find_cliques(G))
+
+        print(f"--- Cliques Found (Threshold >= {threshold}) ---")
+        # Filter for cliques with more than 1 channel
+        meaningful_cliques = [c for c in cliques if len(c) > 1]
+
+        for i, clique in enumerate(meaningful_cliques, 1):
+            print(f"Cluster {i}: {', '.join(clique)}")
+
+        if not meaningful_cliques:
+            print("No clusters found at this threshold.")
+
 def find_interchangeable_channels(base_dir, configs: List[Config], output_path:str, minimal_support: float = 0.5):
     assert 0 <= minimal_support <= 1
     for i, config in enumerate(configs):
@@ -104,33 +176,7 @@ def find_interchangeable_channels(base_dir, configs: List[Config], output_path:s
             print(f"Config not found for {config.get_name()}")
             continue
 
-        # base_config = copy.deepcopy(config)
-        # base_config.channel_selection = False
-        # base_config.add_to_name = ""
-        # base_config_path = os.path.join(base_dir, "..", "..", get_path_config(base_config, base_config.get_name()))
-        # base_results_path = os.path.join(base_dir, "..", "..", get_path_results(base_config, base_config.get_name()))
-        #
-        # if os.path.exists(base_config_path):
-        #     base_config.load_config(base_config_path, base_config.get_name())
-        # else:
-        #     download_remote_configs([base_config], local_base_dir=config_save_dir)
-        #     if os.path.exists(base_config_path):
-        #         base_config.load_config(base_config_path, base_config.get_name())
-        #     else:
-        #         print(f"Base config not found for {base_config.get_name()}")
-        #         continue
-
         config.n_folds = len(config.folds)
-        # results = []
-        # results_path = os.path.join(base_dir, "..", "..", get_path_results(config, config.get_name()))
-        # results.append(Results(config))
-        # if os.path.exists(results_path):
-        #     results[i].load_results(results_path)
-        # else:
-        #     print(f"Results not found for {config.get_name()}")
-        #     continue
-        #
-        # result = results[i]
         included_channels = sorted(config.included_channels)
         # TODO: possibly change these two lines
         selected_channels = [config.selected_channels[fold_i] for fold_i in range(config.n_folds)]
