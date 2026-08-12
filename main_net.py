@@ -181,7 +181,7 @@ if args.no_rmsa:
 load_segments = True                                          # Boolean to load generators from file
 save_segments = True                                         # Boolean to save the training and validation generator objects. The training generator is saved with the dataset, frame and sample type properties in the name of the file. The validation generator is always using the sequential windowed method.
 
-# main_func.train(config, results, load_segments, save_segments, fold=args.fold)
+main_func.train(config, results, load_segments, save_segments, fold=args.fold)
 
 ############################################
 ##### Multiprocessing settings for the #####

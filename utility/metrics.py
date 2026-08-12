@@ -130,10 +130,14 @@ def faRate_epoch(y_true, y_pred):
 
 
 def score(y_true, y_pred):
+    """Challenge score: sens_ovlp*100 - 0.4*FA_epoch, with FA_epoch the epoch-based false alarm
+    rate *per hour*. Must stay identical to the reported score in main_func.get_results_rec_file.
+    Uses fah_epoch (per hour), not faRate_epoch (a fraction in [0, 1]) -- the latter shrinks the
+    false alarm penalty by a factor 3600, leaving val_score effectively equal to sensitivity.
+    """
     sens = sens_ovlp(y_true, y_pred)
-    fa_epoch = K.sum(K.clip(K.round(y_pred[:, 1])-y_true[:, 1], 0, 1))
-    fa_rate = tf.cast(fa_epoch, 'float64')/tf.cast(tf.shape(y_true)[0], 'float64')
-    return sens*tf.constant(100, dtype='float64')-tf.constant(0.4, dtype='float64')*fa_rate
+    fa_hour = fah_epoch(y_true, y_pred)
+    return sens*tf.constant(100, dtype='float64')-tf.constant(0.4, dtype='float64')*fa_hour
 
 
 def perf_measure_ovlp_tensor(y_true, y_pred):
@@ -492,24 +496,35 @@ def get_FA_ovlp(y_true, y_pred, fs=1/2, th=0.5):
     return FA_ovlp
 
 
-def get_sens_FA_score(y_true, y_pred, fs=1/2, th=0.5):
-    """ Get the score for the challenge.
+def get_sens_FA_score(y_true, y_pred, fs=1, th=0.5):
+    """ Get the score for the challenge, used to rank individual channels during channel selection.
+
+    Identical in definition to the reported score (see main_func.get_results_rec_file):
+    sens_ovlp*100 - 0.4*FA_epoch, where sensitivity is computed with the any-overlap method and
+    FA_epoch is the EPOCH-based false alarm rate per hour. Do not substitute FA_ovlp here: the
+    any-overlap false alarm rate counts events rather than epochs and is roughly 20x smaller,
+    which would make the selector optimise a different objective than the one that is reported.
+
+    The result is divided by 100 to keep it in a convenient range for TSelect's thresholds. This
+    rescaling does not change the sign, so an irrelevant_selector_threshold of 0 keeps its meaning
+    ("discard channels with a worse-than-neutral sensitivity / false alarm trade-off").
 
     Args:
         y_true: array with the ground-truth labels of the segments
-        y_pred: array with the predicted labels of the segments
-        fs: sampling frequency of the predicted and ground-truth label arrays
-            (in this challenge, fs = 1/2)
+        y_pred: array with the predicted labels (or class probabilities) of the segments
+        fs: sampling frequency of the predicted and ground-truth label arrays. Defaults to 1,
+            matching the one-second stride at which segments are generated (config.stride = 1).
         th: threshold value for seizure probability (float between 0 and 1), default = 0.5
 
     Returns:
-        score: the score of the challenge. The score is calculated as: sens_ovlp*100 - 0.4*FA_ovlp
+        score: (sens_ovlp*100 - 0.4*FA_epoch) / 100
     """
     if len(y_pred.shape) == 2:
         y_pred = y_pred[:, 1]
 
     y_pred = post_processing(y_pred, fs=fs, th=th, margin=10)
-    TP_ovlp, FP_ovlp, FN_ovlp = perf_measure_ovlp(y_true, y_pred, fs)
+    TP_ovlp, _, FN_ovlp = perf_measure_ovlp(y_true, y_pred, fs)
+    _, FP_epoch, _, _ = perf_measure_epoch(y_true, y_pred)
 
     if np.sum(y_true) == 0:
         sens_ovlp = float("nan")
@@ -517,8 +532,8 @@ def get_sens_FA_score(y_true, y_pred, fs=1/2, th=0.5):
         sens_ovlp = TP_ovlp/(TP_ovlp + FN_ovlp)
 
     total_N = len(y_pred)*(1/fs)
-    FA_ovlp = FP_ovlp*3600/total_N
+    FA_epoch = FP_epoch*3600/total_N
 
-    score = sens_ovlp*100 - 0.4*FA_ovlp
+    score = sens_ovlp*100 - 0.4*FA_epoch
 
     return score/100
