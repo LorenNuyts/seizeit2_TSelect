@@ -40,6 +40,9 @@ parser.add_argument("--max-recordings", type=int, default=None,
                     help="stop after this many recordings (per fold) for a quick look")
 parser.add_argument("--rms-low", type=float, default=13.0)
 parser.add_argument("--rms-high", type=float, default=150.0)
+parser.add_argument("--rms-stats", action="store_true",
+                    help="skip the metric comparison; instead report the per-channel RMS "
+                         "distribution, to check whether the 13-150 uV band fits this data")
 args = parser.parse_args()
 
 with open(args.results, 'rb') as fh:
@@ -82,6 +85,7 @@ def combine(per_ch, names, n):
 
 RULES = ["none", "current", "all21", "wearables", "selected"]
 acc = {r: {"kept": [], "sens": [], "fa": [], "score": [], "dead": 0} for r in RULES}
+rms_pool = {}          # channel -> list of subsampled RMS values, for --rms-stats
 n_done = 0
 
 for fold in sorted(config.folds):
@@ -109,6 +113,14 @@ for fold in sorted(config.folds):
         rec_data = Data.loadData(config.data_path, rec, included_channels=config.included_channels)
         rec_data.apply_preprocess(config.fs, data_path=config.data_path,
                                   store_preprocessed=True, recording=rec)
+        if args.rms_stats:
+            for i, ch in enumerate(rec_data.channels):
+                r = channel_rms(rec_data.data[i], config.fs)
+                rms_pool.setdefault(ch, []).append(r[::10])   # subsample to bound memory
+            n_done += 1
+            del rec_data
+            continue
+
         per_ch = masks_for(rec_data, config.fs, args.rms_low, args.rms_high)
         n = len(y_pred)
 
@@ -133,6 +145,28 @@ for fold in sorted(config.folds):
                 acc[rule]["dead"] += 1
         n_done += 1
         del rec_data, per_ch
+
+if args.rms_stats:
+    print("\n" + "=" * 88)
+    print("Per-channel RMS distribution over %d recordings (2 s windows, uV)" % n_done)
+    print("band under test: %g - %g uV" % (args.rms_low, args.rms_high))
+    print("=" * 88)
+    print("%-14s %8s %8s %8s %8s %8s | %8s %8s %8s" %
+          ("channel", "p5", "p25", "median", "p75", "p95", "in band%", "below%", "above%"))
+    for ch in sorted(rms_pool):
+        v = np.concatenate(rms_pool[ch])
+        v = v[np.isfinite(v)]
+        if not len(v):
+            continue
+        q = np.percentile(v, [5, 25, 50, 75, 95])
+        below = 100 * np.mean(v <= args.rms_low)
+        above = 100 * np.mean(v >= args.rms_high)
+        print("%-14s %8.1f %8.1f %8.1f %8.1f %8.1f | %8.1f %8.1f %8.1f" %
+              (ch, q[0], q[1], q[2], q[3], q[4], 100 - below - above, below, above))
+    print("\nIf a channel's median sits below %g uV, the lower bound is rejecting normal signal "
+          "for that\nchannel rather than flat/disconnected segments, and the band needs "
+          "recalibrating for this data." % args.rms_low)
+    raise SystemExit(0)
 
 print("\n" + "=" * 78)
 print("RMSA rule comparison over %d recordings (threshold %.2f)" % (n_done, args.threshold))
