@@ -39,17 +39,30 @@ Two phases
 
 ``--phase all`` (default) does both.
 
+Where things live
+-----------------
+On the cluster the code and the artefacts are in different trees: the checkout sits under
+``/cw/dtaijupiter/...`` while models, predictions and results are under
+``Paths.remote_save_dir`` (``/cw/dtailocal/loren/2025-Epilepsy/net/save_dir``). Everything
+reached through the stored ``config`` (models, and the new validation predictions) follows
+``config.save_dir`` and therefore lands in the artefact tree automatically. The two
+``*__all_results.pkl`` are found by ``resolve_results_dir``, which tries the repo-relative
+path, then ``Paths.remote_save_dir``, then ``Paths.local_save_dir``, accepting only a
+directory that actually holds both arms' pickles; ``--results-dir`` overrides it.
+
 Outputs
 -------
-``analysis/results/consensus_val_threshold/``
+``analysis/results/consensus_val_threshold/`` *in the checkout* (git-ignored), or wherever
+``--curves`` points:
   * ``val_threshold_curves.pkl``      - validation and test curves, per fold and arm
   * ``consensus_val_threshold.md``    - the report
 
 Usage::
 
-    # on the cluster, one job per arm (or per fold group)
+    # on the cluster, one job per arm (or per fold group), from the checkout
     python -m analysis.consensus_val_threshold --phase predict --arm selection --gpu 0
     python -m analysis.consensus_val_threshold --phase predict --arm baseline --gpu 1
+    # ... --results-dir /cw/dtailocal/loren/2025-Epilepsy/net/save_dir/results  if not found
 
     # anywhere, once the pickle is available
     python -m analysis.consensus_val_threshold --phase rho
@@ -135,8 +148,35 @@ def _spearman(a: np.ndarray, b: np.ndarray) -> float:
 # Stored artefacts
 # --------------------------------------------------------------------------- #
 
-def load_results(name: str) -> dict:
-    path = os.path.join(RESULTS_DIR, name + "__all_results.pkl")
+def resolve_results_dir(explicit: str | None = None) -> str:
+    """Locate the directory holding the two ``*__all_results.pkl``.
+
+    On the cluster the code and the artefacts live apart -- the checkout is under
+    ``/cw/dtaijupiter/...`` while ``save_dir`` is ``/cw/dtailocal/loren/2025-Epilepsy/...`` --
+    so the repo-relative default of ``analysis/consensus_reanalysis.RESULTS_DIR`` only works
+    locally. The candidates below are tried in order, and a candidate only counts if both
+    arms' pickles are actually in it: an empty ``net/save_dir/results`` in the checkout must
+    not shadow the real one.
+    """
+    from utility.constants import Paths
+
+    candidates = ([explicit] if explicit else
+                  [RESULTS_DIR,
+                   os.path.join(Paths.remote_save_dir, "results"),
+                   os.path.join(Paths.local_save_dir, "results")])
+    for candidate in candidates:
+        if all(os.path.exists(os.path.join(candidate, name + "__all_results.pkl"))
+               for name in ARMS.values()):
+            return candidate
+    raise SystemExit(
+        "Could not find both arms' '*__all_results.pkl'. Looked in:\n  "
+        + "\n  ".join(candidates)
+        + "\nPass --results-dir with the directory that holds them (on the cluster that is "
+          f"{os.path.join(Paths.remote_save_dir, 'results')}).")
+
+
+def load_results(name: str, results_dir: str) -> dict:
+    path = os.path.join(results_dir, name + "__all_results.pkl")
     if not os.path.exists(path):
         raise FileNotFoundError(path)
     with open(path, "rb") as handle:
@@ -312,8 +352,9 @@ def validation_curve(config, name: str, fold_i: int, thresholds: Sequence[float]
 
 
 def phase_predict(arms: Sequence[str], folds: Sequence[int], curves_path: str,
-                  rmsa_override: bool | None, rescore: bool = False) -> dict:
-    stored = {arm: load_results(ARMS[arm]) for arm in ARMS}
+                  rmsa_override: bool | None, results_dir: str,
+                  rescore: bool = False) -> dict:
+    stored = {arm: load_results(ARMS[arm], results_dir) for arm in ARMS}
     check_arms_comparable(stored["selection"], stored["baseline"])
     thresholds = list(stored["selection"]["thresholds"])
     rmsa_filtering = (stored["selection"].get("rmsa_filtering", True)
@@ -674,6 +715,10 @@ def main() -> None:
     parser.add_argument("--rescore", action="store_true",
                         help="Recompute stored validation curves even when no prediction "
                              "changed (scoring reloads raw recordings for the RMSA mask).")
+    parser.add_argument("--results-dir", default=None,
+                        help="Directory holding the two '*__all_results.pkl'. Only needed if "
+                             "auto-detection fails; on the cluster the artefacts sit under "
+                             "Paths.remote_save_dir, not next to the checkout.")
     args = parser.parse_args()
 
     if args.phase in ("predict", "all"):
@@ -689,7 +734,11 @@ def main() -> None:
             except RuntimeError as error:
                 print(error)
 
-        payload = phase_predict(args.arm, args.folds, args.curves, args.rmsa, args.rescore)
+        results_dir = resolve_results_dir(args.results_dir)
+        print(f"Reading stored runs from : {results_dir}")
+        print(f"Writing curves to        : {args.curves}")
+        payload = phase_predict(args.arm, args.folds, args.curves, args.rmsa, results_dir,
+                                args.rescore)
         print(f"\nCurves written to {args.curves}")
     else:
         payload = load_curves(args.curves)
