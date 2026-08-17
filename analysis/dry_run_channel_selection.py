@@ -10,7 +10,13 @@ Example -- fold 3 of the run behind Table 4 (= "Fold 4" in the paper, selected T
 
     python -m analysis.dry_run_channel_selection --fold 3 \
         --evaluation_metric score --irr_th 0 --auc 0.3 --corr 0.5 \
-        --suffix v2 --held_out_fold --CV stratified
+        --held_out_fold --CV stratified
+
+Leave --suffix empty: `Config.get_name` already appends `_v{CURRENT_VERSION}`, so passing
+`--suffix v2` produces `..._v2_v2`, which does not match the stored experiment. The fold split is
+regenerated identically either way (it depends only on SEED and the subject list), but the stored
+config, the cached segments and the previous selection are then not found, so the run recomputes
+the segments and cannot print the PREVIOUS/CHANGED comparison.
 """
 import argparse
 import os
@@ -26,7 +32,9 @@ parser.add_argument("--irr_th", type=float, default=0.0)
 parser.add_argument("--auc", type=float, default=0.3)
 parser.add_argument("--corr", type=float, default=0.5)
 parser.add_argument("--batch_size", type=int, default=128)
-parser.add_argument("--suffix", type=str, default="v2")
+parser.add_argument("--suffix", type=str, default="",
+                    help="extra suffix for the experiment name. Leave empty: get_name() already "
+                         "appends _v{CURRENT_VERSION}, so 'v2' here yields '..._v2_v2'.")
 parser.add_argument("--CV", type=str, default=Keys.stratified,
                     choices=["leave_one_person_out", "stratified", "leave_one_hospital_out"])
 parser.add_argument("--held_out_fold", action="store_true")
@@ -39,6 +47,11 @@ parser.add_argument("--save-selector", type=str, default=None,
                          "touches the experiment's own config or results.")
 parser.add_argument("--locations", nargs="+", type=parse_location,
                     default=[parse_location(l) for l in Locations.all_keys()])
+parser.add_argument("--debug", dest='debug', action='store_true', default=False,
+                    help="Run on the handful of subjects of a debug run instead of the whole "
+                         "dataset (see utility/debug_settings.py). Opt-in, unlike the entry points "
+                         "that train: this script looks the experiment up by name, so a debug run "
+                         "only finds the stored config of a run that was itself a debug run.")
 args = parser.parse_args()
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
@@ -53,6 +66,7 @@ from net.generator_ds import build_tfrecord_dataset
 from net.key_generator import generate_data_keys_subsample, generate_data_keys_sequential_window
 from utility import get_recs_list
 from utility.constants import SEED
+from utility.debug_settings import get_debug_settings
 from utility.paths import (get_path_config, get_path_results, get_paths_segments_train,
                            get_paths_segments_val)
 
@@ -66,7 +80,8 @@ config = get_channel_selection_config(
     evaluation_metric=evaluation_metrics[args.evaluation_metric],
     irrelevant_selector_threshold=args.irr_th, irrelevant_selector_percentage=args.auc,
     corr_threshold=args.corr, CV=args.CV, suffix=args.suffix, included_channels=args.nodes,
-    batch_size=args.batch_size, held_out_fold=args.held_out_fold, Fz_reference=args.Fz_reference)
+    batch_size=args.batch_size, held_out_fold=args.held_out_fold, Fz_reference=args.Fz_reference,
+    debug=get_debug_settings(True) if args.debug else None)
 
 name = config.get_name()
 print("Experiment:", name)

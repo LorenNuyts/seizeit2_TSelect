@@ -60,8 +60,10 @@ def ts_reshape_error():
     CV_generator = multi_objective_grouped_stratified_cross_validation(info_per_group, group_column='hospital',
                                                                            id_column='subject',
                                                                            n_splits=config.n_folds,
-                                                                           train_size=config.train_percentage,
-                                                                           val_size=config.validation_percentage,
+                                                                           subset_sizes=[config.train_percentage,
+                                                                                         config.validation_percentage,
+                                                                                         1 - (config.train_percentage
+                                                                                              + config.validation_percentage)],
                                                                            weights_columns = {'n_seizures': 0.4,
                                                                                               'hours_of_data': 0.4},
                                                                            seed=SEED)

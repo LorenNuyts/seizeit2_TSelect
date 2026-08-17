@@ -24,3 +24,18 @@ analysis/results/
 dataset_content.csv
 
 analysis/results_backup/
+
+local_debug.json
+
+# Personal audit / insight work: scripts that only read stored artefacts, and the reports
+# they produce. Not part of the pipeline; nothing tracked imports them.
+analysis/consensus_val_threshold.py
+analysis/consensus_partial_area.py
+analysis/pooled_score.py
+analysis/build_audit_html.py
+pipeline_audit.md
+pipeline_audit.html
+
+papers/
+
+tmp/

@@ -71,6 +71,10 @@ class Config():
         self.held_out_subjects = None
         self.version_experiments = version_experiments
         self.Fz_reference = Fz_reference
+        # A debug run is restricted to these subjects (see utility/debug_settings.py). None means a
+        # full run, which is the default everywhere: only the entry points resolve the debug signal.
+        self.debug_subjects = None
+        self.n_debug_subjects = 0
 
         # models parameters
         self.data_format = tf.keras.backend.image_data_format
@@ -118,13 +122,17 @@ class Config():
             base_name = base_name + '_' + self.add_to_name
         if self.version_experiments is not None:
             base_name += f'_v{self.version_experiments}'
+        # Keep the artefacts of a debug run apart from those of a full run, so that a debug run can
+        # never overwrite a real model, result or prediction, nor be mistaken for one.
+        if getattr(self, 'debug_subjects', None):
+            base_name += '_debug'
         return base_name
 
 
 def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
                     included_channels=None, CV=Keys.stratified, held_out_fold=False, pretty_name=None,
                     Fz_reference=False,
-                    version_experiments=CURRENT_VERSION, suffix=""):
+                    version_experiments=CURRENT_VERSION, suffix="", debug=None):
     """
     Function to get the base configuration for the model. The function sets the parameters for the model, including
     the data path, save directory, sampling frequency, number of channels, batch size, window size, stride, balancing
@@ -140,6 +148,10 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
         held_out_fold (bool): whether to use a held-out fold that is not used for training, validation, or testing.
         pretty_name (str): pretty name for the experiment.
         suffix (str): suffix to add to the end of the experiment's config name.
+        debug (dict): the settings of a debug run, as returned by
+            utility.debug_settings.get_debug_settings(). None (the default) is a full run on all
+            subjects. Only the entry points that run the pipeline resolve this; everything that
+            looks up an existing run by name must leave it at None.
 
     Returns:
         config (Config): Config object with the specified parameters.
@@ -185,6 +197,8 @@ def get_base_config(base_dir, locations, model="ChronoNet", batch_size=128,
 
     config = Config(model=model, batch_size=batch_size, cross_validation=CV, held_out_fold=held_out_fold,
                     version_experiments=version_experiments, Fz_reference=Fz_reference)
+    config.debug_subjects = list(debug['subjects']) if debug else None
+    config.n_debug_subjects = int(debug['n_subjects']) if debug else 0
     if pretty_name:
         config.pretty_name = pretty_name
     if 'dtai' in base_dir:
@@ -251,11 +265,11 @@ def get_channel_selection_config(base_dir, locations, model="ChronoNet", batch_s
                                  corr_threshold=0.5, irrelevant_selector_threshold=-100, CV=Keys.stratified,
                                  held_out_fold=False,
                                  pretty_name=None, Fz_reference=False,
-                                version_experiments=CURRENT_VERSION, suffix="") -> Config:
+                                version_experiments=CURRENT_VERSION, suffix="", debug=None) -> Config:
     config = get_base_config(base_dir, locations, model=model, included_channels=included_channels,
                              pretty_name=pretty_name, batch_size=batch_size, CV=CV, held_out_fold=held_out_fold,
                              version_experiments=version_experiments, Fz_reference=Fz_reference,
-                             suffix=suffix)
+                             suffix=suffix, debug=debug)
     config.channel_selection = True
     config.selected_channels = None
     config.channel_selection_settings = {

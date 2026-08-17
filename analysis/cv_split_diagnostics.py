@@ -25,7 +25,6 @@ import numpy as np
 import pandas as pd
 
 from analysis.dataset import dataset_stats
-from data import cross_validation as cross_validation_module
 from data.cross_validation import get_CV_generator
 from net.DL_config import get_base_config
 from utility.constants import SEED, Keys, Locations, excluded_subjects, subjects_Fz_reference
@@ -60,19 +59,18 @@ def get_diagnostics_config():
     return config
 
 
-def check_splitter_is_not_in_testing_mode():
+def check_not_a_debug_run(config):
     """
-    multi_objective_grouped_stratified_cross_validation falls back to a hard-coded three-subject
-    debug split when the source tree does not live under a path containing 'dtai'. That branch does
-    not produce the folds of the experiments, so refuse to regenerate anything in that case.
+    A debug run yields a split of a handful of subjects instead of the real folds (see
+    utility/debug_settings.py), so refuse to regenerate anything in that case. The config of this
+    module never asks for a debug run, so this only fires if a caller passes one in.
     """
-    splitter_dir = os.path.dirname(os.path.realpath(cross_validation_module.__file__))
-    if 'dtai' not in splitter_dir:
+    if getattr(config, 'debug_subjects', None):
         raise RuntimeError(
-            "The splitter runs in testing mode from this location ({}) and yields a hard-coded "
-            "three-subject debug split instead of the real folds. Read the folds back from the "
-            "trained configs instead (--source saved), or regenerate them on the cluster.".format(
-                splitter_dir))
+            "This config is a debug run on {} subjects, so the splitter yields a debug split "
+            "instead of the real folds. Regenerate with a config without debug_subjects, or read "
+            "the folds back from the trained configs (--source saved).".format(
+                len(config.debug_subjects)))
 
 
 def find_saved_folds(config, config_file=None):
@@ -146,7 +144,7 @@ def find_saved_folds(config, config_file=None):
 
 def regenerate_folds(config):
     """ Regenerates the folds with the splitter. """
-    check_splitter_is_not_in_testing_mode()
+    check_not_a_debug_run(config)
     CV_generator, held_out_subjects = get_CV_generator(config)
     splits = [tuple(list(subset) for subset in split) for split in CV_generator]
     provenance = {'source': 'regenerate',

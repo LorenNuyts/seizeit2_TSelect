@@ -11,9 +11,23 @@ from net.utils import rereference_average_signal
 from utility import get_recs_list
 
 from utility.constants import parse_location, Locations, Nodes
+from utility.debug_settings import debug_pool, get_debug_settings
 from utility.paths import get_path_preprocessed_data, get_path_recording
 
 base_ = os.path.dirname(os.path.realpath(__file__))
+
+
+def subjects_to_process(location_path, config):
+    """
+    The subjects of a location to process: all of them, or only a handful of them for a debug run
+    (see utility/debug_settings.py).
+    """
+    subjects = sorted(s for s in os.listdir(location_path)
+                      if os.path.isdir(os.path.join(location_path, s)))
+    if getattr(config, 'debug_subjects', None):
+        subjects = debug_pool(config.debug_subjects, config.n_debug_subjects, subjects)
+    return subjects
+
 
 def create_preprocessed_dataset(root_dir, config):
     """
@@ -30,9 +44,7 @@ def create_preprocessed_dataset(root_dir, config):
         if not os.path.isdir(location_path):
             continue
 
-        subj = ['SUBJ-7-329']
-        for subject in os.listdir(location_path):
-        # for subject in subj:
+        for subject in subjects_to_process(location_path, config):
             print("     | Processing subject:", subject)
             subject_path = os.path.join(location_path, subject)
             if not os.path.isdir(subject_path):
@@ -73,17 +85,14 @@ def create_rereferenced_dataset(root_dir, config):
         if not os.path.isdir(location_path):
             continue
 
-        # subj = ['SUBJ-1b-315']
-        nb_subjects = 3
-        subj = np.random.choice(os.listdir(location_path), nb_subjects, replace=False)
-        # for subject in os.listdir(location_path):
-        for subject in subj:
+        for subject in subjects_to_process(location_path, config):
             print("     | Processing subject:", subject)
             subject_path = os.path.join(location_path, subject)
             if not os.path.isdir(subject_path):
                 continue
             recs = get_recs_list(root_dir, [location], [subject])
-            if len(recs) > 2:
+            if getattr(config, 'debug_subjects', None) and len(recs) > 2:
+                # A debug run: two recordings per subject are enough to exercise the code
                 recs_i = np.random.choice(range(len(recs)), 2, replace=False)
             else:
                 recs_i = range(len(recs))
@@ -148,7 +157,7 @@ def create_tfrecord_dataset(root_dir, config):
         if not os.path.isdir(location_path):
             continue
 
-        for subject in os.listdir(location_path):
+        for subject in subjects_to_process(location_path, config):
             print("     | Processing subject:", subject)
             subject_path = os.path.join(location_path, subject)
             if not os.path.isdir(subject_path):
@@ -172,11 +181,17 @@ if __name__ == '__main__':
         help=f"List of locations. Choose from: {', '.join(Locations.all_keys())}. "
              f"Defaults to all locations."
     )
+    parser.add_argument("--debug", dest='debug', action='store_true', default=None,
+                        help="Only preprocess a handful of subjects. Defaults to the SEIZEIT2_DEBUG "
+                             "environment variable, or to local_debug.json in the root of the "
+                             "repository if that file exists, or to preprocessing everything.")
+    parser.add_argument("--no-debug", "--no_debug", dest='debug', action='store_false',
+                        help="Preprocess every subject, whatever local_debug.json says.")
     args = parser.parse_args()
 
     unique_locations = list(dict.fromkeys(args.locations))
     # Import your configuration class
-    config_ = get_base_config(base_, locations=unique_locations,)
+    config_ = get_base_config(base_, locations=unique_locations, debug=get_debug_settings(args.debug))
     create_preprocessed_dataset(config_.data_path, config_)
     # create_rereferenced_dataset(config_.data_path, config_)
     # create_tfrecord_dataset(config_.data_path, config_)

@@ -6,6 +6,7 @@ from collections import defaultdict
 from net.DL_config import get_base_config, get_channel_selection_config
 from utility.constants import *
 from utility.constants import parse_location
+from utility.debug_settings import get_debug_settings
 from utility.paths import *
 from utility.stats import Results
 
@@ -54,8 +55,16 @@ parser.add_argument("--fold", type=int, nargs="?", default=None)
 parser.add_argument("--no_rmsa", action='store_true', help="If set, do not use filter based on RMSA.")
 parser.add_argument("--Fz_reference", action='store_true',
                     help="If set, only use subjects that have Fz as reference channel.")
+parser.add_argument("--debug", dest='debug', action='store_true', default=None,
+                    help="Run on a handful of subjects instead of the whole dataset, writing to "
+                         "separate '_debug' directories. Defaults to the SEIZEIT2_DEBUG environment "
+                         "variable, or to local_debug.json in the root of the repository if that "
+                         "file exists, or to a full run.")
+parser.add_argument("--no-debug", "--no_debug", dest='debug', action='store_false',
+                    help="Force a full run on all subjects, whatever local_debug.json says.")
 
 args = parser.parse_args()
+debug_ = get_debug_settings(args.debug)
 
 if args.irr_th is None:
     args.irr_th = -100  if args.evaluation_metric=='score' else 0.5
@@ -100,11 +109,12 @@ if args.channel_selection:
                                           irrelevant_selector_threshold=args.irr_th,
                                           irrelevant_selector_percentage=args.auc, corr_threshold=args.corr, CV=args.CV,
                                           suffix=suffix_, included_channels=args.nodes, batch_size=args.batch_size,
-                                          held_out_fold=args.held_out_fold, Fz_reference=args.Fz_reference)
+                                          held_out_fold=args.held_out_fold, Fz_reference=args.Fz_reference,
+                                          debug=debug_)
 else:
     config = get_base_config(base_, unique_locations, model=args.model, suffix=suffix_, included_channels=args.nodes,
                              batch_size=args.batch_size, CV= args.CV, held_out_fold=args.held_out_fold,
-                             Fz_reference=args.Fz_reference)
+                             Fz_reference=args.Fz_reference, debug=debug_)
 
 ###########################################
 ###########################################

@@ -7,6 +7,7 @@ from analysis.channel_analysis.file_management import download_remote_configs
 from net.DL_config import get_base_config, get_channel_selection_config
 from utility.constants import *
 from utility.constants import parse_location
+from utility.debug_settings import get_debug_settings
 from utility.paths import *
 from utility.stats import Results
 
@@ -22,25 +23,31 @@ key_generator.random.seed(random_seed)
 from net import main_func
 
 base_ = os.path.dirname(os.path.realpath(__file__))
+# The configs below are built before the arguments are parsed, so this entry point has no --debug
+# flag: it follows local_debug.json and SEIZEIT2_DEBUG only. A debug run reuses the runs of other
+# debug runs, since every config in this file gets the same setting.
+debug_ = get_debug_settings()
 locations_ = [parse_location(l) for l in Locations.all_keys()]
 locations_ = sorted(list(dict.fromkeys(locations_)))
 config_stratified_ch_05 = get_channel_selection_config(base_, locations=locations_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0.5, CV=Keys.stratified,
-                                     held_out_fold=True)
+                                     held_out_fold=True, debug=debug_)
 config_stratified_ch_100 = get_channel_selection_config(base_, locations=locations_,
                                      evaluation_metric=evaluation_metrics['score'], CV=Keys.stratified,
-                                     held_out_fold=True)
-config_stratified_base = get_base_config(base_, locations=locations_, CV=Keys.stratified, held_out_fold=True)
+                                     held_out_fold=True, debug=debug_)
+config_stratified_base = get_base_config(base_, locations=locations_, CV=Keys.stratified, held_out_fold=True,
+                                         debug=debug_)
 
 config_loho_ch_05 = get_channel_selection_config(base_, locations=locations_,
                                      evaluation_metric=evaluation_metrics['score'],
                                      irrelevant_selector_threshold=0.5, CV=Keys.leave_one_hospital_out,
-                                     held_out_fold=True)
+                                     held_out_fold=True, debug=debug_)
 config_loho_ch_100 = get_channel_selection_config(base_, locations=locations_,
                                      evaluation_metric=evaluation_metrics['score'], CV=Keys.leave_one_hospital_out,
-                                     held_out_fold=True)
-config_loho_base = get_base_config(base_, locations=locations_, CV=Keys.leave_one_hospital_out, held_out_fold=True)
+                                     held_out_fold=True, debug=debug_)
+config_loho_base = get_base_config(base_, locations=locations_, CV=Keys.leave_one_hospital_out, held_out_fold=True,
+                                   debug=debug_)
 
 stratified_configs = {
     (Nodes.CROSStop, "T7"): {
@@ -102,7 +109,8 @@ elif args.CV == Keys.leave_one_hospital_out:
 else:
     raise NotImplementedError(f'CV method {args.CV} not implemented.')
 
-config = get_base_config(base_, locations_, suffix=suffix_, included_channels=args.nodes, held_out_fold=True, CV=args.CV)
+config = get_base_config(base_, locations_, suffix=suffix_, included_channels=args.nodes, held_out_fold=True,
+                         CV=args.CV, debug=debug_)
 
 ###########################################
 ###########################################
