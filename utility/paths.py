@@ -20,7 +20,16 @@ def get_path_tfrecord(data_path, recording, start, stop):
     return os.path.join(data_path, location, subject, rec_id, file_name)
 
 def get_path_predictions(config, name, rec, fold_i):
-    folder_path = get_path_predictions_folder(config, name, fold_i)
+    return get_path_predictions_file(get_path_predictions_folder(config, name, fold_i), rec)
+
+def get_path_predictions_file(folder_path, rec):
+    """Name of a recording's prediction file inside an arbitrary folder.
+
+    Split out of get_path_predictions so that predictions written somewhere other than the
+    run's own folder -- validation predictions, see analysis/consensus_val_threshold.py --
+    follow the same convention. evaluate() and get_results_rec_file() recover the recording
+    by splitting this name on '__'.
+    """
     return os.path.join(str(folder_path),
                         rec[0] + '__' + rec[1] + '__' + rec[2] + '__preds.h5')
 

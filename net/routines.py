@@ -127,13 +127,45 @@ def train_net(config, model: keras.Model, gen_train, gen_val, model_save_path, s
     print("Saved model to disk")
 
 
-def predict_net(generator, model_weights_path, model: keras.Model):
+# Segments pushed through the model at a time while predicting. predict_per_fold builds its
+# generator with batch_size=len(segments), so a "batch" here is a whole recording; this
+# function used to hand that straight to model.predict as batch_size=batch_x.shape[0]. For an
+# 18-hour recording (63425 segments at frame 2 s / stride 1 s) ChronoNet's first inception
+# concatenation is then [63425, 250, 96] float32 = 6.1 GB of activations for that one tensor,
+# and prediction dies with a ResourceExhaustedError on the longest recording however large the
+# GPU is. Splitting the batch bounds device memory by the chunk instead of by the length of
+# the recording, and does not change the predictions: none of the models here has a
+# cross-sample operation, and their BatchNormalization layers use their stored moving
+# statistics at inference. The near-constant chunk shape also cuts down retracing: Keras traces
+# the prediction graph once for the full-size chunk plus once per distinct trailing-chunk
+# length, rather than once per distinct recording length as before.
+PREDICT_BATCH_SIZE = 1024
+
+
+def _split_batches(generator, batch_size):
+    """ Fallback for generators that cannot hand out views of their own storage.
+
+    SequentialGenerator.iter_batches() is preferred (see predict_net); this covers anything
+    else -- SequentialGeneratorDynamic, a tf.data pipeline -- by splitting whatever batches
+    it produces. Slices of a batch are views, so the split itself costs no memory, but the
+    generator has already materialised the batch by this point.
+    """
+    for batch_x, batch_y in generator:
+        for start in range(0, batch_x.shape[0], batch_size):
+            yield batch_x[start:start + batch_size], batch_y[start:start + batch_size]
+
+
+def predict_net(generator, model_weights_path, model: keras.Model,
+                batch_size: int = PREDICT_BATCH_SIZE):
     """ Routine to obtain predictions from the trained model with the desired configurations.
 
     Args:
         generator: a keras data generator containing the data to predict
         model_weights_path: path to the folder containing the models' weights
         model: keras model object
+        batch_size: number of segments given to the model at a time, independent of the
+                    generator's own batch size (see PREDICT_BATCH_SIZE). Lower it if a
+                    ResourceExhaustedError occurs; it affects memory use, not the output.
 
     Returns:
         y_pred: array with the probability of seizure occurrences (0 to 1) of each consecutive
@@ -148,11 +180,15 @@ def predict_net(generator, model_weights_path, model: keras.Model):
     all_y_true = []
     all_y_pred = []
 
-    for batch_x, batch_y in generator:
+    # SequentialGenerator can hand out views straight from its own storage; going through its
+    # __getitem__ instead would fancy-index -- and so copy -- a whole recording per batch.
+    batches = (generator.iter_batches(batch_size) if hasattr(generator, 'iter_batches')
+               else _split_batches(generator, batch_size))
+
+    for batch_x, batch_y in batches:
         if batch_x.shape[0] == 0:
             print("Empty batch encountered, skipping.")
             continue
-        # Predict for the batch
         pred_batch = model.predict(batch_x, batch_size=batch_x.shape[0], verbose=0)
         all_y_pred.append(pred_batch[:, 1].astype('float32'))
         all_y_true.append(batch_y[:, 1].astype('uint8'))
@@ -160,6 +196,14 @@ def predict_net(generator, model_weights_path, model: keras.Model):
     # Concatenate all batches into single arrays
     y_pred = np.concatenate(all_y_pred, axis=0)
     y_true = np.concatenate(all_y_true, axis=0)
+
+    # Guards the chunking above. get_results_rec_file silently truncates the RMSA mask to
+    # len(y_pred) rather than complaining, so a short y_pred would be scored as a shortened
+    # recording and quietly produce wrong metrics instead of an error.
+    if len(y_pred) != len(y_true):
+        raise RuntimeError(f"Predicted {len(y_pred)} segments but the generator supplied "
+                           f"{len(y_true)} labels; the predictions would be scored against "
+                           f"a shortened recording.")
 
     return y_pred, y_true
     y_aux = []

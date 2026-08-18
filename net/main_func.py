@@ -24,15 +24,16 @@ from data.cross_validation import get_CV_generator, multi_objective_grouped_stra
 from net.DL_config import Config
 from net.key_generator import generate_data_keys_sequential, generate_data_keys_subsample, generate_data_keys_sequential_window
 from net.generator_ds import build_tfrecord_dataset, SequentialGenerator, SequentialGeneratorDynamic
-from net.routines import train_net, predict_net
+from net.routines import train_net, predict_net, PREDICT_BATCH_SIZE
 from utility.metrics import get_metrics_scoring
 
 from data.data import Data
 from net.MiniRocket_LR import MiniRocketLR
 from utility import get_recs_list
 from utility.constants import SEED, Paths, Keys, Metrics
-from utility.paths import get_path_predictions, get_path_config, get_path_model_weights, get_path_model, \
-    get_path_predictions_folder, get_path_results, get_paths_segments_val, get_paths_segments_train
+from utility.paths import get_path_predictions, get_path_predictions_file, get_path_config, \
+    get_path_model_weights, get_path_model, get_path_predictions_folder, get_path_results, \
+    get_paths_segments_val, get_paths_segments_train
 
 from TSelect.tselect.tselect.utils import init_metadata
 from TSelect.tselect.tselect.channel_selectors.tselect import TSelect
@@ -402,8 +403,8 @@ def predict(config, fold=None):
     #     futures = [executor.submit(predict_per_fold, config, i) for i in range(config.n_folds)]
     #
     #     for future in concurrent.futures.as_completed(futures):
-    #         fold_index = future.result()
-    #         print(f"Fold {fold_index} completed")
+    #         written, n_recordings = future.result()   # NB: no longer the fold index
+    #         print(f"Fold completed: {written} of {n_recordings} recordings predicted")
 
     for fold_i in config.folds.keys():
         if fold is not None and fold_i != fold:
@@ -412,19 +413,54 @@ def predict(config, fold=None):
         predict_per_fold(config, fold_i)
 
 
-def predict_per_fold(config, fold_i):
-    name = config.get_name()
+def predict_per_fold(config, fold_i, split='test', predictions_folder=None, name=None,
+                     batch_size=PREDICT_BATCH_SIZE):
+    """ Predict one fold's recordings with that fold's stored model.
+
+    Args:
+        config: config object of the run whose models are to be used.
+        fold_i: fold to predict.
+        split: which of the fold's subject sets to predict, i.e. a key of config.folds[fold_i].
+               'test' is the run's own prediction step; 'validation' is used by
+               analysis/consensus_val_threshold.py to fit a decision threshold off the test
+               fold.
+        predictions_folder: where to write the '<sub>__<run>__<seg>__preds.h5' files. Defaults
+               to the run's own predictions folder. Anything predicting a split other than
+               'test' must pass a different folder: the test predictions of the published runs
+               are their artefacts and must not be written over.
+        name: run name, defaulting to config.get_name(). Pass it explicitly when the artefacts
+               on disk are known by a literal name, so that a drift between get_name() and
+               that name cannot silently load another run's weights.
+        batch_size: segments per model call, forwarded to predict_net (see
+               net.routines.PREDICT_BATCH_SIZE). Affects memory use, not the predictions.
+
+    Returns:
+        (written, n_recordings): how many prediction files this call created, and how many
+        recordings the split has in total. They differ when a previous, interrupted run had
+        already predicted some of them.
+    """
+    name = name if name is not None else config.get_name()
     print('Fold {}'.format(fold_i))
-    test_subjects = config.folds[fold_i]['test']
+    subjects = config.folds[fold_i][split]
     K.clear_session()
     gc.collect()
     config.reload_CH(fold=fold_i)
-    test_recs_list = get_recs_list(config.data_path, config.locations, test_subjects)
-    # print("Recordings to predict:", test_recs_list)
+    recs_list = get_recs_list(config.data_path, config.locations, subjects)
+    # print("Recordings to predict:", recs_list)
     selected_channels_indices = [sorted(config.included_channels).index(ch) for ch in
                                  config.selected_channels[fold_i]] if config.channel_selection else None
     model_save_path = get_path_model(config, name, fold_i)
     model_weights_path = get_path_model_weights(model_save_path, name)
+    # Fail here, naming the path, rather than deep inside Keras once the recording list has
+    # already been walked: this runs unattended, and a run name or a save_dir that does not
+    # resolve on the current machine is the usual cause.
+    required = (model_save_path if config.model.lower() == Keys.minirocketLR.lower()
+                else model_weights_path)
+    if not os.path.exists(required):
+        raise FileNotFoundError(
+            f"Fold {fold_i} of '{name}' has no stored model at {required}. Prediction uses "
+            f"the models the run left behind; it never trains. Check that the run name and "
+            f"save_dir resolve to the machine you are on.")
     if config.model == 'DeepConvNet':
         from net.DeepConv_Net import net
     elif config.model == 'ChronoNet':
@@ -439,9 +475,14 @@ def predict_per_fold(config, fold_i):
         model = net(config)
         K.set_image_data_format('channels_last')
         model.load_weights(model_weights_path)
-    for rec in tqdm(test_recs_list):
-        if os.path.isfile(get_path_predictions(config, name, rec, fold_i)):
-            pass
+    folder = (predictions_folder if predictions_folder is not None
+              else get_path_predictions_folder(config, name, fold_i))
+    os.makedirs(folder, exist_ok=True)
+
+    written = 0
+    for rec in tqdm(recs_list):
+        out_path = get_path_predictions_file(folder, rec)
+        if os.path.isfile(out_path):
             print(f"Fold {fold_i}: {rec[0]} {rec[1]} {rec[2]} exists. Skipping...")
         else:
             # print('Predicting for recording: {} {} {}'.format(rec[0], rec[1], rec[2]))
@@ -470,17 +511,23 @@ def predict_per_fold(config, fold_i):
             if config.model.lower() == Keys.minirocketLR.lower():
                 y_pred, y_true = model.predict(gen_test)
             else:
-                y_pred, y_true = predict_net(gen_test, model_weights_path, model)
+                y_pred, y_true = predict_net(gen_test, model_weights_path, model,
+                                             batch_size=batch_size)
 
             del gen_test, segments
             gc.collect()
             # K.clear_session()
 
-            os.makedirs(os.path.dirname(get_path_predictions(config, name, rec, fold_i)), exist_ok=True)
-            with h5py.File(get_path_predictions(config, name, rec, fold_i), 'w') as f:
+            # Write under a temporary name and rename: the loop skips any recording that
+            # already has a file, so one half-written when the job is killed would pass for a
+            # finished one for ever after. os.replace is atomic within a filesystem.
+            partial_path = out_path + '.partial'
+            with h5py.File(partial_path, 'w') as f:
                 f.create_dataset('y_pred', data=y_pred)
                 f.create_dataset('y_true', data=y_true)
+            os.replace(partial_path, out_path)
             config.reload_CH()
+            written += 1
 
             del y_pred, y_true
             gc.collect()
@@ -488,7 +535,7 @@ def predict_per_fold(config, fold_i):
     del model
     K.clear_session()
     gc.collect()
-    return fold_i
+    return written, len(recs_list)
 
 
 #######################################################################################################################

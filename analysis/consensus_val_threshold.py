@@ -39,6 +39,34 @@ Two phases
 
 ``--phase all`` (default) does both.
 
+Memory
+------
+Recordings here are up to ~18 hours long, which at frame 2 s / stride 1 s is some 63 000
+segments, and ``predict_per_fold`` builds its generator with ``batch_size=len(segments)``, so
+one "batch" is a whole recording. Handing that to the GPU in one piece makes ChronoNet's first
+inception concatenation [63425, 250, 96] float32, 6.1 GB for that single tensor, and the job
+dies with a ``ResourceExhaustedError`` on the longest recording however large the GPU is.
+``net/routines.predict_net`` therefore feeds the model in chunks of ``--predict-batch-size``
+segments (default ``PREDICT_BATCH_SIZE``), taken as views from
+``SequentialGenerator.iter_batches``, so device memory scales with the chunk rather than with
+the length of the recording. Smaller inference batches do not change the probabilities --
+ChronoNet has no cross-sample operation and its BatchNormalization layers use their stored
+moving statistics -- so these validation predictions stay on the same footing as the stored
+test predictions, which were produced before the fix and are never recomputed.
+
+Interrupted runs
+----------------
+Both resumption checks are conservative about half-finished work. Prediction files are
+written under a temporary name and renamed, so a job killed mid-write leaves no file that
+the ``os.path.isfile`` skip would mistake for a finished one. A stored validation curve is
+only reused when its recording count matches the fold's recording list: ``validation_curve``
+averages over whatever is in the folder, so a curve computed while the folder was still
+filling up covers a subset of the fold, and without that check it would be cached and reused
+for ever. Note that a curve written by an *older* version of this script may already be in
+the pickle in that state -- the count is printed per fold, and ``--rescore`` recomputes.
+Run one job per ``--curves`` file: the pickle is read once at start-up and rewritten whole,
+so two concurrent jobs sharing one path overwrite each other's folds.
+
 Where things live
 -----------------
 On the cluster the code and the artefacts are in different trees: the checkout sits under
@@ -66,6 +94,9 @@ Usage::
 
     # anywhere, once the pickle is available
     python -m analysis.consensus_val_threshold --phase rho
+
+    # if the GPU is still short of memory
+    python -m analysis.consensus_val_threshold --phase predict --predict-batch-size 256
 """
 
 import argparse
@@ -109,6 +140,11 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "analysis", "results", "consensus_val_thresh
 CURVES_FILENAME = "val_threshold_curves.pkl"
 PRED_FS = 1  # predictions are one per second, as in net/main_func.predict
 PLATEAU_TOLERANCE = 1.0  # score points; how flat a curve is around its maximum
+# Default for --predict-batch-size; see the module docstring for why the whole recording does
+# not fit at once. Duplicated from ``net.routines.PREDICT_BATCH_SIZE`` rather than imported:
+# that module pulls in keras, which must not be imported before the entry point below has
+# seeded tensorflow and set CUDA_VISIBLE_DEVICES.
+PREDICT_BATCH_SIZE = 1024
 
 
 # --------------------------------------------------------------------------- #
@@ -229,99 +265,26 @@ def validation_predictions_folder(config, name: str, fold_i: int) -> str:
     return os.path.join(config.save_dir, "predictions_validation", name, f"fold_{fold_i}")
 
 
-def predict_validation_fold(config, name: str, fold_i: int) -> int:
+def predict_validation_fold(config, name: str, fold_i: int,
+                            batch_size: int = PREDICT_BATCH_SIZE) -> Tuple[int, int]:
     """Predict a fold's validation recordings with that fold's stored model.
 
-    A transcription of ``net/main_func.predict_per_fold`` with the test subjects replaced
-    by the validation subjects and the output folder replaced; everything that touches the
-    model, the segments and the generator is kept identical, so the resulting probabilities
-    are on the same footing as the stored test predictions.
+    ``net/main_func.predict_per_fold`` does the work, with ``split="validation"`` and its
+    output redirected: this is the same code that produced the stored test predictions, so
+    the validation probabilities are on the same footing by construction rather than by a
+    transcription that has to be kept in step. ``name`` is passed explicitly because the two
+    runs are known on disk by the literal names in ``analysis/consensus_reanalysis``, and
+    ``predict_per_fold`` would otherwise fall back to ``config.get_name()``.
+
+    It never trains, and it writes nowhere near the test predictions -- see
+    ``validation_predictions_folder``.
     """
-    import gc
+    from net.main_func import predict_per_fold
 
-    import h5py
-    from tensorflow.keras import backend as K
-    from tqdm import tqdm
-
-    from net.MiniRocket_LR import MiniRocketLR
-    from net.generator_ds import SequentialGenerator
-    from net.key_generator import generate_data_keys_sequential
-    from net.routines import predict_net
-    from utility import get_recs_list
-    from utility.constants import Keys
-    from utility.paths import get_path_model, get_path_model_weights
-
-    validation_subjects = config.folds[fold_i]["validation"]
-    K.clear_session()
-    gc.collect()
-    config.reload_CH(fold=fold_i)
-    recs_list = get_recs_list(config.data_path, config.locations, validation_subjects)
-
-    model_save_path = get_path_model(config, name, fold_i)
-    model_weights_path = get_path_model_weights(model_save_path, name)
-    # Fail here, with the path, rather than deep inside Keras after the recording list has
-    # already been walked -- this script is meant to run where nobody is watching.
-    required = (model_save_path if config.model.lower() == Keys.minirocketLR.lower()
-                else model_weights_path)
-    if not os.path.exists(required):
-        raise FileNotFoundError(
-            f"Fold {fold_i} of '{name}' has no stored model at {required}. This script "
-            f"predicts with the models the run left behind; it never trains. Check that "
-            f"the run name and save_dir resolve to the machine you are on.")
-
-    if config.model == "DeepConvNet":
-        from net.DeepConv_Net import net
-    elif config.model == "ChronoNet":
-        from net.ChronoNet import net
-    elif config.model == "EEGnet":
-        from net.EEGnet import net
-    elif config.model.lower() != Keys.minirocketLR.lower():
-        raise ValueError("Model not recognized")
-
-    if config.model.lower() == Keys.minirocketLR.lower():
-        model = MiniRocketLR(model_save_path)
-    else:
-        model = net(config)
-        K.set_image_data_format("channels_last")
-        model.load_weights(model_weights_path)
-
-    folder = validation_predictions_folder(config, name, fold_i)
-    os.makedirs(folder, exist_ok=True)
-
-    written = 0
-    for rec in tqdm(recs_list, desc=f"fold {fold_i} validation"):
-        out_path = os.path.join(folder, rec[0] + "__" + rec[1] + "__" + rec[2] + "__preds.h5")
-        if os.path.isfile(out_path):
-            continue
-        segments = generate_data_keys_sequential(config, [rec], verbose=False)
-        gen = SequentialGenerator(
-            config, [rec], segments, batch_size=len(segments),
-            channels=config.selected_channels[fold_i] if config.channel_selection else None,
-            shuffle=False, verbose=False)
-
-        config.reload_CH(fold_i)  # DO NOT REMOVE THIS (see net/main_func.predict_per_fold)
-
-        if config.model.lower() == Keys.minirocketLR.lower():
-            y_pred, y_true = model.predict(gen)
-        else:
-            y_pred, y_true = predict_net(gen, model_weights_path, model)
-
-        del gen, segments
-        gc.collect()
-
-        with h5py.File(out_path, "w") as handle:
-            handle.create_dataset("y_pred", data=y_pred)
-            handle.create_dataset("y_true", data=y_true)
-        config.reload_CH()
-        written += 1
-
-        del y_pred, y_true
-        gc.collect()
-
-    del model
-    K.clear_session()
-    gc.collect()
-    return written
+    return predict_per_fold(config, fold_i, split="validation",
+                            predictions_folder=validation_predictions_folder(config, name,
+                                                                             fold_i),
+                            name=name, batch_size=batch_size)
 
 
 def validation_curve(config, name: str, fold_i: int, thresholds: Sequence[float],
@@ -352,8 +315,8 @@ def validation_curve(config, name: str, fold_i: int, thresholds: Sequence[float]
 
 
 def phase_predict(arms: Sequence[str], folds: Sequence[int], curves_path: str,
-                  rmsa_override: bool | None, results_dir: str,
-                  rescore: bool = False) -> dict:
+                  rmsa_override: bool | None, results_dir: str, rescore: bool = False,
+                  batch_size: int = PREDICT_BATCH_SIZE) -> dict:
     stored = {arm: load_results(ARMS[arm], results_dir) for arm in ARMS}
     check_arms_comparable(stored["selection"], stored["baseline"])
     thresholds = list(stored["selection"]["thresholds"])
@@ -378,17 +341,27 @@ def phase_predict(arms: Sequence[str], folds: Sequence[int], curves_path: str,
         config = prepare_config(stored[arm])
         for fold_i in folds:
             print(f"\n=== {arm} arm, fold {fold_i} ===")
-            written = predict_validation_fold(config, name, fold_i)
+            written, n_recordings = predict_validation_fold(config, name, fold_i,
+                                                            batch_size=batch_size)
             print(f"  {written} new prediction file(s)")
             # Scoring reloads the raw recordings for the RMSA mask, so it is the expensive
             # half of a resumed run. Skip it when this fold's curve is already stored and
             # no prediction changed; --rescore forces it.
             cached = payload["arms"][arm]["val"].get(fold_i)
-            if cached is not None and written == 0 and not rescore:
+            # validation_curve() averages over whatever os.listdir() finds, so a curve
+            # computed while the folder was still filling up (an earlier job that died
+            # part-way) is a curve over a subset of the fold -- and, being cached, would be
+            # reused for ever. Only trust a cached curve that covers every recording.
+            n_cached = payload["arms"][arm]["n_val_recordings"].get(fold_i)
+            complete = n_cached == n_recordings
+            if cached is not None and not complete:
+                print(f"  stored curve covers {n_cached} of {n_recordings} recordings "
+                      f"-- re-scoring")
+            if cached is not None and complete and written == 0 and not rescore:
                 print("  curve already stored and no new predictions -- not re-scoring "
                       "(pass --rescore to force)")
                 curve = cached
-                n_files = payload["arms"][arm]["n_val_recordings"].get(fold_i, -1)
+                n_files = n_cached
             else:
                 curve, n_files = validation_curve(config, name, fold_i, thresholds,
                                                   rmsa_filtering)
@@ -708,6 +681,11 @@ def main() -> None:
     parser.add_argument("--folds", type=int, nargs="+", default=list(range(N_FOLDS)),
                         help="Folds to predict (default: all).")
     parser.add_argument("--gpu", type=int, default=0, help="Sets CUDA_VISIBLE_DEVICES.")
+    parser.add_argument("--predict-batch-size", type=int, default=PREDICT_BATCH_SIZE,
+                        help="Segments per GPU batch while predicting (default "
+                             f"{PREDICT_BATCH_SIZE}). Device memory scales with this, not "
+                             "with the length of the recording; lower it if a "
+                             "ResourceExhaustedError still occurs.")
     parser.add_argument("--curves", default=os.path.join(OUTPUT_DIR, CURVES_FILENAME),
                         help="Where the validation/test curves are cached.")
     parser.add_argument("--no-rmsa", dest="rmsa", action="store_false", default=None,
@@ -738,7 +716,7 @@ def main() -> None:
         print(f"Reading stored runs from : {results_dir}")
         print(f"Writing curves to        : {args.curves}")
         payload = phase_predict(args.arm, args.folds, args.curves, args.rmsa, results_dir,
-                                args.rescore)
+                                args.rescore, args.predict_batch_size)
         print(f"\nCurves written to {args.curves}")
     else:
         payload = load_curves(args.curves)

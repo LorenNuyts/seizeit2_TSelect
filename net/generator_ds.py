@@ -117,6 +117,37 @@ class SequentialGenerator(keras.utils.Sequence):
             out = self.data_segs[self.key_array[keys], :, :], self.labels[self.key_array[keys]]
         return out
 
+    def iter_batches(self, batch_size):
+        """ Yield (x, y) in chunks of at most batch_size segments, without copying.
+
+        __getitem__ fancy-indexes data_segs, which materialises a second copy of whatever it
+        returns. The prediction paths build this generator with batch_size=len(segments), so
+        that copy is a whole recording -- some 2.5 GB for an 18-hour one, on top of the 2.5 GB
+        data_segs already holds. Slicing is a view, so this costs nothing.
+
+        Slicing in segment order is only equivalent to __getitem__ while key_array has not
+        been permuted, which is why shuffle is checked rather than assumed. The reshape
+        matches __data_generation__ above; both of its steps are views as well.
+
+        Args:
+            batch_size: maximum number of segments per yielded chunk. The final chunk of the
+                        generator is shorter whenever this does not divide the segment count.
+
+        Yields:
+            (x, y): views into data_segs and labels, in segment order.
+        """
+        if self.shuffle or not np.array_equal(self.key_array, np.arange(len(self.labels))):
+            raise ValueError("iter_batches() reads data_segs in segment order, which is only "
+                             "the generator's order while key_array is unpermuted. This "
+                             "generator was built with shuffle=True; iterate it instead.")
+
+        data = self.data_segs
+        if self.config.model == 'DeepConvNet' or self.config.model == 'EEGnet':
+            data = data[:, :, :, np.newaxis].transpose(0, 2, 1, 3)
+
+        for start in range(0, len(self.labels), batch_size):
+            yield data[start:start + batch_size], self.labels[start:start + batch_size]
+
     def change_included_channels(self, included_channels: list):
         included_channels = switch_channels(self.channels, included_channels, Nodes.switchable_channels)
         assert set(included_channels).issubset(set(self.channels))
